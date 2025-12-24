@@ -1,360 +1,236 @@
-from django.shortcuts import render
-
-# Create your views here.
-from rest_framework import generics, permissions, status, filters
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.response import Response
-from rest_framework.views import APIView
-from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
-from django_filters.rest_framework import DjangoFilterBackend
-from django.db.models import Q, Max
 from django.db import transaction, models
+from django.db.models import Q, F
 from django.shortcuts import get_object_or_404
 
+from rest_framework import viewsets, status
+from rest_framework.decorators import action, api_view
+from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.exceptions import ValidationError
+from rest_framework.parsers import MultiPartParser, FormParser
+
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters
+
 from .models import Category, Post, PostImages, PostVideo
-from .serializer import (CategorySerializer, PostListSerializer,
-                         PostDetailSerializer, PostCreateUpdateSerializer,
-                         PostImageSerializer, PostVideoSerializer)
+from .serializers import (
+    CategorySerializer,
+    PostListSerializer,
+    PostDetailSerializer,
+    PostCreateUpdateSerializer,
+    PostImageSerializer,
+    PostVideoSerializer,
+)
 from .permissions import IsAuthorOrReadOnly
 
 
-class CategoryListCreateView(generics.ListCreateAPIView):
-    """Список та створення категорій"""
-    queryset = Category.objects.all()
+# ========================
+# Category ViewSet
+# ========================
+class CategoryViewSet(viewsets.ModelViewSet):
+    queryset = Category.objects.all().order_by('name')
     serializer_class = CategorySerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [IsAuthenticatedOrReadOnly]
+    lookup_field = 'slug'
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name', 'description']
     ordering_fields = ['name', 'created_at']
-    ordering = ['name']
 
 
-class CategoryDetailView(generics.RetrieveUpdateDestroyAPIView):
-    """Деталі, оновлення та видалення категорії"""
-    queryset = Category.objects.all()
-    serializer_class = CategorySerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+# ========================
+# Post ViewSet
+# ========================
+class PostViewSet(viewsets.ModelViewSet):
+    """ViewSet для постів з повним CRUD функціоналом"""
+    queryset = Post.objects.select_related('author', 'category') \
+                           .prefetch_related('tags', 'images', 'videos')
+    permission_classes = [IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly]
     lookup_field = 'slug'
-
-
-class PostListCreateView(generics.ListCreateAPIView):
-    """Список постів та створення нового поста"""
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     filter_backends = [DjangoFilterBackend,
                        filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['category', 'author', 'status']
-    search_fields = ['title', 'content', 'author_username', 'tags__name']
-    ordering_fields = ['created_at', 'updated_at', 'views_count', 'title']
+    filterset_fields = ['category__slug', 'status', 'author']
+    search_fields = ['title', 'content', 'tags__name']
+    ordering_fields = ['created_at', 'updated_at',
+                       'published_at', 'views_count']
     ordering = ['-published_at', '-created_at']
 
     def get_queryset(self):
-        """Фільтрація постів в залежності від юзера"""
-        qs = Post.objects.select_related(
-            'author', 'category').prefetch_related('tags')
-
-        # Якщо не авторизований - тільки опубліковані
+        """Фільтрація в залежності від користувача"""
+        qs = super().get_queryset()
         if not self.request.user.is_authenticated:
             return qs.filter(status='published')
-
-        # Якщо авторизований - опубліковані + свої чернетки
-        return qs.filter(
-            Q(status='published') | Q(author=self.request.user)
-        )
+        # Авторизовані бачать свої чернетки + всі опубліковані
+        return qs.filter(Q(status='published') | Q(author=self.request.user))
 
     def get_serializer_class(self):
         """Різні серіалізатори для різних дій"""
-        if self.request.method == 'POST':
-            return PostCreateUpdateSerializer
-        return PostListSerializer
+        if self.action == 'list':
+            return PostListSerializer
+        if self.action == 'retrieve':
+            return PostDetailSerializer
+        return PostCreateUpdateSerializer
 
     def perform_create(self, serializer):
         """Додаємо автора при створенні"""
         serializer.save(author=self.request.user)
 
-
-class PostDetailView(generics.RetrieveUpdateDestroyAPIView):
-    """Деталі поста, оновлення та видалення"""
-    serializer_class = PostDetailSerializer
-    permission_classes = [IsAuthorOrReadOnly]
-    lookup_field = 'slug'
-    parser_classes = [MultiPartParser, FormParser, JSONParser]
-
-    def get_queryset(self):
-        """Оптимізований queryset з prefetch"""
-        return Post.objects.select_related(
-            'author', 'category'
-        ).prefetch_related(
-            'tags', 'images', 'videos'
-        )
-
-    def get_serializer_class(self):
-        """Різні серіалізатори для різних методів"""
-        if self.request.method in ['PUT', 'PATCH']:
-            return PostCreateUpdateSerializer
-        return PostDetailSerializer
-
     def retrieve(self, request, *args, **kwargs):
+        """Збільшуємо перегляди при отриманні поста"""
         instance = self.get_object()
+        # Збільшуємо перегляди тільки для опублікованих і не від автора
+        if instance.status == 'published' and instance.author != request.user:
+            # Використовуємо F() для атомарного оновлення
+            Post.objects.filter(pk=instance.pk).update(
+                views_count=F('views_count') + 1)
+            instance.views_count += 1  # оновлюємо локальний об'єкт
+        return super().retrieve(request, *args, **kwargs)
 
-        if (instance.status == 'published' and
-                instance.author != request.user):
-            instance.increment_views()
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    def my(self, request):
+        """GET /api/posts/my/ — список тільки моїх постів"""
+        posts = self.get_queryset().filter(author=request.user)
 
-        serializer = self.get_serializer(instance)
+        # Підтримка пагінації
+        page = self.paginate_queryset(posts)
+        if page is not None:
+            serializer = PostListSerializer(
+                page, many=True, context={'request': request})
+            return self.get_paginated_response(serializer.data)
+
+        serializer = PostListSerializer(
+            posts, many=True, context={'request': request})
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'])
+    def by_tag(self, request):
+        """GET /api/posts/by_tag/?tag=python"""
+        tag_slug = request.query_params.get('tag')
+        if not tag_slug:
+            raise ValidationError({'tag': 'Параметр tag обов\'язковий'})
+
+        posts = self.get_queryset().filter(
+            tags__slug=tag_slug,
+            status='published'
+        ).distinct()
+
+        page = self.paginate_queryset(posts)
+        if page is not None:
+            serializer = PostListSerializer(
+                page, many=True, context={'request': request})
+            return self.get_paginated_response(serializer.data)
+
+        serializer = PostListSerializer(
+            posts, many=True, context={'request': request})
         return Response(serializer.data)
 
 
-class MyPostsView(generics.ListAPIView):
-    """Мої пости (для авторизованого користувача)"""
-    serializer_class = PostListSerializer
-    permission_classes = [permissions.IsAuthenticated]
-    filter_backends = [DjangoFilterBackend,
-                       filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ['category', 'status']
-    search_fields = ['title', 'content']
-    ordering_fields = ['created_at', 'updated_at', 'views_count', 'title']
-    ordering = ['-created_at']
-
-    def get_queryset(self):
-        """Тільки пости поточного користувача"""
-        return Post.objects.filter(
-            author=self.request.user
-        ).select_related('author', 'category').prefetch_related('tags')
-
-
-class PostsByTagView(generics.ListAPIView):
-    """Пости за тегом"""
-    serializer_class = PostListSerializer
-    permission_classes = [permissions.AllowAny]
-
-    def get_queryset(self):
-        tag_slug = self.kwargs.get('tag_slug')
-        return Post.objects.filter(
-            tags__slug=tag_slug,
-            status='published'
-        ).select_related('author', 'category').distinct()
-
-
-class PostsByCategoryView(generics.ListAPIView):
-    """Пости за категорією"""
-    serializer_class = PostListSerializer
-    permission_classes = [permissions.AllowAny]
-    filter_backends = [filters.OrderingFilter]
-    ordering_fields = ['created_at', 'views_count']
-    ordering = ['-created_at']
-
-    def get_queryset(self):
-        category_slug = self.kwargs.get('category_slug')
-        return Post.objects.filter(
-            category__slug=category_slug,
-            status='published'
-        ).select_related('author', 'category')
-
-
-@api_view(['GET'])
-@permission_classes([permissions.AllowAny])
-def popular_posts(request):
-    """Популярні пости (топ за переглядами)"""
-    limit = int(request.GET.get('limit', 10))
-
-    posts = Post.objects.filter(
-        status='published'
-    ).select_related(
-        'author', 'category'
-    ).order_by('-views_count')[:limit]
-
-    serializer = PostListSerializer(posts, many=True)
-    return Response(serializer.data)
-
-
-@api_view(['GET'])
-@permission_classes([permissions.AllowAny])
-def trending_posts(request):
-    """Trending пости (нові з найбільшою кількістю переглядів)"""
-    from django.utils import timezone
-    from datetime import timedelta
-
-    limit = int(request.GET.get('limit', 10))
-    days = int(request.GET.get('days', 7))
-
-    date_from = timezone.now() - timedelta(days=days)
-
-    posts = Post.objects.filter(
-        status='published',
-        published_at__gte=date_from
-    ).select_related(
-        'author', 'category'
-    ).order_by('-views_count')[:limit]
-
-    serializer = PostListSerializer(posts, many=True)
-    return Response(serializer.data)
-
-
-# ============================================
-# РОБОТА З ЗОБРАЖЕННЯМИ
-# ============================================
-
-class PostImagesAddView(APIView):
-    """Додавання зображень до поста"""
-    permission_classes = [permissions.IsAuthenticated]
+# ========================
+# Base Media ViewSet (для images і videos)
+# ========================
+class BasePostMediaViewSet(viewsets.ModelViewSet):
+    """
+    Базовий ViewSet для роботи з медіа (зображення/відео) постів.
+    Дочірні класи тільки перевизначають атрибути.
+    """
+    permission_classes = [IsAuthenticated, IsAuthorOrReadOnly]
     parser_classes = [MultiPartParser, FormParser]
 
-    def post(self, request, slug):
-        """
-        POST /api/posts/{slug}/images/add/
-        Body: images (multiple files), orders (optional)
-        """
-        post = get_object_or_404(
+    # Ці атрибути ОБОВ'ЯЗКОВО перевизначаються в дочірніх класах
+    file_field_name = None  # 'image' або 'video'
+    # максимальна кількість (10 для images, 5 для videos)
+    max_items = None
+    max_file_size = None    # тільки для відео (у байтах)
+
+    def get_post(self):
+        """Отримати пост по slug з URL"""
+        return get_object_or_404(
             Post.objects.select_related('author'),
-            slug=slug
+            slug=self.kwargs['post_slug']
         )
 
-        # Перевірка прав
-        if post.author != request.user:
-            return Response(
-                {'error': 'Ви можете додавати зображення тільки до своїх постів'},
-                status=status.HTTP_403_FORBIDDEN
-            )
+    def get_queryset(self):
+        """Медіа конкретного поста"""
+        post = self.get_post()
+        return self.queryset.filter(post=post)
 
-        images = request.FILES.getlist('images')
-        orders = request.data.getlist('orders', [])
-
-        if not images:
-            return Response(
-                {'error': 'Не надано жодного зображення'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        # Ліміт зображень
-        MAX_IMAGES = 10
-        current_count = post.images.count()
-        if current_count + len(images) > MAX_IMAGES:
-            return Response(
-                {'error': f'Максимум {MAX_IMAGES} зображень на пост. Зараз: {current_count}'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        try:
-            with transaction.atomic():
-                created_images = []
-                max_order = post.images.aggregate(
-                    Max('order'))['order__max'] or -1
-
-                for idx, image in enumerate(images):
-                    order = int(orders[idx]) if idx < len(
-                        orders) else max_order + idx + 1
-
-                    post_image = PostImages.objects.create(
-                        post=post,
-                        image=image,
-                        order=order
-                    )
-                    created_images.append(post_image)
-
-                serializer = PostImageSerializer(created_images, many=True)
-                return Response(
-                    {
-                        'message': f'Додано {len(created_images)} зображень',
-                        'images': serializer.data
-                    },
-                    status=status.HTTP_201_CREATED
-                )
-
-        except Exception as e:
-            return Response(
-                {'error': f'Помилка при завантаженні: {str(e)}'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-
-class PostImageDetailView(APIView):
-    """Видалення окремого зображення"""
-    permission_classes = [permissions.IsAuthenticated]
-
-    def delete(self, request, slug, image_id):
+    def perform_create(self, serializer):
         """
-        DELETE /api/posts/{slug}/images/{image_id}/
+        Створення медіа з підтримкою множинного завантаження.
+        POST /api/posts/{slug}/images/ або /videos/
+        Body: image[] або video[] (multiple files)
         """
-        post = get_object_or_404(Post, slug=slug)
+        post = self.get_post()
 
         # Перевірка прав
-        if post.author != request.user:
-            return Response(
-                {'error': 'Недостатньо прав'},
-                status=status.HTTP_403_FORBIDDEN
-            )
+        if post.author != self.request.user:
+            self.permission_denied(self.request)
 
-        try:
-            image = PostImages.objects.get(id=image_id, post=post)
-            image.delete()
+        # Отримуємо файли
+        files = self.request.FILES.getlist(self.file_field_name)
+        if not files:
+            raise ValidationError({
+                self.file_field_name: f'Не надано файлів для завантаження'
+            })
 
-            return Response(
-                {'message': 'Зображення видалено'},
-                status=status.HTTP_204_NO_CONTENT
-            )
+        # Перевірка ліміту кількості
+        current_count = self.queryset.filter(post=post).count()
+        if self.max_items and current_count + len(files) > self.max_items:
+            raise ValidationError({
+                self.file_field_name: f'Максимум {self.max_items} елементів на пост. Зараз: {current_count}'
+            })
 
-        except PostImages.DoesNotExist:
-            return Response(
-                {'error': 'Зображення не знайдено'},
-                status=status.HTTP_404_NOT_FOUND
-            )
+        # Перевірка розміру файлів (тільки для відео)
+        if self.max_file_size:
+            for f in files:
+                if f.size > self.max_file_size:
+                    max_mb = self.max_file_size // (1024 * 1024)
+                    raise ValidationError({
+                        self.file_field_name: f'Файл {f.name} завеликий (макс {max_mb}MB)'
+                    })
 
+        # Автоматичний порядок
+        max_order = self.queryset.filter(post=post).aggregate(
+            models.Max('order')
+        )['order__max'] or 0
 
-class PostImagesBulkDeleteView(APIView):
-    """Масове видалення зображень"""
-    permission_classes = [permissions.IsAuthenticated]
-
-    def delete(self, request, slug):
-        """
-        DELETE /api/posts/{slug}/images/bulk-delete/
-        Body: {"image_ids": [1, 2, 3]}
-        """
-        post = get_object_or_404(Post, slug=slug)
-
-        if post.author != request.user:
-            return Response(
-                {'error': 'Недостатньо прав'},
-                status=status.HTTP_403_FORBIDDEN
-            )
-
-        image_ids = request.data.get('image_ids', [])
-
-        if not image_ids:
-            return Response(
-                {'error': 'Не надано ID зображень'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        try:
-            with transaction.atomic():
-                deleted_count, _ = PostImages.objects.filter(
-                    id__in=image_ids,
-                    post=post
-                ).delete()
-
-                return Response(
-                    {'message': f'Видалено {deleted_count} зображень'},
-                    status=status.HTTP_200_OK
+        # Bulk create для продуктивності
+        instances = []
+        for idx, file in enumerate(files):
+            instances.append(
+                self.serializer_class.Meta.model(
+                    post=post,
+                    **{self.file_field_name: file},
+                    order=max_order + idx + 1
                 )
-
-        except Exception as e:
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_400_BAD_REQUEST
             )
 
+        self.serializer_class.Meta.model.objects.bulk_create(instances)
 
-class PostImagesReorderView(APIView):
-    """Зміна порядку зображень"""
-    permission_classes = [permissions.IsAuthenticated]
+    def create(self, request, *args, **kwargs):
+        """Перевизначаємо create для коректної відповіді після bulk_create"""
+        self.perform_create(None)
+        return Response(
+            {
+                'message': f'Файли успішно завантажено',
+                'count': len(request.FILES.getlist(self.file_field_name))
+            },
+            status=status.HTTP_201_CREATED
+        )
 
-    def patch(self, request, slug):
+    def perform_destroy(self, instance):
+        """Видалення з перевіркою прав"""
+        if instance.post.author != self.request.user:
+            self.permission_denied(self.request)
+        instance.delete()
+
+    @action(detail=False, methods=['patch'])
+    def reorder(self, request, post_slug):
         """
-        PATCH /api/posts/{slug}/images/reorder/
-        Body: {"orders": {"1": 0, "2": 1, "3": 2}}
+        PATCH /api/posts/{slug}/images/reorder/ або /videos/reorder/
+        Body: {"orders": {"1": 0, "3": 2, "5": 1}}
+        де ключ - ID об'єкта, значення - новий order
         """
-        post = get_object_or_404(Post, slug=slug)
-
+        post = self.get_post()
         if post.author != request.user:
             return Response(
                 {'error': 'Недостатньо прав'},
@@ -362,142 +238,107 @@ class PostImagesReorderView(APIView):
             )
 
         orders = request.data.get('orders', {})
-
         if not orders:
-            return Response(
-                {'error': 'Не надано порядку зображень'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            raise ValidationError({'orders': 'Не вказано нові порядки'})
 
-        try:
-            with transaction.atomic():
-                for image_id, new_order in orders.items():
-                    PostImages.objects.filter(
-                        id=int(image_id),
-                        post=post
-                    ).update(order=int(new_order))
+        # Оновлюємо в транзакції
+        with transaction.atomic():
+            for obj_id, new_order in orders.items():
+                self.queryset.filter(id=int(obj_id), post=post).update(
+                    order=int(new_order))
 
-                return Response(
-                    {'message': 'Порядок оновлено'},
-                    status=status.HTTP_200_OK
-                )
+        return Response({'message': 'Порядок успішно оновлено'})
 
-        except Exception as e:
-            return Response(
-                {'error': str(e)},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-
-# ============================================
-# РОБОТА З ВІДЕО
-# ============================================
-
-class PostVideosAddView(APIView):
-    """Додавання відео до поста"""
-    permission_classes = [permissions.IsAuthenticated]
-    parser_classes = [MultiPartParser, FormParser]
-
-    def post(self, request, slug):
+    @action(detail=False, methods=['delete'])
+    def bulk_delete(self, request, post_slug):
         """
-        POST /api/posts/{slug}/videos/add/
-        Body: videos (multiple files), orders (optional)
+        DELETE /api/posts/{slug}/images/bulk_delete/ або /videos/bulk_delete/
+        Body: {"ids": [1, 2, 3]}
         """
-        post = get_object_or_404(Post, slug=slug)
-
+        post = self.get_post()
         if post.author != request.user:
             return Response(
                 {'error': 'Недостатньо прав'},
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        videos = request.FILES.getlist('videos')
-        orders = request.data.getlist('orders', [])
+        ids = request.data.get('ids', [])
+        if not ids:
+            raise ValidationError({'ids': 'Не вказано ID для видалення'})
 
-        if not videos:
-            return Response(
-                {'error': 'Не надано жодного відео'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        # Видаляємо в транзакції
+        with transaction.atomic():
+            deleted_count, _ = self.queryset.filter(
+                id__in=ids,
+                post=post
+            ).delete()
 
-        # Ліміти
-        MAX_VIDEOS = 5
-        MAX_VIDEO_SIZE = 100 * 1024 * 1024  # 100MB
-
-        current_count = post.videos.count()
-        if current_count + len(videos) > MAX_VIDEOS:
-            return Response(
-                {'error': f'Максимум {MAX_VIDEOS} відео на пост. Зараз: {current_count}'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        try:
-            with transaction.atomic():
-                created_videos = []
-                max_order = post.videos.aggregate(
-                    Max('order'))['order__max'] or -1
-
-                for idx, video in enumerate(videos):
-                    # Перевірка розміру
-                    if video.size > MAX_VIDEO_SIZE:
-                        return Response(
-                            {'error': f'Відео {video.name} завелике (макс 100MB)'},
-                            status=status.HTTP_400_BAD_REQUEST
-                        )
-
-                    order = int(orders[idx]) if idx < len(
-                        orders) else max_order + idx + 1
-
-                    post_video = PostVideo.objects.create(
-                        post=post,
-                        video=video,
-                        order=order
-                    )
-                    created_videos.append(post_video)
-
-                serializer = PostVideoSerializer(created_videos, many=True)
-                return Response(
-                    {
-                        'message': f'Додано {len(created_videos)} відео',
-                        'videos': serializer.data
-                    },
-                    status=status.HTTP_201_CREATED
-                )
-
-        except Exception as e:
-            return Response(
-                {'error': f'Помилка при завантаженні: {str(e)}'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        return Response({
+            'message': f'Видалено {deleted_count} елементів'
+        })
 
 
-class PostVideoDetailView(APIView):
-    """Видалення окремого відео"""
-    permission_classes = [permissions.IsAuthenticated]
+# ========================
+# Images ViewSet
+# ========================
+class PostImagesViewSet(BasePostMediaViewSet):
+    """ViewSet для зображень поста"""
+    queryset = PostImages.objects.all().order_by('order')
+    serializer_class = PostImageSerializer
+    file_field_name = 'image'
+    max_items = 10
 
-    def delete(self, request, slug, video_id):
-        """
-        DELETE /api/posts/{slug}/videos/{video_id}/
-        """
-        post = get_object_or_404(Post, slug=slug)
+# ========================
+# Videos ViewSet
+# ========================
 
-        if post.author != request.user:
-            return Response(
-                {'error': 'Недостатньо прав'},
-                status=status.HTTP_403_FORBIDDEN
-            )
 
-        try:
-            video = PostVideo.objects.get(id=video_id, post=post)
-            video.delete()
+class PostVideosViewSet(BasePostMediaViewSet):
+    """ViewSet для відео поста"""
+    queryset = PostVideo.objects.all().order_by('order')
+    serializer_class = PostVideoSerializer
+    file_field_name = 'video'
+    max_items = 5
+    max_file_size = 100 * 1024 * 1024  # 100 MB
 
-            return Response(
-                {'message': 'Відео видалено'},
-                status=status.HTTP_204_NO_CONTENT
-            )
 
-        except PostVideo.DoesNotExist:
-            return Response(
-                {'error': 'Відео не знайдено'},
-                status=status.HTTP_404_NOT_FOUND
-            )
+# ========================
+# Додаткові ендпоінти
+# ========================
+@api_view(['GET'])
+def popular_posts(request):
+    """
+    GET /api/posts/popular/?limit=10
+    Популярні пости за кількістю переглядів
+    """
+    limit = int(request.query_params.get('limit', 10))
+    posts = Post.objects.filter(status='published') \
+                        .select_related('author', 'category') \
+                        .order_by('-views_count')[:limit]
+    serializer = PostListSerializer(
+        posts, many=True, context={'request': request})
+    return Response(serializer.data)
+
+
+@api_view(['GET'])
+def trending_posts(request):
+    """
+    GET /api/posts/trending/?limit=10&days=7
+    Trending пости (нові з найбільшою кількістю переглядів)
+    """
+    from django.utils import timezone
+    from datetime import timedelta
+
+    limit = int(request.query_params.get('limit', 10))
+    days = int(request.query_params.get('days', 7))
+    date_from = timezone.now() - timedelta(days=days)
+
+    posts = Post.objects.filter(
+        status='published',
+        published_at__gte=date_from
+    ).select_related('author', 'category') \
+     .order_by('-views_count')[:limit]
+
+    serializer = PostListSerializer(
+        posts, many=True, context={'request': request})
+    return Response(serializer.data)
