@@ -75,8 +75,8 @@ class PostDetailSerializer(serializers.ModelSerializer):
     category_info = serializers.SerializerMethodField()
     comments_count = serializers.SerializerMethodField()
     tags = TagListSerializerField()
-    images = PostImageSerializer(many=True, read_only=True, source='images')
-    videos = PostVideoSerializer(many=True, read_only=True, source='videos')
+    images = PostImageSerializer(many=True, read_only=True)
+    videos = PostVideoSerializer(many=True, read_only=True)
 
     class Meta:
         model = Post

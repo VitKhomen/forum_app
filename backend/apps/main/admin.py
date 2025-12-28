@@ -10,22 +10,6 @@ User = get_user_model()
 
 
 # ============================================
-# USER ADMIN (потрібен для autocomplete)
-# ============================================
-
-# Перевіряємо чи User вже зареєстрований
-if not admin.site.is_registered(User):
-    @admin.register(User)
-    class UserAdmin(admin.ModelAdmin):
-        """Базовий адмін для User (потрібен для autocomplete)"""
-        list_display = ('username', 'email', 'first_name',
-                        'last_name', 'is_staff')
-        search_fields = ('username', 'email', 'first_name',
-                         'last_name')  # ← Для autocomplete
-        list_filter = ('is_staff', 'is_active', 'date_joined')
-
-
-# ============================================
 # INLINE АДМІНІСТРУВАННЯ (вкладені таблиці)
 # ============================================
 
@@ -82,7 +66,6 @@ class CategoryAdmin(admin.ModelAdmin):
     search_fields = ('name', 'description')  # ← Для autocomplete
     list_filter = ('created_at',)
     readonly_fields = ('slug', 'created_at', 'posts_count')
-    prepopulated_fields = {'slug': ('name',)}
 
     fieldsets = (
         ('Основна інформація', {
@@ -150,12 +133,6 @@ class PostAdmin(admin.ModelAdmin):
         'image_preview',
         'post_link'
     )
-
-    # Автозаповнення
-    prepopulated_fields = {'slug': ('title',)}
-
-    # ❌ Видалили list_editable (бо status_badge не можна редагувати)
-    # Замість цього використовуємо actions для зміни статусу
 
     # Дії які можна виконати над вибраними постами
     actions = ['make_published', 'make_draft', 'reset_views']

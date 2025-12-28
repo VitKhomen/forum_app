@@ -12,7 +12,7 @@ SECRET_KEY = config('SECRET_KEY')
 DEBUG = config('DEBUG', default=False, cast=bool)
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1',
-                 '.onrender.com', 'app-news-onm1.onrender.com']
+                 ]
 # Application definition
 DJANGO_APPS = [
     'django.contrib.admin',
@@ -243,7 +243,7 @@ LOGGING = {
     'loggers': {
         'django': {
             'handlers': ['console'],
-            'level': LOG_LEVEL,
+            'level': 'WARNING',
             'propagate': False,
         },
         'django.request': {
