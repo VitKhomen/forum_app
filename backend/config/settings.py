@@ -1,4 +1,3 @@
-import os
 import sys
 from pathlib import Path
 from decouple import config, Csv
@@ -36,6 +35,7 @@ LOCAL_APPS = [
     'apps.main',
     'apps.accounts',
     'apps.comments',
+    'apps.feedback',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -272,12 +272,9 @@ FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:5173')
 
 
 # Настройки для ємейла(повідомлень)
-# EMAIL_BACKEND = config(
-#     'EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
-# EMAIL_HOST = config('EMAIL_HOST', default='localhost')
-# EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
-# EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
-# EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
-# EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
-# DEFAULT_FROM_EMAIL = config(
-#     'DEFAULT_FROM_EMAIL', default='noreply@newssite.com')
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_USE_TLS = True
+EMAIL_PORT = 587
+EMAIL_HOST_USER = config('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
