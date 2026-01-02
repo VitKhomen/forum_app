@@ -1,16 +1,124 @@
-# API Tests для Postman
+# 🚀 Complete API Tests для Postman
 
-## Базова URL
+## 📌 Базова URL
 ```
 http://localhost:8000/api/v1
 ```
 
 ---
 
-## 📁 ACCOUNTS (Authentication)
+## 🔧 Postman Environment Setup
 
-### 1. Register User
+### Environment Variables
+Створи environment з назвою **"News Site Local"** та додай змінні:
+
+```json
+{
+  "base_url": "http://localhost:8000/api/v1",
+  "access_token": "",
+  "refresh_token": "",
+  "test_user_id": "",
+  "test_post_slug": "",
+  "test_category_slug": "",
+  "test_comment_id": ""
+}
+```
+
+---
+
+## 🔐 Auto-save Token Scripts
+
+### Для Login Request
+**POST** `/api/v1/auth/login/`
+
+Додай в **Tests** tab:
+
+```javascript
+// Save tokens after successful login
+if (pm.response.code === 200) {
+    const jsonData = pm.response.json();
+    pm.environment.set("access_token", jsonData.access);
+    pm.environment.set("refresh_token", jsonData.refresh);
+    pm.environment.set("test_user_id", jsonData.user.id);
+    
+    console.log("✅ Tokens saved successfully");
+    console.log("User ID:", jsonData.user.id);
+    console.log("Username:", jsonData.user.username);
+}
+```
+
+### Для Register Request
 **POST** `/api/v1/auth/register/`
+
+Додай в **Tests** tab:
+
+```javascript
+// Save tokens after successful registration
+if (pm.response.code === 201) {
+    const jsonData = pm.response.json();
+    pm.environment.set("access_token", jsonData.access);
+    pm.environment.set("refresh_token", jsonData.refresh);
+    pm.environment.set("test_user_id", jsonData.user.id);
+    
+    console.log("✅ User registered and tokens saved");
+    console.log("User ID:", jsonData.user.id);
+}
+```
+
+### Для Create Post Request
+**POST** `/api/v1/posts/`
+
+Додай в **Tests** tab:
+
+```javascript
+// Save post slug for future tests
+if (pm.response.code === 201) {
+    const jsonData = pm.response.json();
+    pm.environment.set("test_post_slug", jsonData.slug);
+    
+    console.log("✅ Post created successfully");
+    console.log("Post slug:", jsonData.slug);
+}
+```
+
+### Для Create Category Request
+**POST** `/api/v1/categories/`
+
+Додай в **Tests** tab:
+
+```javascript
+// Save category slug
+if (pm.response.code === 201) {
+    const jsonData = pm.response.json();
+    pm.environment.set("test_category_slug", jsonData.slug);
+    
+    console.log("✅ Category created");
+    console.log("Category slug:", jsonData.slug);
+}
+```
+
+### Для Create Comment Request
+**POST** `/api/v1/comments/`
+
+Додай в **Tests** tab:
+
+```javascript
+// Save comment ID
+if (pm.response.code === 201) {
+    const jsonData = pm.response.json();
+    pm.environment.set("test_comment_id", jsonData.id);
+    
+    console.log("✅ Comment created");
+    console.log("Comment ID:", jsonData.id);
+}
+```
+
+---
+
+## 📁 1. ACCOUNTS (Authentication)
+
+### 1.1 Register User ✅
+**POST** `{{base_url}}/auth/register/`
 
 **Body (JSON):**
 ```json
@@ -24,6 +132,26 @@ http://localhost:8000/api/v1
 }
 ```
 
+**Tests:**
+```javascript
+pm.test("Status code is 201", function () {
+    pm.response.to.have.status(201);
+});
+
+pm.test("Response has access token", function () {
+    var jsonData = pm.response.json();
+    pm.expect(jsonData).to.have.property('access');
+    pm.expect(jsonData).to.have.property('refresh');
+});
+
+pm.test("User object is valid", function () {
+    var jsonData = pm.response.json();
+    pm.expect(jsonData.user).to.have.property('id');
+    pm.expect(jsonData.user.email).to.eql('test@example.com');
+    pm.expect(jsonData.user.username).to.eql('testuser');
+});
+```
+
 **Expected Response (201):**
 ```json
 {
@@ -36,8 +164,8 @@ http://localhost:8000/api/v1
     "full_name": "John Doe",
     "avatar": null,
     "bio": "",
-    "created_at": "2025-12-28T10:00:00Z",
-    "updated_at": "2025-12-28T10:00:00Z",
+    "created_at": "2025-12-31T10:00:00Z",
+    "updated_at": "2025-12-31T10:00:00Z",
     "posts_count": 0,
     "comments_count": 0
   },
@@ -49,8 +177,8 @@ http://localhost:8000/api/v1
 
 ---
 
-### 2. Login User
-**POST** `/api/v1/auth/login/`
+### 1.2 Login User ✅
+**POST** `{{base_url}}/auth/login/`
 
 **Body (JSON):**
 ```json
@@ -60,67 +188,51 @@ http://localhost:8000/api/v1
 }
 ```
 
-**Expected Response (200):**
-```json
-{
-  "user": {
-    "id": 1,
-    "username": "testuser",
-    "email": "test@example.com",
-    "first_name": "John",
-    "last_name": "Doe",
-    "full_name": "John Doe",
-    "avatar": null,
-    "bio": "",
-    "created_at": "2025-12-28T10:00:00Z",
-    "updated_at": "2025-12-28T10:00:00Z",
-    "posts_count": 0,
-    "comments_count": 0
-  },
-  "refresh": "eyJ0eXAiOiJKV1QiLCJhbGc...",
-  "access": "eyJ0eXAiOiJKV1QiLCJhbGc...",
-  "message": "User login successfully"
-}
-```
+**Tests:**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
 
-**⚠️ Збережи `access` token для наступних запитів!**
-
----
-
-### 3. Get Profile
-**GET** `/api/v1/auth/profile/`
-
-**Headers:**
-```
-Authorization: Bearer {access_token}
-```
-
-**Expected Response (200):**
-```json
-{
-  "id": 1,
-  "username": "testuser",
-  "email": "test@example.com",
-  "first_name": "John",
-  "last_name": "Doe",
-  "full_name": "John Doe",
-  "avatar": null,
-  "bio": "",
-  "created_at": "2025-12-28T10:00:00Z",
-  "updated_at": "2025-12-28T10:00:00Z",
-  "posts_count": 0,
-  "comments_count": 0
-}
+pm.test("Response contains tokens", function () {
+    var jsonData = pm.response.json();
+    pm.expect(jsonData).to.have.property('access');
+    pm.expect(jsonData).to.have.property('refresh');
+});
 ```
 
 ---
 
-### 4. Update Profile
-**PATCH** `/api/v1/auth/profile/`
+### 1.3 Get Profile 👤
+**GET** `{{base_url}}/auth/profile/`
 
 **Headers:**
 ```
-Authorization: Bearer {access_token}
+Authorization: Bearer {{access_token}}
+```
+
+**Tests:**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Profile contains user data", function () {
+    var jsonData = pm.response.json();
+    pm.expect(jsonData).to.have.property('id');
+    pm.expect(jsonData).to.have.property('email');
+    pm.expect(jsonData).to.have.property('username');
+});
+```
+
+---
+
+### 1.4 Update Profile 📝
+**PATCH** `{{base_url}}/auth/profile/`
+
+**Headers:**
+```
+Authorization: Bearer {{access_token}}
 ```
 
 **Body (JSON):**
@@ -132,64 +244,54 @@ Authorization: Bearer {access_token}
 }
 ```
 
-**Expected Response (200):**
-```json
-{
-  "id": 1,
-  "username": "testuser",
-  "email": "test@example.com",
-  "first_name": "Jane",
-  "last_name": "Smith",
-  "full_name": "Jane Smith",
-  "avatar": null,
-  "bio": "Software developer from Kyiv",
-  "created_at": "2025-12-28T10:00:00Z",
-  "updated_at": "2025-12-28T10:05:00Z",
-  "posts_count": 0,
-  "comments_count": 0
-}
+**Tests:**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Profile updated successfully", function () {
+    var jsonData = pm.response.json();
+    pm.expect(jsonData.first_name).to.eql('Jane');
+    pm.expect(jsonData.last_name).to.eql('Smith');
+});
 ```
 
 ---
 
-### 5. Update Avatar
-**PATCH** `/api/v1/auth/profile/`
+### 1.5 Upload Avatar 🖼️
+**PATCH** `{{base_url}}/auth/profile/`
 
 **Headers:**
 ```
-Authorization: Bearer {access_token}
+Authorization: Bearer {{access_token}}
 Content-Type: multipart/form-data
 ```
 
 **Body (form-data):**
-- Key: `avatar` | Type: File | Value: [select image file]
+- Key: `avatar` | Type: File | Value: [select image]
 
-**Expected Response (200):**
-```json
-{
-  "id": 1,
-  "username": "testuser",
-  "email": "test@example.com",
-  "first_name": "Jane",
-  "last_name": "Smith",
-  "full_name": "Jane Smith",
-  "avatar": "https://your-cdn.com/avatars/2025/12/avatar.jpg",
-  "bio": "Software developer from Kyiv",
-  "created_at": "2025-12-28T10:00:00Z",
-  "updated_at": "2025-12-28T10:10:00Z",
-  "posts_count": 0,
-  "comments_count": 0
-}
+**Tests:**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Avatar URL is present", function () {
+    var jsonData = pm.response.json();
+    pm.expect(jsonData.avatar).to.not.be.null;
+    pm.expect(jsonData.avatar).to.include('http');
+});
 ```
 
 ---
 
-### 6. Change Password
-**PUT** `/api/v1/auth/change-password/`
+### 1.6 Change Password 🔒
+**PUT** `{{base_url}}/auth/change-password/`
 
 **Headers:**
 ```
-Authorization: Bearer {access_token}
+Authorization: Bearer {{access_token}}
 ```
 
 **Body (JSON):**
@@ -201,146 +303,168 @@ Authorization: Bearer {access_token}
 }
 ```
 
-**Expected Response (200):**
-```json
-{
-  "message": "Password change successfully"
-}
+**Tests:**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Password changed successfully", function () {
+    var jsonData = pm.response.json();
+    pm.expect(jsonData.message).to.include('successfully');
+});
 ```
 
 ---
 
-### 7. Refresh Token
-**POST** `/api/v1/auth/token/refresh/`
+### 1.7 Refresh Token 🔄
+**POST** `{{base_url}}/auth/token/refresh/`
 
 **Body (JSON):**
 ```json
 {
-  "refresh": "eyJ0eXAiOiJKV1QiLCJhbGc..."
+  "refresh": "{{refresh_token}}"
 }
 ```
 
-**Expected Response (200):**
-```json
-{
-  "access": "eyJ0eXAiOiJKV1QiLCJhbGc...",
-  "refresh": "eyJ0eXAiOiJKV1QiLCJhbGc..."
-}
+**Tests:**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("New tokens received", function () {
+    var jsonData = pm.response.json();
+    pm.expect(jsonData).to.have.property('access');
+    pm.expect(jsonData).to.have.property('refresh');
+    
+    // Update tokens
+    pm.environment.set("access_token", jsonData.access);
+    pm.environment.set("refresh_token", jsonData.refresh);
+});
 ```
 
 ---
 
-### 8. Logout
-**POST** `/api/v1/auth/logout/`
+### 1.8 Logout 🚪
+**POST** `{{base_url}}/auth/logout/`
 
 **Headers:**
 ```
-Authorization: Bearer {access_token}
+Authorization: Bearer {{access_token}}
 ```
 
 **Body (JSON):**
 ```json
 {
-  "refresh_token": "eyJ0eXAiOiJKV1QiLCJhbGc..."
+  "refresh_token": "{{refresh_token}}"
 }
 ```
 
-**Expected Response (200):**
-```json
-{
-  "message": "Logout successful"
-}
+**Tests:**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Logout successful", function () {
+    var jsonData = pm.response.json();
+    pm.expect(jsonData.message).to.include('successful');
+});
 ```
 
 ---
 
-## 📁 CATEGORIES
+## 📁 2. CATEGORIES
 
-### 9. List Categories
-**GET** `/api/v1/categories/`
+### 2.1 List All Categories 📋
+**GET** `{{base_url}}/categories/`
 
-**Expected Response (200):**
-```json
-[
-  {
-    "id": 1,
-    "name": "Technology",
-    "slug": "technology",
-    "description": "Tech news and articles",
-    "posts_count": 5,
-    "created_at": "2025-12-28T10:00:00Z"
-  },
-  {
-    "id": 2,
-    "name": "Sports",
-    "slug": "sports",
-    "description": "Sports updates",
-    "posts_count": 3,
-    "created_at": "2025-12-28T10:00:00Z"
-  }
-]
+**Tests:**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Response is array", function () {
+    var jsonData = pm.response.json();
+    pm.expect(jsonData).to.be.an('array');
+});
+
+pm.test("Categories have required fields", function () {
+    var jsonData = pm.response.json();
+    if (jsonData.length > 0) {
+        pm.expect(jsonData[0]).to.have.property('id');
+        pm.expect(jsonData[0]).to.have.property('name');
+        pm.expect(jsonData[0]).to.have.property('slug');
+        pm.expect(jsonData[0]).to.have.property('posts_count');
+    }
+});
 ```
 
 ---
 
-### 10. Create Category
-**POST** `/api/v1/categories/`
+### 2.2 Create Category ➕
+**POST** `{{base_url}}/categories/`
 
 **Headers:**
 ```
-Authorization: Bearer {access_token}
+Authorization: Bearer {{access_token}}
 ```
 
 **Body (JSON):**
 ```json
 {
-  "name": "Technology",
+  "name": "Mems",
   "description": "All about tech and innovations"
 }
 ```
 
-**Expected Response (201):**
-```json
-{
-  "id": 1,
-  "name": "Technology",
-  "slug": "technology",
-  "description": "All about tech and innovations",
-  "posts_count": 0,
-  "created_at": "2025-12-28T10:00:00Z"
-}
+**Tests:**
+```javascript
+pm.test("Status code is 201", function () {
+    pm.response.to.have.status(201);
+});
+
+pm.test("Category created with slug", function () {
+    var jsonData = pm.response.json();
+    pm.expect(jsonData).to.have.property('slug');
+    pm.expect(jsonData.slug).to.eql('technology');
+});
+
+pm.test("Posts count is zero", function () {
+    var jsonData = pm.response.json();
+    pm.expect(jsonData.posts_count).to.eql(0);
+});
 ```
 
 ---
 
-### 11. Get Category Details
-**GET** `/api/v1/categories/{slug}/`
+### 2.3 Get Category Details 🔍
+**GET** `{{base_url}}/categories/{{test_category_slug}}/`
 
-**Example:**
-```
-GET /api/v1/categories/technology/
-```
+**Tests:**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
 
-**Expected Response (200):**
-```json
-{
-  "id": 1,
-  "name": "Technology",
-  "slug": "technology",
-  "description": "All about tech and innovations",
-  "posts_count": 5,
-  "created_at": "2025-12-28T10:00:00Z"
-}
+pm.test("Category details are complete", function () {
+    var jsonData = pm.response.json();
+    pm.expect(jsonData).to.have.property('id');
+    pm.expect(jsonData).to.have.property('name');
+    pm.expect(jsonData).to.have.property('description');
+});
 ```
 
 ---
 
-### 12. Update Category
-**PATCH** `/api/v1/categories/{slug}/`
+### 2.4 Update Category ✏️
+**PATCH** `{{base_url}}/categories/{{test_category_slug}}/`
 
 **Headers:**
 ```
-Authorization: Bearer {access_token}
+Authorization: Bearer {{access_token}}
 ```
 
 **Body (JSON):**
@@ -352,341 +476,302 @@ Authorization: Bearer {access_token}
 
 ---
 
-### 13. Delete Category
-**DELETE** `/api/v1/categories/{slug}/`
+### 2.5 Delete Category ❌
+**DELETE** `{{base_url}}/categories/{{test_category_slug}}/`
 
 **Headers:**
 ```
-Authorization: Bearer {access_token}
+Authorization: Bearer {{access_token}}
 ```
 
-**Expected Response (204 No Content)**
+**Tests:**
+```javascript
+pm.test("Status code is 204", function () {
+    pm.response.to.have.status(204);
+});
+```
 
 ---
 
-## 📁 POSTS
+## 📁 3. POSTS
 
-### 14. List All Posts
-**GET** `/api/v1/posts/`
+### 3.1 List All Posts 📰
+**GET** `{{base_url}}/posts/`
 
 **Query Parameters:**
-- `?page=1` - pagination
-- `?search=django` - search in title/content/tags
-- `?category__slug=technology` - filter by category
-- `?ordering=-created_at` - sort by date
-- `?status=published` - filter by status
+- `?page=1`
+- `?search=django`
+- `?category__slug=technology`
+- `?ordering=-created_at`
+- `?status=published`
 
-**Example:**
-```
-GET /api/v1/posts/?category__slug=technology&search=django&page=1
-```
+**Tests:**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
 
-**Expected Response (200):**
-```json
-{
-  "count": 25,
-  "next": "http://localhost:8000/api/v1/posts/?page=2",
-  "previous": null,
-  "results": [
-    {
-      "id": 1,
-      "title": "Introduction to Django",
-      "slug": "introduction-to-django",
-      "excerpt": "Django is a high-level Python web framework that encourages rapid development...",
-      "image": "https://your-cdn.com/posts/2025/12/28/django.jpg",
-      "category": 1,
-      "category_name": "Technology",
-      "author": 1,
-      "author_username": "testuser",
-      "status": "published",
-      "tags": ["python", "django", "web"],
-      "created_at": "2025-12-28T10:00:00Z",
-      "updated_at": "2025-12-28T10:00:00Z",
-      "published_at": "2025-12-28T10:00:00Z",
-      "views_count": 150,
-      "comments_count": 5,
-      "images_count": 3
+pm.test("Response has pagination", function () {
+    var jsonData = pm.response.json();
+    pm.expect(jsonData).to.have.property('count');
+    pm.expect(jsonData).to.have.property('results');
+});
+
+pm.test("Posts have required fields", function () {
+    var jsonData = pm.response.json();
+    if (jsonData.results.length > 0) {
+        var post = jsonData.results[0];
+        pm.expect(post).to.have.property('id');
+        pm.expect(post).to.have.property('title');
+        pm.expect(post).to.have.property('slug');
+        pm.expect(post).to.have.property('excerpt');
     }
-  ]
-}
+});
 ```
 
 ---
 
-### 15. Get Post Details
-**GET** `/api/v1/posts/{slug}/`
-
-**Example:**
-```
-GET /api/v1/posts/introduction-to-django/
-```
-
-**Expected Response (200):**
-```json
-{
-  "id": 1,
-  "title": "Introduction to Django",
-  "slug": "introduction-to-django",
-  "content": "Full content of the post...",
-  "image": "https://your-cdn.com/posts/2025/12/28/django.jpg",
-  "category": 1,
-  "category_info": {
-    "id": 1,
-    "name": "Technology",
-    "slug": "technology"
-  },
-  "author": 1,
-  "author_info": {
-    "id": 1,
-    "username": "testuser",
-    "fullname": "Jane Smith",
-    "avatar": "https://your-cdn.com/avatars/avatar.jpg"
-  },
-  "status": "published",
-  "tags": ["python", "django", "web"],
-  "created_at": "2025-12-28T10:00:00Z",
-  "updated_at": "2025-12-28T10:00:00Z",
-  "published_at": "2025-12-28T10:00:00Z",
-  "views_count": 151,
-  "comments_count": 5,
-  "images": [
-    {
-      "id": 1,
-      "image": "https://your-cdn.com/posts/2025/12/28/extra/img1.jpg",
-      "order": 0
-    },
-    {
-      "id": 2,
-      "image": "https://your-cdn.com/posts/2025/12/28/extra/img2.jpg",
-      "order": 1
-    }
-  ],
-  "videos": [
-    {
-      "id": 1,
-      "video": "https://your-cdn.com/posts/2025/12/28/videos/video1.mp4",
-      "order": 0
-    }
-  ]
-}
-```
-
----
-
-### 16. Create Post (Draft)
-**POST** `/api/v1/posts/`
+### 3.2 Create Post (Draft) 📝
+**POST** `{{base_url}}/posts/`
 
 **Headers:**
 ```
-Authorization: Bearer {access_token}
+Authorization: Bearer {{access_token}}
 Content-Type: multipart/form-data
 ```
 
 **Body (form-data):**
 - `title`: "My First Django Post"
-- `content`: "This is the full content of my post. It needs to be at least 50 characters long..."
+- `content`: "This is the full content of my post. It needs to be at least 50 characters long to pass validation. Django is awesome!"
 - `category`: 1
 - `status`: "draft"
 - `tags`: "python,django,web"
 - `image`: [select file]
 
-**Expected Response (201):**
-```json
-{
-  "id": 2,
-  "title": "My First Django Post",
-  "slug": "my-first-django-post",
-  "content": "This is the full content of my post...",
-  "image": "https://your-cdn.com/posts/2025/12/28/post-image.jpg",
-  "category": 1,
-  "status": "draft",
-  "tags": ["python", "django", "web"]
-}
+**Tests:**
+```javascript
+pm.test("Status code is 201", function () {
+    pm.response.to.have.status(201);
+});
+
+pm.test("Post created with slug", function () {
+    var jsonData = pm.response.json();
+    pm.expect(jsonData).to.have.property('slug');
+    pm.expect(jsonData.status).to.eql('draft');
+});
 ```
 
 ---
 
-### 17. Create Post (Published)
-**POST** `/api/v1/posts/`
+### 3.3 Create Post (Published) 🚀
+**POST** `{{base_url}}/posts/`
 
 **Headers:**
 ```
-Authorization: Bearer {access_token}
+Authorization: Bearer {{access_token}}
 Content-Type: multipart/form-data
 ```
 
 **Body (form-data):**
 - `title`: "Django REST Framework Tutorial"
-- `content`: "Complete guide to building REST APIs with Django REST Framework..."
+- `content`: "Complete guide to building REST APIs with Django REST Framework. This tutorial covers everything from setup to deployment."
 - `category`: 1
 - `status`: "published"
 - `tags`: "django,rest,api"
 - `image`: [select file]
 
-**Expected Response (201):**
-```json
-{
-  "id": 3,
-  "title": "Django REST Framework Tutorial",
-  "slug": "django-rest-framework-tutorial",
-  "content": "Complete guide to building REST APIs...",
-  "image": "https://your-cdn.com/posts/2025/12/28/drf.jpg",
-  "category": 1,
-  "status": "published",
-  "tags": ["django", "rest", "api"]
-}
+**Tests:**
+```javascript
+pm.test("Status code is 201", function () {
+    pm.response.to.have.status(201);
+});
+
+pm.test("Post is published", function () {
+    var jsonData = pm.response.json();
+    pm.expect(jsonData.status).to.eql('published');
+});
 ```
 
 ---
 
-### 18. Update Post
-**PATCH** `/api/v1/posts/{slug}/`
+### 3.4 Get Post Details 📖
+**GET** `{{base_url}}/posts/{{test_post_slug}}/`
+
+**Tests:**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Post details complete", function () {
+    var jsonData = pm.response.json();
+    pm.expect(jsonData).to.have.property('title');
+    pm.expect(jsonData).to.have.property('content');
+    pm.expect(jsonData).to.have.property('author_info');
+    pm.expect(jsonData).to.have.property('category_info');
+    pm.expect(jsonData).to.have.property('images');
+    pm.expect(jsonData).to.have.property('videos');
+});
+
+pm.test("Views count increased", function () {
+    var jsonData = pm.response.json();
+    pm.expect(jsonData.views_count).to.be.a('number');
+});
+```
+
+---
+
+### 3.5 Update Post ✏️
+**PATCH** `{{base_url}}/posts/{{test_post_slug}}/`
 
 **Headers:**
 ```
-Authorization: Bearer {access_token}
+Authorization: Bearer {{access_token}}
 ```
 
 **Body (JSON):**
 ```json
 {
-  "title": "Updated Title",
-  "content": "Updated content that is at least 50 characters long...",
+  "title": "Updated Django Tutorial",
+  "content": "Updated content with more details about Django REST Framework and best practices.",
   "status": "published"
 }
 ```
 
+**Tests:**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Post updated successfully", function () {
+    var jsonData = pm.response.json();
+    pm.expect(jsonData.title).to.include('Updated');
+});
+```
+
 ---
 
-### 19. Delete Post
-**DELETE** `/api/v1/posts/{slug}/`
+### 3.6 Delete Post 🗑️
+**DELETE** `{{base_url}}/posts/{{test_post_slug}}/`
 
 **Headers:**
 ```
-Authorization: Bearer {access_token}
+Authorization: Bearer {{access_token}}
 ```
 
-**Expected Response (204 No Content)**
+**Tests:**
+```javascript
+pm.test("Status code is 204", function () {
+    pm.response.to.have.status(204);
+});
+```
 
 ---
 
-### 20. Get My Posts
-**GET** `/api/v1/posts/my/`
+### 3.7 Get My Posts 👤
+**GET** `{{base_url}}/posts/my/`
 
 **Headers:**
 ```
-Authorization: Bearer {access_token}
+Authorization: Bearer {{access_token}}
 ```
 
-**Expected Response (200):**
-```json
-{
-  "count": 10,
-  "next": null,
-  "previous": null,
-  "results": [
-    {
-      "id": 2,
-      "title": "My First Django Post",
-      "slug": "my-first-django-post",
-      "excerpt": "This is the full content...",
-      "image": "https://your-cdn.com/posts/...",
-      "category": 1,
-      "category_name": "Technology",
-      "author": 1,
-      "author_username": "testuser",
-      "status": "draft",
-      "tags": ["python", "django", "web"],
-      "created_at": "2025-12-28T10:00:00Z",
-      "updated_at": "2025-12-28T10:00:00Z",
-      "published_at": null,
-      "views_count": 0,
-      "comments_count": 0,
-      "images_count": 0
+**Tests:**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("All posts belong to current user", function () {
+    var jsonData = pm.response.json();
+    var userId = pm.environment.get("test_user_id");
+    
+    jsonData.results.forEach(function(post) {
+        pm.expect(post.author).to.eql(userId);
+    });
+});
+```
+
+---
+
+### 3.8 Get Posts by Tag 🏷️
+**GET** `{{base_url}}/posts/by_tag/?tag=python`
+
+**Tests:**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("All posts have python tag", function () {
+    var jsonData = pm.response.json();
+    
+    if (jsonData.length > 0) {
+        jsonData.forEach(function(post) {
+            pm.expect(post.tags).to.include('python');
+        });
     }
-  ]
-}
+});
 ```
 
 ---
 
-### 21. Get Posts by Tag
-**GET** `/api/v1/posts/by_tag/?tag=python`
+### 3.9 Popular Posts 📊
+**GET** `{{base_url}}/posts/popular/?limit=10`
 
-**Expected Response (200):**
-```json
-[
-  {
-    "id": 1,
-    "title": "Introduction to Django",
-    "slug": "introduction-to-django",
-    "excerpt": "Django is a high-level...",
-    "image": "https://your-cdn.com/...",
-    "category": 1,
-    "category_name": "Technology",
-    "author": 1,
-    "author_username": "testuser",
-    "status": "published",
-    "tags": ["python", "django", "web"],
-    "created_at": "2025-12-28T10:00:00Z",
-    "updated_at": "2025-12-28T10:00:00Z",
-    "published_at": "2025-12-28T10:00:00Z",
-    "views_count": 150,
-    "comments_count": 5,
-    "images_count": 3
-  }
-]
+**Tests:**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Posts sorted by views", function () {
+    var jsonData = pm.response.json();
+    
+    if (jsonData.length > 1) {
+        for (var i = 0; i < jsonData.length - 1; i++) {
+            pm.expect(jsonData[i].views_count).to.be.at.least(jsonData[i+1].views_count);
+        }
+    }
+});
 ```
 
 ---
 
-### 22. Popular Posts
-**GET** `/api/v1/posts/popular/?limit=10`
+### 3.10 Trending Posts 🔥
+**GET** `{{base_url}}/posts/trending/?limit=10&days=7`
 
-**Expected Response (200):**
-```json
-[
-  {
-    "id": 1,
-    "title": "Introduction to Django",
-    "slug": "introduction-to-django",
-    "excerpt": "Django is a high-level...",
-    "views_count": 1500,
-    "...": "..."
-  }
-]
+**Tests:**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Posts are recent", function () {
+    var jsonData = pm.response.json();
+    var sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    
+    if (jsonData.length > 0) {
+        jsonData.forEach(function(post) {
+            var postDate = new Date(post.published_at);
+            pm.expect(postDate).to.be.above(sevenDaysAgo);
+        });
+    }
+});
 ```
 
 ---
 
-### 23. Trending Posts
-**GET** `/api/v1/posts/trending/?limit=10&days=7`
+## 📁 4. POST IMAGES
 
-**Expected Response (200):**
-```json
-[
-  {
-    "id": 3,
-    "title": "Django REST Framework Tutorial",
-    "slug": "django-rest-framework-tutorial",
-    "excerpt": "Complete guide...",
-    "views_count": 500,
-    "published_at": "2025-12-27T10:00:00Z",
-    "...": "..."
-  }
-]
-```
-
----
-
-## 📁 POST IMAGES
-
-### 24. Upload Multiple Images
-**POST** `/api/v1/posts/{post_slug}/images/`
+### 4.1 Upload Multiple Images 🖼️
+**POST** `{{base_url}}/posts/{{test_post_slug}}/images/`
 
 **Headers:**
 ```
-Authorization: Bearer {access_token}
+Authorization: Bearer {{access_token}}
 Content-Type: multipart/form-data
 ```
 
@@ -695,65 +780,66 @@ Content-Type: multipart/form-data
 - `image`: [select file 2]
 - `image`: [select file 3]
 
-**Expected Response (201):**
-```json
-{
-  "message": "Файли успішно завантажено",
-  "count": 3
-}
+**Tests:**
+```javascript
+pm.test("Status code is 201", function () {
+    pm.response.to.have.status(201);
+});
+
+pm.test("Multiple images uploaded", function () {
+    var jsonData = pm.response.json();
+    pm.expect(jsonData).to.have.property('count');
+    pm.expect(jsonData.count).to.be.above(0);
+});
 ```
 
 ---
 
-### 25. List Post Images
-**GET** `/api/v1/posts/{post_slug}/images/`
+### 4.2 List Post Images 📋
+**GET** `{{base_url}}/posts/{{test_post_slug}}/images/`
 
-**Example:**
-```
-GET /api/v1/posts/my-first-django-post/images/
-```
+**Tests:**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
 
-**Expected Response (200):**
-```json
-[
-  {
-    "id": 1,
-    "image": "https://your-cdn.com/posts/2025/12/28/extra/img1.jpg",
-    "order": 0
-  },
-  {
-    "id": 2,
-    "image": "https://your-cdn.com/posts/2025/12/28/extra/img2.jpg",
-    "order": 1
-  }
-]
+pm.test("Images have required fields", function () {
+    var jsonData = pm.response.json();
+    
+    if (jsonData.length > 0) {
+        pm.expect(jsonData[0]).to.have.property('id');
+        pm.expect(jsonData[0]).to.have.property('image');
+        pm.expect(jsonData[0]).to.have.property('order');
+    }
+});
 ```
 
 ---
 
-### 26. Delete Image
-**DELETE** `/api/v1/posts/{post_slug}/images/{id}/`
+### 4.3 Delete Image ❌
+**DELETE** `{{base_url}}/posts/{{test_post_slug}}/images/1/`
 
 **Headers:**
 ```
-Authorization: Bearer {access_token}
+Authorization: Bearer {{access_token}}
 ```
 
-**Example:**
+**Tests:**
+```javascript
+pm.test("Status code is 204", function () {
+    pm.response.to.have.status(204);
+});
 ```
-DELETE /api/v1/posts/my-first-django-post/images/1/
-```
-
-**Expected Response (204 No Content)**
 
 ---
 
-### 27. Reorder Images
-**PATCH** `/api/v1/posts/{post_slug}/images/reorder/`
+### 4.4 Reorder Images 🔄
+**PATCH** `{{base_url}}/posts/{{test_post_slug}}/images/reorder/`
 
 **Headers:**
 ```
-Authorization: Bearer {access_token}
+Authorization: Bearer {{access_token}}
 ```
 
 **Body (JSON):**
@@ -767,21 +853,26 @@ Authorization: Bearer {access_token}
 }
 ```
 
-**Expected Response (200):**
-```json
-{
-  "message": "Порядок успішно оновлено"
-}
+**Tests:**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Order updated successfully", function () {
+    var jsonData = pm.response.json();
+    pm.expect(jsonData.message).to.include('успішно');
+});
 ```
 
 ---
 
-### 28. Bulk Delete Images
-**DELETE** `/api/v1/posts/{post_slug}/images/bulk_delete/`
+### 4.5 Bulk Delete Images 🗑️
+**DELETE** `{{base_url}}/posts/{{test_post_slug}}/images/bulk_delete/`
 
 **Headers:**
 ```
-Authorization: Bearer {access_token}
+Authorization: Bearer {{access_token}}
 ```
 
 **Body (JSON):**
@@ -791,73 +882,86 @@ Authorization: Bearer {access_token}
 }
 ```
 
-**Expected Response (200):**
-```json
-{
-  "message": "Видалено 3 елементів"
-}
+**Tests:**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Images deleted", function () {
+    var jsonData = pm.response.json();
+    pm.expect(jsonData.message).to.include('Видалено');
+});
 ```
 
 ---
 
-## 📁 POST VIDEOS
+## 📁 5. POST VIDEOS
 
-### 29. Upload Video
-**POST** `/api/v1/posts/{post_slug}/videos/`
+### 5.1 Upload Video 🎥
+**POST** `{{base_url}}/posts/{{test_post_slug}}/videos/`
 
 **Headers:**
 ```
-Authorization: Bearer {access_token}
+Authorization: Bearer {{access_token}}
 Content-Type: multipart/form-data
 ```
 
 **Body (form-data):**
 - `video`: [select video file - max 100MB]
 
-**Expected Response (201):**
-```json
-{
-  "message": "Файли успішно завантажено",
-  "count": 1
-}
+**Tests:**
+```javascript
+pm.test("Status code is 201", function () {
+    pm.response.to.have.status(201);
+});
+
+pm.test("Video uploaded successfully", function () {
+    var jsonData = pm.response.json();
+    pm.expect(jsonData.message).to.include('успішно');
+});
 ```
 
 ---
 
-### 30. List Post Videos
-**GET** `/api/v1/posts/{post_slug}/videos/`
+### 5.2 List Post Videos 📋
+**GET** `{{base_url}}/posts/{{test_post_slug}}/videos/`
 
-**Expected Response (200):**
-```json
-[
-  {
-    "id": 1,
-    "video": "https://your-cdn.com/posts/2025/12/28/videos/video1.mp4",
-    "order": 0
-  }
-]
+**Tests:**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Videos have required fields", function () {
+    var jsonData = pm.response.json();
+    
+    if (jsonData.length > 0) {
+        pm.expect(jsonData[0]).to.have.property('id');
+        pm.expect(jsonData[0]).to.have.property('video');
+        pm.expect(jsonData[0]).to.have.property('order');
+    }
+});
 ```
 
 ---
 
-### 31. Delete Video
-**DELETE** `/api/v1/posts/{post_slug}/videos/{id}/`
+### 5.3 Delete Video ❌
+**DELETE** `{{base_url}}/posts/{{test_post_slug}}/videos/1/`
 
 **Headers:**
 ```
-Authorization: Bearer {access_token}
+Authorization: Bearer {{access_token}}
 ```
-
-**Expected Response (204 No Content)**
 
 ---
 
-### 32. Reorder Videos
-**PATCH** `/api/v1/posts/{post_slug}/videos/reorder/`
+### 5.4 Reorder Videos 🔄
+**PATCH** `{{base_url}}/posts/{{test_post_slug}}/videos/reorder/`
 
 **Headers:**
 ```
-Authorization: Bearer {access_token}
+Authorization: Bearer {{access_token}}
 ```
 
 **Body (JSON):**
@@ -872,12 +976,12 @@ Authorization: Bearer {access_token}
 
 ---
 
-### 33. Bulk Delete Videos
-**DELETE** `/api/v1/posts/{post_slug}/videos/bulk_delete/`
+### 5.5 Bulk Delete Videos 🗑️
+**DELETE** `{{base_url}}/posts/{{test_post_slug}}/videos/bulk_delete/`
 
 **Headers:**
 ```
-Authorization: Bearer {access_token}
+Authorization: Bearer {{access_token}}
 ```
 
 **Body (JSON):**
@@ -889,114 +993,149 @@ Authorization: Bearer {access_token}
 
 ---
 
-## 🔧 POSTMAN SETUP
+## 📁 6. COMMENTS
 
-### Environment Variables
-Створи environment з такими змінними:
+### 6.1 List All Comments 💬
+**GET** `{{base_url}}/comments/`
 
-```
-base_url: http://localhost:8000/api/v1
-access_token: (буде автоматично встановлено після login)
-refresh_token: (буде автоматично встановлено після login)
-```
+**Query Parameters:**
+- `?page=1`
+- `?post=1`
+- `?author=1`
+- `?search=django`
 
-### Auto-save Token Script
-Додай в Tests для Login request:
-
+**Tests:**
 ```javascript
-if (pm.response.code === 200) {
-    const jsonData = pm.response.json();
-    pm.environment.set("access_token", jsonData.access);
-    pm.environment.set("refresh_token", jsonData.refresh);
-}
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Response has pagination", function () {
+    var jsonData = pm.response.json();
+    pm.expect(jsonData).to.have.property('count');
+    pm.expect(jsonData).to.have.property('results');
+});
+
+pm.test("Comments have required fields", function () {
+    var jsonData = pm.response.json();
+    
+    if (jsonData.results.length > 0) {
+        var comment = jsonData.results[0];
+        pm.expect(comment).to.have.property('id');
+        pm.expect(comment).to.have.property('content');
+        pm.expect(comment).to.have.property('author_info');
+    }
+});
 ```
 
-### Authorization Header
-Для запитів що потребують авторизації:
+---
+
+### 6.2 Create Comment ➕
+**POST** `{{base_url}}/comments/`
+
+**Headers:**
 ```
 Authorization: Bearer {{access_token}}
 ```
 
----
+**Body (JSON):**
+```json
+{
+  "post": 1,
+  "content": "Great article! Thanks for sharing this information."
+}
+```
 
-## ✅ Testing Checklist
+**Tests:**
+```javascript
+pm.test("Status code is 201", function () {
+    pm.response.to.have.status(201);
+});
 
-### Accounts
-- [ ] Register new user
-- [ ] Login user (save tokens)
-- [ ] Get profile
-- [ ] Update profile
-- [ ] Upload avatar
-- [ ] Change password
-- [ ] Refresh token
-- [ ] Logout
-
-### Categories
-- [ ] List categories
-- [ ] Create category
-- [ ] Get category details
-- [ ] Update category
-- [ ] Delete category
-
-### Posts
-- [ ] List all posts
-- [ ] Get post details
-- [ ] Create draft post
-- [ ] Create published post
-- [ ] Update post
-- [ ] Delete post
-- [ ] Get my posts
-- [ ] Get posts by tag
-- [ ] Popular posts
-- [ ] Trending posts
-
-### Images
-- [ ] Upload multiple images
-- [ ] List images
-- [ ] Delete single image
-- [ ] Reorder images
-- [ ] Bulk delete images
-
-### Videos
-- [ ] Upload video
-- [ ] List videos
-- [ ] Delete video
-- [ ] Reorder videos
-- [ ] Bulk delete videos
+pm.test("Comment created successfully", function () {
+    var jsonData = pm.response.json();
+    pm.expect(jsonData).to.have.property('id');
+    pm.expect(jsonData.content).to.include('Great article');
+});
+```
 
 ---
 
-## ⚠️ Common Errors
+### 6.3 Create Reply Comment 💬
+**POST** `{{base_url}}/comments/`
 
-### 401 Unauthorized
+**Headers:**
+```
+Authorization: Bearer {{access_token}}
+```
+
+**Body (JSON):**
 ```json
 {
-  "detail": "Authentication credentials were not provided."
+  "post": 1,
+  "parent": 1,
+  "content": "Thank you for your comment! Glad you found it helpful."
 }
 ```
-**Fix:** Add `Authorization: Bearer {token}` header
 
-### 403 Forbidden
+**Tests:**
+```javascript
+pm.test("Status code is 201", function () {
+    pm.response.to.have.status(201);
+});
+
+pm.test("Reply created successfully", function () {
+    var jsonData = pm.response.json();
+    pm.expect(jsonData.parent).to.not.be.null;
+    pm.expect(jsonData.is_reply).to.be.true;
+});
+```
+
+---
+
+### 6.4 Get Comment Details 🔍
+**GET** `{{base_url}}/comments/{{test_comment_id}}/`
+
+**Tests:**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Comment has replies array", function () {
+    var jsonData = pm.response.json();
+    pm.expect(jsonData).to.have.property('replies');
+    pm.expect(jsonData.replies).to.be.an('array');
+});
+```
+
+---
+
+### 6.5 Update Comment ✏️
+**PATCH** `{{base_url}}/comments/{{test_comment_id}}/`
+
+**Headers:**
+```
+Authorization: Bearer {{access_token}}
+```
+
+**Body (JSON):**
 ```json
 {
-  "detail": "You do not have permission to perform this action."
+  "content": "Updated comment content with more details."
 }
 ```
-**Fix:** You're not the author of the post/object
 
-### 400 Bad Request
-```json
-{
-  "title": ["This field is required."],
-  "content": ["Content must be at least 50 characters"]
-}
-```
-**Fix:** Check validation errors and fix request body
+**Tests:**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
 
-### 404 Not Found
-```json
-{
-  "detail": "Not found."
-}
+pm.test("Comment updated successfully", function () {
+    var jsonData = pm.response.json();
+    pm.expect(jsonData.content).to.include('Updated');
+});
 ```
-**Fix:** Check if slug/id exists in database
+
+---

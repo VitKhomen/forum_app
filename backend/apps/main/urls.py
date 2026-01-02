@@ -1,5 +1,3 @@
-# urls.py - РЕКОМЕНДОВАНИЙ ВАРІАНТ ⭐
-
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_nested import routers
@@ -58,13 +56,12 @@ posts_router.register(
 app_name = 'posts'
 
 urlpatterns = [
+    path('posts/popular/', views.popular_posts, name='popular-posts'),
+    path('posts/trending/', views.trending_posts, name='trending-posts'),
+
     # Router URLs (автоматично генеруються)
     path('', include(router.urls)),
     path('', include(posts_router.urls)),
-
-    # Додаткові ендпоінти (через path - для функцій)
-    path('posts/popular/', views.popular_posts, name='popular-posts'),
-    path('posts/trending/', views.trending_posts, name='trending-posts'),
 ]
 
 

@@ -39,7 +39,7 @@ class PostListSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(
         source='category.name', read_only=True)
     comments_count = serializers.SerializerMethodField()
-    tags = TagListSerializerField(source='tags', required=False)
+    tags = TagListSerializerField(required=False)
     images_count = serializers.SerializerMethodField()
     excerpt = serializers.SerializerMethodField()
 

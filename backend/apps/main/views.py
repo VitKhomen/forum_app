@@ -107,7 +107,6 @@ class PostViewSet(viewsets.ModelViewSet):
         tag_slug = request.query_params.get('tag')
         if not tag_slug:
             raise ValidationError({'tag': 'Параметр tag обов\'язковий'})
-
         posts = self.get_queryset().filter(
             tags__slug=tag_slug,
             status='published'
@@ -338,7 +337,6 @@ def trending_posts(request):
         published_at__gte=date_from
     ).select_related('author', 'category') \
      .order_by('-views_count')[:limit]
-
     serializer = PostListSerializer(
         posts, many=True, context={'request': request})
     return Response(serializer.data)

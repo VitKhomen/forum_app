@@ -32,12 +32,12 @@ class FeedbackView(APIView):
                     Повідомлення:
                     {data['message']}
                     """,
-                    from_email=data['email'],
+                    from_email=settings.EMAIL_HOST_USER,
                     recipient_list=[settings.EMAIL_HOST_USER],
-                    fail_silently=False,
+                    fail_silently=True,
                 )
             except Exception as e:
-                pass
+                print(f"Email send error: {e}")
 
             return Response({"message": "Дякуємо за фідбек!"}, status=status.HTTP_200_OK)
 

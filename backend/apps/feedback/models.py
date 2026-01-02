@@ -5,8 +5,8 @@ from django.conf import settings
 class Feedback(models.Model):
     name = models.CharField(max_length=100, verbose_name="Ім'я")
     email = models.EmailField(verbose_name="Email")
-    subject = models.CharField(max_length=300, verbose_name="Тема")
-    message = models.TextField(verbose_name="Повідомлення")
+    subject = models.CharField(max_length=200, verbose_name="Тема")
+    message = models.TextField(max_length=2000, verbose_name="Повідомлення")
     created_at = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False, verbose_name="Прочитано")
 

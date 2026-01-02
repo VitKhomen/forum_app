@@ -1,8 +1,8 @@
 from rest_framework import serializers
+from .models import Feedback
 
 
-class FeedbackSerializer(serializers.Serializer):
-    name = serializers.CharField(max_length=100)
-    email = serializers.EmailField()
-    subject = serializers.CharField(max_length=200)
-    message = serializers.CharField()
+class FeedbackSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Feedback
+        fields = ['name', 'email', 'subject', 'message']
