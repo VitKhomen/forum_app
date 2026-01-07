@@ -17,7 +17,22 @@
         :key="post.id"
         class="bg-white dark:bg-gray-800 rounded-lg shadow p-6"
       >
-        <div class="flex justify-between items-start">
+          <div class="flex gap-4 items-start bg-white dark:bg-gray-800 p-4 rounded-lg shadow hover:shadow-lg transition">
+            <!-- Зображення (маленьке) -->
+            <RouterLink :to="`/posts/${post.slug}`" class="flex-shrink-0">
+              <img
+                v-if="post.image"
+                :src="post.image"
+                :alt="post.title"
+                class="w-30 h-30 object-cover rounded-lg hover:scale-105 transition-transform duration-300"
+              />
+              <div
+                v-else
+                class="w-24 h-24 bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm"
+              >
+                Без зображення
+              </div>
+            </RouterLink>
           <div class="flex-1">
             <RouterLink
               :to="`/posts/${post.slug}`"

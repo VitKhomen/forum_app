@@ -55,7 +55,7 @@
         </div>
 
         <!-- Content -->
-        <div class="prose dark:prose-invert max-w-none mb-8">
+        <div class="prose dark:text-white max-w-none mb-8">
           <div v-html="post.content" class="whitespace-pre-line"></div>
         </div>
 

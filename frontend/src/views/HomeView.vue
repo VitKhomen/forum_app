@@ -1,22 +1,6 @@
 <template>
   <div class="space-y-12">
-    <!-- Hero Section -->
-    <section class="bg-gradient-to-r from-blue-600 to-blue-800 dark:from-blue-800 dark:to-blue-900 rounded-xl p-8 md:p-12 text-white">
-      <div class="max-w-3xl">
-        <h1 class="text-4xl md:text-5xl font-bold mb-4">
-          Залишайтесь в курсі подій
-        </h1>
-        <p class="text-lg md:text-xl mb-6 text-blue-100">
-          Читайте найактуальніші новини, статті та аналітику
-        </p>
-        <RouterLink
-          to="/posts"
-          class="inline-block bg-white text-blue-600 hover:bg-blue-50 px-6 py-3 rounded-lg font-semibold transition"
-        >
-          Переглянути новини
-        </RouterLink>
-      </div>
-    </section>
+    
 
     <!-- Trending Posts -->
     <section v-if="!loadingTrending && trendingPosts.length">
