@@ -8,12 +8,13 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(
         write_only=True, validators=[validate_password])
     password_confirm = serializers.CharField(write_only=True)
+    avatar = serializers.ImageField(required=False, allow_null=True)
 
     class Meta:
         model = User
         fields = (
             'username', 'email', 'password', 'password_confirm',
-            'first_name', 'last_name'
+            'first_name', 'last_name', 'avatar'
         )
         extra_kwargs = {
             'email': {'required': True},
@@ -28,7 +29,13 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         validated_data.pop('password_confirm')
+        avatar = validated_data.pop('avatar', None)
+
         user = User.objects.create_user(**validated_data)
+        if avatar:
+            user.avatar = avatar
+            user.save()
+
         return user
 
 

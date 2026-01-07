@@ -6,10 +6,47 @@
       </h1>
 
       <form @submit.prevent="handleRegister" class="space-y-4">
+        <!-- Avatar -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Аватар (необов'язково)
+          </label>
+          <div class="flex items-center gap-4">
+            <div class="w-20 h-20 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+              <img
+                v-if="avatarPreview"
+                :src="avatarPreview"
+                alt="Avatar preview"
+                class="w-full h-full object-cover"
+              />
+              <div v-else class="w-full h-full flex items-center justify-center">
+                <UserCircleIcon class="w-16 h-16 text-gray-400" />
+              </div>
+            </div>
+            <div>
+              <input
+                type="file"
+                accept="image/*"
+                @change="handleAvatarChange"
+                class="hidden"
+                ref="avatarInput"
+              />
+              <button
+                type="button"
+                @click="$refs.avatarInput.click()"
+                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+              >
+                Вибрати файл
+              </button>
+              <p class="text-xs text-gray-500 mt-1">JPG, PNG. Макс 5MB</p>
+            </div>
+          </div>
+        </div>
+
         <!-- Username -->
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Ім'я користувача
+            Ім'я користувача *
           </label>
           <input
             v-model="form.username"
@@ -23,7 +60,7 @@
         <!-- Email -->
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Email
+            Email *
           </label>
           <input
             v-model="form.email"
@@ -63,7 +100,7 @@
         <!-- Password -->
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Пароль
+            Пароль *
           </label>
           <input
             v-model="form.password"
@@ -72,12 +109,13 @@
             class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="••••••••"
           />
+          <p class="text-xs text-gray-500 mt-1">Мінімум 8 символів</p>
         </div>
 
         <!-- Password Confirm -->
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Підтвердження пароля
+            Підтвердження пароля *
           </label>
           <input
             v-model="form.password_confirm"
@@ -113,9 +151,15 @@
 import { ref } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { UserCircleIcon } from '@heroicons/vue/24/outline'
+import { useToast } from 'vue-toastification'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const toast = useToast()
+
+const avatarPreview = ref(null)
+const avatarInput = ref(null)
 
 const form = ref({
   username: '',
@@ -123,15 +167,70 @@ const form = ref({
   first_name: '',
   last_name: '',
   password: '',
-  password_confirm: ''
+  password_confirm: '',
+  avatar: null
 })
 
+const handleAvatarChange = (event) => {
+  const file = event.target.files[0]
+  if (file) {
+    // Перевірка розміру файлу
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Розмір файлу не повинен перевищувати 5MB')
+      event.target.value = ''
+      return
+    }
+    
+    // Перевірка типу файлу
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp']
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Дозволені тільки файли JPG, PNG, WEBP')
+      event.target.value = ''
+      return
+    }
+    
+    form.value.avatar = file
+    
+    // Створюємо попередній перегляд
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      avatarPreview.value = e.target.result
+    }
+    reader.readAsDataURL(file)
+  }
+}
+
 const handleRegister = async () => {
+  // Валідація паролів
   if (form.value.password !== form.value.password_confirm) {
+    toast.error('Паролі не співпадають')
     return
   }
   
-  const result = await authStore.register(form.value)
+  // Валідація довжини пароля
+  if (form.value.password.length < 8) {
+    toast.error('Пароль повинен містити мінімум 8 символів')
+    return
+  }
+  
+  // Створюємо FormData для відправки з файлом
+  const formData = new FormData()
+  formData.append('username', form.value.username)
+  formData.append('email', form.value.email)
+  formData.append('password', form.value.password)
+  formData.append('password_confirm', form.value.password_confirm)
+  
+  if (form.value.first_name) {
+    formData.append('first_name', form.value.first_name)
+  }
+  if (form.value.last_name) {
+    formData.append('last_name', form.value.last_name)
+  }
+  if (form.value.avatar) {
+    formData.append('avatar', form.value.avatar)
+  }
+  
+  const result = await authStore.register(formData)
   if (result.success) {
     router.push('/')
   }

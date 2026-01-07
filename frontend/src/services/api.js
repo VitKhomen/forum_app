@@ -15,6 +15,13 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
+    
+    // Якщо дані це FormData, видаляємо Content-Type 
+    // щоб браузер сам встановив правильний з boundary
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type']
+    }
+    
     return config
   },
   (error) => Promise.reject(error)
@@ -31,13 +38,10 @@ api.interceptors.response.use(
       
       const refreshToken = Cookies.get('refresh_token')
       
-      // Якщо немає refresh токена, значить користувач не авторизований
-      // Просто повертаємо помилку без редіректу
       if (!refreshToken) {
         return Promise.reject(error)
       }
       
-      // Якщо є refresh токен, намагаємось оновити access токен
       try {
         const { data } = await axios.post(
           `${api.defaults.baseURL}/auth/token/refresh/`,
@@ -49,7 +53,6 @@ api.interceptors.response.use(
         
         return api(originalRequest)
       } catch (refreshError) {
-        // Refresh токен теж застарів - очищаємо cookies і редіректимо
         Cookies.remove('access_token')
         Cookies.remove('refresh_token')
         window.location.href = '/login'
@@ -67,7 +70,10 @@ export const authAPI = {
   login: (data) => api.post('/auth/login/', data),
   logout: (refreshToken) => api.post('/auth/logout/', { refresh_token: refreshToken }),
   getProfile: () => api.get('/auth/profile/'),
-  updateProfile: (data) => api.patch('/auth/profile/', data),
+  updateProfile: (data) => {
+    // Якщо data це FormData або містить файли, не встановлюємо Content-Type
+    return api.patch('/auth/profile/', data)
+  },
   changePassword: (data) => api.post('/auth/change-password/', data),
 }
 
@@ -75,12 +81,8 @@ export const authAPI = {
 export const postsAPI = {
   getAll: (params) => api.get('/posts/', { params }),
   getBySlug: (slug) => api.get(`/posts/${slug}/`),
-  create: (data) => api.post('/posts/', data, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  }),
-  update: (slug, data) => api.patch(`/posts/${slug}/`, data, {
-    headers: { 'Content-Type': 'multipart/form-data' }
-  }),
+  create: (data) => api.post('/posts/', data),
+  update: (slug, data) => api.patch(`/posts/${slug}/`, data),
   delete: (slug) => api.delete(`/posts/${slug}/`),
   getMy: (params) => api.get('/posts/my/', { params }),
   getByTag: (tag, params) => api.get('/posts/by_tag/', { params: { tag, ...params } }),
