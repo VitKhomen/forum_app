@@ -88,6 +88,28 @@ export const postsAPI = {
   getByTag: (tag, params) => api.get('/posts/by_tag/', { params: { tag, ...params } }),
   getPopular: (params) => api.get('/posts/popular/', { params }),
   getTrending: (params) => api.get('/posts/trending/', { params }),
+  
+  // Методи для роботи з додатковими зображеннями
+  addImages: (slug, formData) => {
+    return api.post(`/posts/${slug}/images/`, formData)
+  },
+  
+  bulkDeleteImages: (slug, imageIds) => {
+    return api.delete(`/posts/${slug}/images/bulk_delete/`, {
+      data: { ids: imageIds }  // ← передаємо масив у body
+    })
+  },
+  
+  // Методи для роботи з відео
+  addVideos: (slug, formData) => {
+    return api.post(`/posts/${slug}/videos/`, formData)
+  },
+  
+  bulkDeleteVideos: (slug, videoIds) => {
+    return api.delete(`/posts/${slug}/videos/bulk_delete/`, {
+      data: { ids: videoIds }
+    })
+  },
 }
 
 // Categories API

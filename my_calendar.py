@@ -21,7 +21,7 @@ class MyCalendar(calendar.Calendar):
             for day in week:
                 if day == 0:
                     week_str += "   "
-                elif date(year, month, day) in self.events:
+                elif date(year, month, day) in self.events and self.events[date(year, month, day)]:
                     week_str += f"{day:3}*"
                 else:
                     week_str += f"{day:3}"
@@ -107,7 +107,7 @@ def main():
 
         try:
             command = input(
-                "\nI'm waiting for you commands:\n> ".strip().lower())
+                "\nI'm waiting for you commands:\n> ").strip().lower()
             if command == 'show':
                 show(my_cal)
             elif command == 'add':

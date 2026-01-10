@@ -7,7 +7,7 @@ from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
-from rest_framework.parsers import MultiPartParser, FormParser
+from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
@@ -132,7 +132,7 @@ class BasePostMediaViewSet(viewsets.ModelViewSet):
     Дочірні класи тільки перевизначають атрибути.
     """
     permission_classes = [IsAuthenticated, IsAuthorOrReadOnly]
-    parser_classes = [MultiPartParser, FormParser]
+    parser_classes = [JSONParser, MultiPartParser, FormParser]
 
     # Ці атрибути ОБОВ'ЯЗКОВО перевизначаються в дочірніх класах
     file_field_name = None  # 'image' або 'video'

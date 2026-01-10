@@ -128,6 +128,7 @@ class PostCreateUpdateSerializer(TaggitSerializer, serializers.ModelSerializer):
         model = Post
         fields = [
             'title',
+            'slug',
             'content',
             'image',      # основне зображення поста
             'category',

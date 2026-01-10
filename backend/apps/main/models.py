@@ -3,17 +3,17 @@ from django.db import models
 # Create your models here.
 from django.db import models
 from django.conf import settings
-from django.utils.text import slugify
 from taggit.managers import TaggableManager
 from django.utils import timezone
 from django.urls import reverse
 
 import itertools
+from slugify import slugify as external_slugify
 
 
 class Category(models.Model):
     name = models.CharField(max_length=100, unique=True)
-    slug = models.CharField(max_length=100, unique=True, blank=True)
+    slug = models.SlugField(max_length=100, unique=True, blank=True)
     description = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -28,7 +28,7 @@ class Category(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            self.slug = slugify(self.name)
+            self.slug = external_slugify(self.name)
         super().save(*args, **kwargs)
 
 
@@ -41,7 +41,7 @@ class Post(models.Model):
     ]
 
     title = models.CharField(max_length=200)
-    slug = models.CharField(max_length=200, unique=True, blank=True)
+    slug = models.SlugField(max_length=200, unique=True, blank=True)
     content = models.TextField()
     image = models.ImageField(
         upload_to='posts/%Y/%m/%d/', blank=True, null=True)
@@ -92,7 +92,9 @@ class Post(models.Model):
 
     def _generate_unique_slug(self):
         """Генерація унікального slug з урахуванням race conditions"""
-        base_slug = slugify(self.title)
+        base_slug = external_slugify(self.title)
+        if not base_slug:
+            base_slug = f"post-{self.pk}"
         slug = base_slug
 
         for i in itertools.count(1):
