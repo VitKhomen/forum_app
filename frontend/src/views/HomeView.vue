@@ -1,8 +1,6 @@
 <template>
   <div class="space-y-12">
-    
-
-    <!-- Trending Posts -->
+    <!-- Trending Posts Slider -->
     <section v-if="!loadingTrending && trendingPosts.length">
       <div class="flex justify-between items-center mb-6">
         <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
@@ -16,37 +14,14 @@
         </RouterLink>
       </div>
       
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <PostCard
-          v-for="post in trendingPosts"
-          :key="post.id"
-          :post="post"
-        />
-      </div>
+      <PostsSlider 
+        :posts="trendingPosts" 
+        :autoplay="true" 
+        :interval="5000"
+        :key="trendingPosts.length"
+      />
     </section>
 
-    <!-- Popular Posts -->
-    <section v-if="!loadingPopular && popularPosts.length">
-      <div class="flex justify-between items-center mb-6">
-        <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
-          ⭐ Популярні
-        </h2>
-        <RouterLink
-          to="/posts?filter=popular"
-          class="text-blue-600 dark:text-blue-400 hover:underline text-sm font-medium"
-        >
-          Дивитись все →
-        </RouterLink>
-      </div>
-      
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <PostCard
-          v-for="post in popularPosts"
-          :key="post.id"
-          :post="post"
-        />
-      </div>
-    </section>
 
     <!-- Recent Posts -->
     <section v-if="!loadingRecent && recentPosts.length">
@@ -89,13 +64,13 @@ import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { postsAPI } from '@/services/api'
 import PostCard from '@/components/posts/PostCard.vue'
+import PostsSlider from '@/components/posts/PostsSlider.vue'
 
 const trendingPosts = ref([])
 const popularPosts = ref([])
 const recentPosts = ref([])
 
 const loadingTrending = ref(true)
-const loadingPopular = ref(true)
 const loadingRecent = ref(true)
 
 const fetchTrending = async () => {
@@ -103,7 +78,6 @@ const fetchTrending = async () => {
     const { data } = await postsAPI.getTrending({ limit: 6, days: 7 })
     trendingPosts.value = data
   } catch (error) {
-    // Якщо 401 - користувач не авторизований, просто не показуємо секцію
     if (error.response?.status === 401) {
       console.log('Trending posts require authentication')
     } else {
@@ -114,21 +88,6 @@ const fetchTrending = async () => {
   }
 }
 
-const fetchPopular = async () => {
-  try {
-    const { data } = await postsAPI.getPopular({ limit: 6 })
-    popularPosts.value = data
-  } catch (error) {
-    // Якщо 401 - користувач не авторизований, просто не показуємо секцію
-    if (error.response?.status === 401) {
-      console.log('Popular posts require authentication')
-    } else {
-      console.error('Error fetching popular posts:', error)
-    }
-  } finally {
-    loadingPopular.value = false
-  }
-}
 
 const fetchRecent = async () => {
   try {
@@ -143,7 +102,6 @@ const fetchRecent = async () => {
 
 onMounted(() => {
   fetchTrending()
-  fetchPopular()
   fetchRecent()
 })
 </script>
