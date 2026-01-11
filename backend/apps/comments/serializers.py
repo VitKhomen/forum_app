@@ -52,7 +52,14 @@ class CommentCreateSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
-        validated_data['author'] = self.context['request'].user
+        user = self.context['request'].user
+
+        if not user.is_authenticated:
+            raise serializers.ValidationError(
+                "Тільки авторизовані користувачі можуть залишати коментарі"
+            )
+
+        validated_data['author'] = user
         return super().create(validated_data)
 
 
@@ -72,8 +79,7 @@ class CommentDetailSerializer(CommentSerializer):
         fields = CommentSerializer.Meta.fields + ['replies']
 
     def get_replies(self, obj):
-        if obj.parent is None:
-            replies = obj.replies.filter(
-                is_active=True).order_by('created_at')
+        if obj.parent is None:  # тільки для кореневих коментарів
+            replies = obj.replies.filter(is_active=True).order_by('created_at')
             return CommentSerializer(replies, many=True, context=self.context).data
         return []

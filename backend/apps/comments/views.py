@@ -133,9 +133,7 @@ def comment_replies(request, comment_id):
         replies, many=True, context={'request': request})
 
     return paginator.get_paginated_response({
-        'parent_comment': CommentSerializer(
-            parent_comment, context={'request': request}
-        ).data,
+        'parent_comment': CommentSerializer(parent_comment, context={'request': request}).data,
         'replies': serializer.data,
-        'total_replies': replies.count(),  # Загальна кількість
+        'total_replies': replies.count(),
     })
