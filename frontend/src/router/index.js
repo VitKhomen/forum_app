@@ -20,13 +20,19 @@ const router = createRouter({
       path: '/posts',
       name: 'posts',
       component: () => import('@/views/posts/PostsView.vue'),
-      meta: { title: 'Новини' }
+      meta: { title: 'Пости' }
+    },
+     {
+      path: '/posts/trending',
+      name: 'trending-posts',
+      component: () => import('@/views/posts/TrendingPostsView.vue'),
+      meta: { title: 'Пости в тренді' }
     },
     {
       path: '/posts/:slug',
       name: 'post-detail',
       component: () => import('@/views/posts/PostDetailView.vue'),
-      meta: { title: 'Деталі новини' }
+      meta: { title: 'Деталі поста' }
     },
     {
       path: '/categories/:slug',

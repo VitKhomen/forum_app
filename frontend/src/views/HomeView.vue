@@ -7,7 +7,7 @@
           🔥 В тренді
         </h2>
         <RouterLink
-          to="/posts?filter=trending"
+          to="/posts/trending"
           class="text-blue-600 dark:text-blue-400 hover:underline text-sm font-medium"
         >
           Дивитись все →
@@ -74,7 +74,7 @@ const loadingRecent = ref(true)
 
 const fetchTrending = async () => {
   try {
-    const { data } = await postsAPI.getTrending({ limit: 6, days: 7 })
+    const { data } = await postsAPI.getTrending({ limit: 10, days: 14 })
     trendingPosts.value = data
   } catch (error) {
     if (error.response?.status === 401) {

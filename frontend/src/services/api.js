@@ -88,6 +88,7 @@ export const postsAPI = {
   getByTag: (tag, params) => api.get('/posts/by_tag/', { params: { tag, ...params } }),
   getPopular: (params) => api.get('/posts/popular/', { params }),
   getTrending: (params) => api.get('/posts/trending/', { params }),
+  getById: (id) => api.get(`/posts/${id}/`),
   
   // Методи для роботи з додатковими зображеннями
   addImages: (slug, formData) => {
