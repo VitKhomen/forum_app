@@ -23,6 +23,12 @@ const router = createRouter({
       meta: { title: 'Пости' }
     },
      {
+      path: '/posts/popular',
+      name: 'popular-posts',
+      component: () => import('@/views/posts/PopularPostsView.vue'),
+      meta: { title: 'Популярні пости' }
+    },
+    {
       path: '/posts/trending',
       name: 'trending-posts',
       component: () => import('@/views/posts/TrendingPostsView.vue'),

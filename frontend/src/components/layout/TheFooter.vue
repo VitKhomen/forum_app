@@ -5,10 +5,10 @@
         <!-- About -->
         <div>
           <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-            NewsSite
+            JustForum
           </h3>
           <p class="text-gray-600 dark:text-gray-400 text-sm">
-            Ваше джерело актуальних новин та цікавих статей.
+            Це сайт форум з мемасиками!
           </p>
         </div>
 
@@ -52,12 +52,21 @@
             Контакти
           </h3>
           <ul class="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-            <li>Email: info@newssite.com</li>
-            <li>Тел: +380 123 456 789</li>
+            <li>
+              <a 
+                href="https://t.me/Vitaliy_Khomenko" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                class="inline-flex items-center gap-2 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+              >
+                <Icon icon="logos:telegram" class="w-6 h-6" />
+                Telegram
+              </a>
+            </li>
             <li>
               <RouterLink 
                 to="/contact"
-                class="text-blue-600 dark:text-blue-400 hover:underline"
+                class="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 text-sm"
               >
                 Форма зворотного зв'язку
               </RouterLink>
@@ -69,7 +78,7 @@
       <!-- Copyright -->
       <div class="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700">
         <p class="text-center text-gray-600 dark:text-gray-400 text-sm">
-          © {{ currentYear }} NewsSite. Всі права захищені.
+          © {{ currentYear }} JustForum. Всі права захищені.
         </p>
       </div>
     </div>
@@ -79,14 +88,15 @@
 <script setup>
 import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
+import { Icon } from '@iconify/vue'
 
 const currentYear = computed(() => new Date().getFullYear())
 
 const quickLinks = [
   { name: 'Головна', path: '/' },
-  { name: 'Новини', path: '/posts' },
-  { name: 'Про нас', path: '/about' },
-  { name: 'Контакти', path: '/contact' },
+  { name: 'Всі пости', path: '/posts' },
+  { name: 'В тренді', path: '/posts/trending' },
+  { name: 'Популярні', path: '/posts/popular' },
 ]
 
 const categories = [

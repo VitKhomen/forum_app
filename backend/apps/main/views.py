@@ -8,7 +8,7 @@ from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticate
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
 from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
-
+from rest_framework.pagination import PageNumberPagination
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
 
@@ -36,15 +36,25 @@ class CategoryViewSet(viewsets.ModelViewSet):
     search_fields = ['name', 'description']
     ordering_fields = ['name', 'created_at']
 
+# Pagination
+
+
+class PopularPagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = 'page_size'
+    max_page_size = 100
 
 # ========================
 # Post ViewSet
 # ========================
+
+
 class PostViewSet(viewsets.ModelViewSet):
     """ViewSet для постів з повним CRUD функціоналом"""
     queryset = Post.objects.select_related('author', 'category') \
                            .prefetch_related('tags', 'images', 'videos')
     permission_classes = [IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly]
+    pagination_class = PopularPagination
     lookup_field = 'slug'
     filter_backends = [DjangoFilterBackend,
                        filters.SearchFilter, filters.OrderingFilter]
@@ -308,16 +318,34 @@ class PostVideosViewSet(BasePostMediaViewSet):
 @permission_classes([AllowAny])
 def popular_posts(request):
     """
-    GET /api/posts/popular/?limit=10
-    Популярні пости за кількістю переглядів
+    GET /api/posts/popular/
+    Популярні пости за кількістю переглядів з пагінацією, пошуком і фільтром по категорії
     """
-    limit = int(request.query_params.get('limit', 10))
-    posts = Post.objects.filter(status='published') \
-                        .select_related('author', 'category') \
-                        .order_by('-views_count')[:limit]
+    queryset = Post.objects.filter(status='published') \
+                           .select_related('author', 'category') \
+                           .prefetch_related('tags') \
+                           .order_by('-views_count')
+
+    # Фільтри та пошук (аналогічно PostViewSet)
+    if 'search' in request.query_params:
+        search = request.query_params['search']
+        queryset = queryset.filter(
+            Q(title__icontains=search) |
+            Q(content__icontains=search) |
+            Q(tags__name__icontains=search)
+        ).distinct()
+
+    if 'category__slug' in request.query_params:
+        category_slug = request.query_params['category__slug']
+        queryset = queryset.filter(category__slug=category_slug)
+
+    # Пагінація
+    paginator = PopularPagination()
+    page = paginator.paginate_queryset(queryset, request)
+
     serializer = PostListSerializer(
-        posts, many=True, context={'request': request})
-    return Response(serializer.data)
+        page, many=True, context={'request': request})
+    return paginator.get_paginated_response(serializer.data)
 
 
 @api_view(['GET'])

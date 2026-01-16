@@ -117,7 +117,7 @@ const fetchPosts = async () => {
     if (searchQuery.value.trim()) params.search = searchQuery.value.trim()
     if (selectedCategory.value) params.category__slug = selectedCategory.value
 
-    const { data } = await postsAPI.getAll(params)
+    const { data } = await postsAPI.getPopular(params)
 
     posts.value = data.results || []
     totalPages.value = data.count ? Math.ceil(data.count / pageSize) : 1

@@ -82,7 +82,7 @@
       <!-- Кнопка "Показати всі" -->
       <div v-if="posts && posts.length" class="p-4 border-t border-gray-200 dark:border-gray-700">
         <RouterLink
-          to="/posts?filter=popular"
+          to="/posts/popular"
           class="block text-center text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium text-sm transition"
         >
           Показати всі популярні →
