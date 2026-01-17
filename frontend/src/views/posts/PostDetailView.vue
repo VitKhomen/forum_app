@@ -91,7 +91,7 @@
           </div>
 
           <!-- Additional Videos -->
-          <div v-if="post.videos && post.videos.length" class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <div v-if="post.videos && post.videos.length" class="space-y-6 mb-8">
             <div
               v-for="video in post.videos"
               :key="video.id"

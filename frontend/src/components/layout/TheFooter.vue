@@ -1,7 +1,7 @@
 <template>
   <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-auto">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
         <!-- About -->
         <div>
           <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
@@ -17,37 +17,20 @@
           <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
             Посилання
           </h3>
-          <ul class="space-y-2">
-            <li v-for="link in quickLinks" :key="link.path">
-              <RouterLink
-                :to="link.path"
-                class="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 text-sm"
-              >
-                {{ link.name }}
-              </RouterLink>
-            </li>
-          </ul>
-        </div>
-
-        <!-- Categories -->
-        <div>
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-            Категорії
-          </h3>
-          <ul class="space-y-2">
-            <li v-for="category in categories" :key="category">
-              <a
-                href="#"
-                class="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 text-sm"
-              >
-                {{ category }}
-              </a>
-            </li>
-          </ul>
+          <div class="flex flex-wrap gap-x-6 gap-y-2">
+            <RouterLink
+              v-for="link in quickLinks"
+              :key="link.path"
+              :to="link.path"
+              class="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 text-sm whitespace-nowrap"
+            >
+              {{ link.name }}
+            </RouterLink>
+          </div>
         </div>
 
         <!-- Contact -->
-        <div>
+        <div class="md:ml-auto">
           <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
             Контакти
           </h3>
@@ -66,7 +49,7 @@
             <li>
               <RouterLink 
                 to="/contact"
-                class="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 text-sm"
+                class="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 text-sm hover:underline"
               >
                 Форма зворотного зв'язку
               </RouterLink>
@@ -97,13 +80,5 @@ const quickLinks = [
   { name: 'Всі пости', path: '/posts' },
   { name: 'В тренді', path: '/posts/trending' },
   { name: 'Популярні', path: '/posts/popular' },
-]
-
-const categories = [
-  'Політика',
-  'Економіка',
-  'Технології',
-  'Спорт',
-  'Культура',
 ]
 </script>

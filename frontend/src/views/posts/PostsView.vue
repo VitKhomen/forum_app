@@ -2,9 +2,15 @@
   <div class="space-y-8">
     <!-- Page Title + Filters -->
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-      <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
-        Всі пости
-      </h1>
+      <div>
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
+          Всі пости
+        </h1>
+        <!-- Показуємо активні фільтри -->
+        <div v-if="activeFiltersText" class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+          {{ activeFiltersText }}
+        </div>
+      </div>
 
       <div class="flex flex-wrap gap-4 w-full md:w-auto">
         <input
@@ -25,12 +31,37 @@
         </select>
 
         <button
-          @click="fetchPosts"
+          @click="applyFilters"
           class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition whitespace-nowrap"
         >
           Застосувати
         </button>
+
+        <!-- Кнопка очистити фільтри -->
+        <button
+          v-if="hasActiveFilters"
+          @click="clearFilters"
+          class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition"
+        >
+          Очистити
+        </button>
       </div>
+    </div>
+
+    <!-- Active Tag Filter -->
+    <div v-if="selectedTag" class="flex items-center gap-2 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+      <span class="text-sm text-gray-700 dark:text-gray-300">
+        Фільтр за тегом:
+      </span>
+      <span class="px-3 py-1 bg-blue-600 text-white rounded-full text-sm font-medium">
+        #{{ selectedTag }}
+      </span>
+      <button
+        @click="clearTagFilter"
+        class="ml-auto text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+      >
+        ✕
+      </button>
     </div>
 
     <!-- Posts Grid -->
@@ -40,6 +71,9 @@
 
     <!-- Empty State -->
     <div v-else-if="!loading && !posts.length" class="text-center py-12 text-gray-600 dark:text-gray-400">
+      <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      </svg>
       Новини не знайдено
     </div>
 
@@ -100,9 +134,10 @@ const categories = ref([])
 const loading = ref(true)
 const searchQuery = ref('')
 const selectedCategory = ref('')
+const selectedTag = ref('')
 const currentPage = ref(1)
 const totalPages = ref(1)
-const pageSize = 9  // має співпадати з backend (CommentPagination.page_size)
+const pageSize = 9
 const readyToRenderPages = ref(false)
 
 const fetchPosts = async () => {
@@ -116,23 +151,14 @@ const fetchPosts = async () => {
 
     if (searchQuery.value.trim()) params.search = searchQuery.value.trim()
     if (selectedCategory.value) params.category__slug = selectedCategory.value
+    if (selectedTag.value) params.tag = selectedTag.value
 
     const { data } = await postsAPI.getAll(params)
 
     posts.value = data.results || []
     totalPages.value = data.count ? Math.ceil(data.count / pageSize) : 1
 
-    // Оновлюємо URL
-    router.push({
-      query: {
-        ...route.query,
-        page: currentPage.value.toString(),
-        search: searchQuery.value || undefined,
-        category__slug: selectedCategory.value || undefined
-      }
-    })
-
-    readyToRenderPages.value = true  // показуємо кнопки після завантаження
+    readyToRenderPages.value = true
   } catch (error) {
     console.error('Error fetching posts:', error)
   } finally {
@@ -149,7 +175,56 @@ const fetchCategories = async () => {
   }
 }
 
-// Розумна генерація номерів сторінок (не показуємо всі 100)
+const applyFilters = () => {
+  currentPage.value = 1
+  updateURL()
+  fetchPosts()
+}
+
+const clearFilters = () => {
+  searchQuery.value = ''
+  selectedCategory.value = ''
+  selectedTag.value = ''
+  currentPage.value = 1
+  router.push({ path: '/posts' })
+  fetchPosts()
+}
+
+const clearTagFilter = () => {
+  selectedTag.value = ''
+  currentPage.value = 1
+  updateURL()
+  fetchPosts()
+}
+
+const updateURL = () => {
+  const query = {}
+  if (currentPage.value > 1) query.page = currentPage.value.toString()
+  if (searchQuery.value) query.search = searchQuery.value
+  if (selectedCategory.value) query.category__slug = selectedCategory.value
+  if (selectedTag.value) query.tag = selectedTag.value
+
+  router.push({ query })
+}
+
+// Текст активних фільтрів
+const activeFiltersText = computed(() => {
+  const filters = []
+  if (searchQuery.value) filters.push(`Пошук: "${searchQuery.value}"`)
+  if (selectedCategory.value) {
+    const cat = categories.value.find(c => c.slug === selectedCategory.value)
+    if (cat) filters.push(`Категорія: ${cat.name}`)
+  }
+  if (selectedTag.value) filters.push(`Тег: #${selectedTag.value}`)
+  return filters.length ? filters.join(' · ') : ''
+})
+
+// Чи є активні фільтри
+const hasActiveFilters = computed(() => {
+  return searchQuery.value || selectedCategory.value || selectedTag.value
+})
+
+// Розумна генерація номерів сторінок
 const displayedPages = computed(() => {
   const pages = []
   const maxVisible = 7
@@ -168,35 +243,26 @@ const displayedPages = computed(() => {
 })
 
 // Синхронізація з URL
-watch(currentPage, (newPage) => {
-  // Оновлюємо URL
-  router.push({
-    query: {
-      ...route.query,
-      page: newPage,
-      search: searchQuery.value || undefined,
-      category__slug: selectedCategory.value || undefined
-    }
-  })
-  
-  // Завантажуємо нові пости
+watch(currentPage, () => {
+  updateURL()
   fetchPosts()
-  
-  // Скрол до верху
   window.scrollTo({ top: 0, behavior: 'smooth' })
-}, { immediate: false })
+})
 
+// Синхронізація з query параметрами
 watch(() => route.query, (query) => {
-  const newPage = Number(query.page) || 1
-  if (currentPage.value !== newPage) {
-    currentPage.value = newPage
-  }
+  currentPage.value = Number(query.page) || 1
   searchQuery.value = query.search || ''
   selectedCategory.value = query.category__slug || ''
+  selectedTag.value = query.tag || ''
+  
+  // Завантажуємо пости тільки якщо це перший раз
+  if (!readyToRenderPages.value) {
+    fetchPosts()
+  }
 }, { immediate: true, deep: true })
 
 onMounted(() => {
   fetchCategories()
-  fetchPosts()
 })
 </script>

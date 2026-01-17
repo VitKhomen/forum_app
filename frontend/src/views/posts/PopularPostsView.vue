@@ -3,7 +3,7 @@
     <!-- Page Title + Filters -->
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
       <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
-        Всі пости
+        Популярні
       </h1>
 
       <div class="flex flex-wrap gap-4 w-full md:w-auto">
@@ -40,7 +40,7 @@
 
     <!-- Empty State -->
     <div v-else-if="!loading && !posts.length" class="text-center py-12 text-gray-600 dark:text-gray-400">
-      Новини не знайдено
+      Постів
     </div>
 
     <!-- Loading -->

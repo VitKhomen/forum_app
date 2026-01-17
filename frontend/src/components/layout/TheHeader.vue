@@ -31,7 +31,19 @@
             to="/posts"
             class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 px-3 py-2 text-sm font-medium transition"
           >
-            Пости
+            Всі пости
+          </RouterLink>
+          <RouterLink
+            to="/posts/popular"
+            class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 px-3 py-2 text-sm font-medium transition"
+          >
+            Популярні
+          </RouterLink>
+          <RouterLink
+            to="/posts/trending"
+            class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 px-3 py-2 text-sm font-medium transition"
+          >
+            В тренді
           </RouterLink>
 
           <!-- Кнопка Категорії з випадаючим меню -->
@@ -42,13 +54,6 @@
           >
             Категорії
           </button>
-
-          <RouterLink
-            to="/contact"
-            class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 px-3 py-2 text-sm font-medium transition"
-          >
-            Контакти
-          </RouterLink>
 
           <!-- Авторизація -->
           <template v-if="authStore.isAuthenticated">

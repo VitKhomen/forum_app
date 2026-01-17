@@ -318,15 +318,15 @@ class PostVideosViewSet(BasePostMediaViewSet):
 @permission_classes([AllowAny])
 def popular_posts(request):
     """
-    GET /api/posts/popular/
-    Популярні пости за кількістю переглядів з пагінацією, пошуком і фільтром по категорії
+    GET /api/posts/popular/?limit=7           → для сайдбару (без пагінації)
+    GET /api/posts/popular/?page=1&page_size=20 → для окремої сторінки (з пагінацією)
     """
     queryset = Post.objects.filter(status='published') \
                            .select_related('author', 'category') \
                            .prefetch_related('tags') \
                            .order_by('-views_count')
 
-    # Фільтри та пошук (аналогічно PostViewSet)
+    # Фільтри та пошук (працюють в обох режимах)
     if 'search' in request.query_params:
         search = request.query_params['search']
         queryset = queryset.filter(
@@ -336,13 +336,25 @@ def popular_posts(request):
         ).distinct()
 
     if 'category__slug' in request.query_params:
-        category_slug = request.query_params['category__slug']
-        queryset = queryset.filter(category__slug=category_slug)
+        queryset = queryset.filter(
+            category__slug=request.query_params['category__slug'])
 
-    # Пагінація
-    paginator = PopularPagination()
+    # Якщо є limit — повертаємо фіксовану кількість (для сайдбару)
+    if 'limit' in request.query_params:
+        # max 20 для безпеки
+        limit = min(int(request.query_params['limit']), 20)
+        posts = queryset[:limit]
+        serializer = PostListSerializer(
+            posts, many=True, context={'request': request})
+        return Response(serializer.data)
+
+    # Інакше — повна пагінація (для окремої сторінки)
+    paginator = PageNumberPagination()
+    paginator.page_size = 20
+    paginator.page_size_query_param = 'page_size'
+    paginator.max_page_size = 100
+
     page = paginator.paginate_queryset(queryset, request)
-
     serializer = PostListSerializer(
         page, many=True, context={'request': request})
     return paginator.get_paginated_response(serializer.data)

@@ -1,37 +1,36 @@
 <template>
-  <div class="space-y-6">
-    <!-- Page Title -->
-    <div class="flex justify-between items-center">
+  <div class="space-y-8">
+    <!-- Page Title + Filters -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
       <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
         В тренді
       </h1>
-    </div>
 
-    <!-- Filters -->
-    <div class="flex flex-wrap gap-4">
-      <input
-        v-model="searchQuery"
-        type="search"
-        placeholder="Пошук..."
-        class="flex-1 min-w-[200px] px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-      />
-      
-      <select
-        v-model="selectedCategory"
-        class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-      >
-        <option value="">Всі категорії</option>
-        <option v-for="cat in categories" :key="cat.id" :value="cat.slug">
-          {{ cat.name }}
-        </option>
-      </select>
+      <div class="flex flex-wrap gap-4 w-full md:w-auto">
+        <input
+          v-model="searchQuery"
+          type="search"
+          placeholder="Пошук..."
+          class="flex-1 min-w-[200px] px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
 
-      <button
-        @click="applyFilters"
-        class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-      >
-        Застосувати
-      </button>
+        <select
+          v-model="selectedCategory"
+          class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">Всі категорії</option>
+          <option v-for="cat in categories" :key="cat.id" :value="cat.slug">
+            {{ cat.name }}
+          </option>
+        </select>
+
+        <button
+          @click="fetchPosts"
+          class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition whitespace-nowrap"
+        >
+          Застосувати
+        </button>
+      </div>
     </div>
 
     <!-- Posts Grid -->
