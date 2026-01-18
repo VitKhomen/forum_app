@@ -114,11 +114,13 @@ class PostViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['get'])
     def by_tag(self, request):
         """GET /api/posts/by_tag/?tag=python"""
-        tag_slug = request.query_params.get('tag')
-        if not tag_slug:
+        tag_name = request.query_params.get('tag')
+        if not tag_name:
             raise ValidationError({'tag': 'Параметр tag обов\'язковий'})
+
+        # Використовуємо tags__name для фільтрації
         posts = self.get_queryset().filter(
-            tags__slug=tag_slug,
+            tags__name__iexact=tag_name,  # iexact для case-insensitive
             status='published'
         ).distinct()
 

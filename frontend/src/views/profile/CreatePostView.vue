@@ -145,10 +145,10 @@
       <!-- Tags -->
       <div>
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Теги (через кому)
+          Теги (через кому "технології, новини, україна")
         </label>
         <input
-          v-model="form.tags"
+          v-model="tagsString"
           type="text"
           class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           placeholder="технології, новини, україна"
@@ -190,7 +190,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
 import { postsAPI, categoriesAPI } from '@/services/api'
 import { useToast } from 'vue-toastification'
@@ -207,7 +207,7 @@ const form = ref({
   main_image: null,
   additional_images: [],
   videos: [],
-  tags: '',
+  tags: [],
   status: 'draft'
 })
 
@@ -319,12 +319,13 @@ const handleSubmit = async () => {
       formData.append('image', form.value.main_image)
     }
     
-    if (form.value.tags) {
-      formData.append('tags', form.value.tags)
+    if (form.value.tags && form.value.tags.length > 0) {
+      form.value.tags.forEach(tag => {
+        formData.append('tags', tag)
+      })
     }
 
     const { data } = await postsAPI.create(formData)
-    console.log('Post created:', data)
     
     const postSlug = data.slug
 
@@ -341,7 +342,6 @@ const handleSubmit = async () => {
             'Content-Type': 'multipart/form-data'
           }
         })
-        console.log('Additional images uploaded')
       } catch (imgError) {
         console.error('Error uploading additional images:', imgError)
         toast.warning('Пост створено, але виникла помилка при завантаженні додаткових зображень')
@@ -361,7 +361,6 @@ const handleSubmit = async () => {
             'Content-Type': 'multipart/form-data'
           }
         })
-        console.log('Videos uploaded')
       } catch (videoError) {
         console.error('Error uploading videos:', videoError)
         toast.warning('Пост створено, але виникла помилка при завантаженні відео')
@@ -389,6 +388,15 @@ const fetchCategories = async () => {
     console.error('Error fetching categories:', error)
   }
 }
+const tagsString = computed({
+  get: () => form.value.tags.join(', '),
+  set: (val) => {
+    form.value.tags = val
+      .split(',')
+      .map(t => t.trim())
+      .filter(Boolean)
+  }
+})
 
 onMounted(() => {
   fetchCategories()

@@ -87,7 +87,7 @@
       <!-- Попередня -->
       <button
         :disabled="currentPage === 1"
-        @click="currentPage = currentPage - 1"
+        @click="changePage(currentPage - 1)"
         class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 transition"
       >
         Попередня
@@ -97,7 +97,7 @@
       <button
         v-for="page in displayedPages"
         :key="page"
-        @click="currentPage = page"
+        @click="changePage(page)"
         :class="[
           'px-4 py-2 rounded-lg transition',
           currentPage === page
@@ -111,7 +111,7 @@
       <!-- Наступна -->
       <button
         :disabled="currentPage === totalPages"
-        @click="currentPage = currentPage + 1"
+        @click="changePage(currentPage + 1)"
         class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 transition"
       >
         Наступна
@@ -139,28 +139,53 @@ const currentPage = ref(1)
 const totalPages = ref(1)
 const pageSize = 9
 const readyToRenderPages = ref(false)
+const isUpdatingFromUrl = ref(false)
 
 const fetchPosts = async () => {
   loading.value = true
   readyToRenderPages.value = false
+  
   try {
-    const params = {
+    console.log('Fetching posts with:', {
       page: currentPage.value,
-      page_size: pageSize
+      search: searchQuery.value,
+      category: selectedCategory.value,
+      tag: selectedTag.value
+    })
+
+    // Якщо є тег, використовуємо спеціальний ендпоінт
+    if (selectedTag.value) {
+      const { data } = await postsAPI.getByTag(selectedTag.value, {
+        page: currentPage.value,
+        page_size: pageSize
+      })
+      
+      console.log('Response from getByTag:', data)
+      
+      posts.value = data.results || data
+      totalPages.value = data.count ? Math.ceil(data.count / pageSize) : 1
+    } else {
+      // Інакше звичайний запит
+      const params = {
+        page: currentPage.value,
+        page_size: pageSize
+      }
+
+      if (searchQuery.value.trim()) params.search = searchQuery.value.trim()
+      if (selectedCategory.value) params.category__slug = selectedCategory.value
+
+      const { data } = await postsAPI.getAll(params)
+      
+      console.log('Response from getAll:', data)
+      
+      posts.value = data.results || []
+      totalPages.value = data.count ? Math.ceil(data.count / pageSize) : 1
     }
-
-    if (searchQuery.value.trim()) params.search = searchQuery.value.trim()
-    if (selectedCategory.value) params.category__slug = selectedCategory.value
-    if (selectedTag.value) params.tag = selectedTag.value
-
-    const { data } = await postsAPI.getAll(params)
-
-    posts.value = data.results || []
-    totalPages.value = data.count ? Math.ceil(data.count / pageSize) : 1
 
     readyToRenderPages.value = true
   } catch (error) {
     console.error('Error fetching posts:', error)
+    posts.value = []
   } finally {
     loading.value = false
   }
@@ -178,7 +203,6 @@ const fetchCategories = async () => {
 const applyFilters = () => {
   currentPage.value = 1
   updateURL()
-  fetchPosts()
 }
 
 const clearFilters = () => {
@@ -187,14 +211,22 @@ const clearFilters = () => {
   selectedTag.value = ''
   currentPage.value = 1
   router.push({ path: '/posts' })
-  fetchPosts()
 }
 
 const clearTagFilter = () => {
   selectedTag.value = ''
   currentPage.value = 1
-  updateURL()
-  fetchPosts()
+  
+  const query = {}
+  if (searchQuery.value) query.search = searchQuery.value
+  if (selectedCategory.value) query.category__slug = selectedCategory.value
+  
+  router.push({ path: '/posts', query })
+}
+
+const changePage = (page) => {
+  currentPage.value = page
+  window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
 const updateURL = () => {
@@ -242,25 +274,30 @@ const displayedPages = computed(() => {
   return pages
 })
 
-// Синхронізація з URL
-watch(currentPage, () => {
-  updateURL()
-  fetchPosts()
-  window.scrollTo({ top: 0, behavior: 'smooth' })
-})
-
-// Синхронізація з query параметрами
-watch(() => route.query, (query) => {
-  currentPage.value = Number(query.page) || 1
-  searchQuery.value = query.search || ''
-  selectedCategory.value = query.category__slug || ''
-  selectedTag.value = query.tag || ''
+// Синхронізація з URL при першому завантаженні та зміні query
+watch(() => route.query, (newQuery) => {
+  console.log('Route query changed:', newQuery)
   
-  // Завантажуємо пости тільки якщо це перший раз
-  if (!readyToRenderPages.value) {
-    fetchPosts()
+  isUpdatingFromUrl.value = true
+  
+  currentPage.value = Number(newQuery.page) || 1
+  searchQuery.value = newQuery.search || ''
+  selectedCategory.value = newQuery.category__slug || ''
+  selectedTag.value = newQuery.tag || ''
+  
+  fetchPosts()
+  
+  // Даємо трохи часу, щоб watch(currentPage) не спрацював зайвий раз
+  setTimeout(() => {
+    isUpdatingFromUrl.value = false
+  }, 50)
+}, { immediate: true })
+
+watch(currentPage, (newPage, oldPage) => {
+  if (newPage !== oldPage && !isUpdatingFromUrl.value) {
+    updateURL()
   }
-}, { immediate: true, deep: true })
+})
 
 onMounted(() => {
   fetchCategories()

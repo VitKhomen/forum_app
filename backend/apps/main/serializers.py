@@ -155,4 +155,11 @@ class PostCreateUpdateSerializer(TaggitSerializer, serializers.ModelSerializer):
         return super().create(validated_data)
 
     def update(self, instance, validated_data):
-        return super().update(instance, validated_data)
+        tags_data = validated_data.pop('tags', None)
+
+        instance = super().update(instance, validated_data)
+
+        if tags_data is not None:
+            instance.tags.set(tags_data)
+
+        return instance

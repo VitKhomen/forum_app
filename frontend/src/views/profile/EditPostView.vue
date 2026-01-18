@@ -193,10 +193,10 @@
       <!-- Tags -->
       <div>
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Теги (через кому)
+          Теги (через кому "технології, новини, україна")
         </label>
         <input
-          v-model="form.tags"
+          v-model="tagsString"
           type="text"
           class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           placeholder="технології, новини, україна"
@@ -243,7 +243,6 @@ import { useRouter, useRoute, RouterLink } from 'vue-router'
 import { postsAPI, categoriesAPI } from '@/services/api'
 import { useToast } from 'vue-toastification'
 import { XMarkIcon } from '@heroicons/vue/24/outline'
-import api from '@/services/api'
 
 const router = useRouter()
 const route = useRoute()
@@ -256,7 +255,7 @@ const form = ref({
   new_main_image: null,
   new_additional_images: [],
   new_videos: [],
-  tags: '',
+  tags: [],
   status: 'draft'
 })
 
@@ -396,19 +395,18 @@ const handleSubmit = async () => {
       formData.append('image', form.value.new_main_image)
     }
     
-    if (form.value.tags) {
-      formData.append('tags', form.value.tags)
+    if (form.value.tags && form.value.tags.length > 0) {
+      form.value.tags.forEach(tag => {
+        formData.append('tags', tag)
+      })
     }
 
     await postsAPI.update(route.params.slug, formData)
-    console.log('✅ Post updated')
     
     // Крок 2: Видаляємо зображення
     if (imagesToDelete.value.length) {
-      console.log('Видаляємо зображення з id:', imagesToDelete.value)
       try {
-        const res = await postsAPI.bulkDeleteImages(route.params.slug, imagesToDelete.value)
-        console.log('Видалення успішно:', res.data)
+        await postsAPI.bulkDeleteImages(route.params.slug, imagesToDelete.value)
       } catch (err) {
         console.error('Помилка видалення:')
         console.error('Status:', err.response?.status)
@@ -420,9 +418,8 @@ const handleSubmit = async () => {
     if (videosToDelete.value.length) {
       try {
         await postsAPI.bulkDeleteVideos(route.params.slug, videosToDelete.value)
-        console.log('✅ Videos deleted:', videosToDelete.value)
       } catch (error) {
-        console.error('❌ Error deleting videos:', error)
+        console.error('Error deleting videos:', error)
         console.error('Response:', error.response?.data)
         toast.warning('Деякі відео не вдалося видалити')
       }
@@ -438,9 +435,8 @@ const handleSubmit = async () => {
         })
         
         await postsAPI.addImages(route.params.slug, imagesFormData)
-        console.log('✅ New images uploaded')
       } catch (error) {
-        console.error('❌ Error uploading images:', error)
+        console.error('Error uploading images:', error)
         console.error('Response:', error.response?.data)
         toast.warning('Пост оновлено, але виникла помилка при завантаженні нових зображень')
       }
@@ -455,9 +451,8 @@ const handleSubmit = async () => {
         })
         
         await postsAPI.addVideos(route.params.slug, videosFormData)
-        console.log('✅ New videos uploaded')
       } catch (error) {
-        console.error('❌ Error uploading videos:', error)
+        console.error('Error uploading videos:', error)
         console.error('Response:', error.response?.data)
         toast.warning('Пост оновлено, але виникла помилка при завантаженні нових відео')
       }
@@ -466,7 +461,7 @@ const handleSubmit = async () => {
     toast.success('Пост успішно оновлено!')
     router.push('/profile/posts')
   } catch (error) {
-    console.error('❌ Error updating post:', error)
+    console.error('Error updating post:', error)
     const errorMsg = error.response?.data?.detail || 
                      error.response?.data?.message || 
                      'Помилка оновлення поста'
@@ -485,6 +480,16 @@ const fetchCategories = async () => {
   }
 }
 
+const tagsString = computed({
+  get: () => form.value.tags.join(', '),
+  set: (val) => {
+    form.value.tags = val
+      .split(',')
+      .map(t => t.trim())
+      .filter(Boolean)
+  }
+})
+
 const fetchPost = async () => {
   try {
     initialLoading.value = true
@@ -497,7 +502,7 @@ const fetchPost = async () => {
       new_main_image: null,
       new_additional_images: [],
       new_videos: [],
-      tags: Array.isArray(data.tags) ? data.tags.join(', ') : '',
+      tags: Array.isArray(data.tags) ? [...data.tags] : [],
       status: data.status
     }
     
@@ -505,7 +510,6 @@ const fetchPost = async () => {
     existingImages.value = data.images || []
     existingVideos.value = data.videos || []
     
-    console.log('Post loaded:', data)
   } catch (error) {
     console.error('Error fetching post:', error)
     toast.error('Помилка завантаження поста')
