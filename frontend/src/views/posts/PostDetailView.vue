@@ -3,9 +3,12 @@
     <!-- Основний контент (2/3 на lg+) -->
     <div class="lg:col-span-2">
       <article class="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
-        <!-- Main Image -->
-        <div v-if="post.image" class="aspect-video overflow-hidden cursor-pointer" @click="openLightbox(post.image)">
-          <img :src="post.image" :alt="post.title" class="w-full h-full object-cover" />
+        <div v-if="post.image" class="cursor-pointer bg-gray-100 dark:bg-gray-800 rounded-t-lg overflow-hidden" @click="openLightbox(post.image)">
+          <img
+            :src="post.image"
+            :alt="post.title"
+            class="w-full h-auto max-h-[70vh] mx-auto object-contain"
+          />
         </div>
 
         <!-- Content -->
@@ -65,20 +68,22 @@
             ></div>
           </div>
 
+          <div class="border-b border-gray-200 dark:border-gray-700 my-8"></div>
+          
           <!-- Additional Images (clickable gallery) -->
           <div v-if="post.images && post.images.length" class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
             <div
-              v-for="img in post.images"
-              :key="img.id"
-              class="relative overflow-hidden rounded-lg cursor-pointer group"
-              @click="openLightbox(img.image)"
+            v-for="img in post.images"
+            :key="img.id"
+            class="relative rounded-lg cursor-pointer group overflow-hidden bg-gray-100 dark:bg-gray-800 aspect-[4/3]"
+            @click="openLightbox(img.image)"
             >
-              <img
-                :src="img.image"
-                alt="Додаткове зображення"
-                class="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
-              />
-              <!-- Оверлей з темнішим фоном + біла іконка в центрі з тінню для кращої видимості -->
+            <img
+            :src="img.image"
+            alt="Додаткове зображення"
+            class="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
+            />
+            <!-- Оверлей з темнішим фоном + біла іконка в центрі з тінню для кращої видимості -->
               <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                 <div class="absolute inset-0 bg-black bg-opacity-50"></div>
                 <div class="relative z-10 p-4">
@@ -89,7 +94,9 @@
               </div>
             </div>
           </div>
-
+          
+          <div class="border-b border-gray-200 dark:border-gray-700 my-8"></div>
+          
           <!-- Additional Videos -->
           <div v-if="post.videos && post.videos.length" class="space-y-6 mb-8">
             <div
@@ -160,7 +167,7 @@
         class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90 p-4"
         @click="closeLightbox"
       >
-        <div class="relative max-w-5xl max-h-full">
+        <div class="relative w-full h-full flex items-center justify-center p-4 md:p-8">
           <img
             :src="lightboxImage"
             alt="Повний розмір"
@@ -346,5 +353,9 @@ onMounted(() => {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+.main-image-container {
+  max-height: 80vh;
+  overflow: hidden;
 }
 </style>
