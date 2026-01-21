@@ -10,8 +10,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config('SECRET_KEY')
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1',
-                 ]
+ALLOWED_HOSTS = ['.onrender.com', 'localhost',
+                 '127.0.0.1', '.vercel.app', 'forum-app-two-chi.vercel.app']
 # Application definition
 DJANGO_APPS = [
     'django.contrib.admin',
@@ -43,6 +43,7 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -176,7 +177,7 @@ REST_FRAMEWORK = {
 # CORS Configuration
 CORS_ALLOWED_ORIGINS = config(
     'CORS_ALLOWED_ORIGINS',
-    default='http://localhost:5173,http://127.0.0.1:5173,https://app-news-eight.vercel.app',
+    default='http://localhost:5173,http://127.0.0.1:5173,https://forum-app-two-chi.vercel.app',
     cast=Csv()
 )
 CORS_ALLOW_CREDENTIALS = True
@@ -190,6 +191,15 @@ CORS_ALLOW_HEADERS = [
     'user-agent',
     'x-csrftoken',
     'x-requested-with',
+]
+
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
 ]
 
 SIMPLE_JWT = {
@@ -269,6 +279,12 @@ LOGGING = {
 
 # URL для фронтенда
 FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:5173')
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://*.vercel.app',
+    'https://*.onrender.com',
+    'https://forum-app-two-chi.vercel.app',
+]
 
 
 # Настройки для ємейла(повідомлень)
