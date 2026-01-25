@@ -9,6 +9,7 @@ urlpatterns = [
     path('api/v1/auth/', include('apps.accounts.urls')),
     path('api/v1/comments/', include('apps.comments.urls')),
     path('api/v1/feedback/', include('apps.feedback.urls')),
+    path('api/v1/likes/', include('apps.likes.urls')),
 ]
 
 if settings.DEBUG:

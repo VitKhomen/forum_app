@@ -42,6 +42,8 @@ class PostListSerializer(serializers.ModelSerializer):
     tags = TagListSerializerField(required=False)
     images_count = serializers.SerializerMethodField()
     excerpt = serializers.SerializerMethodField()
+    likes_count = serializers.ReadOnlyField()
+    is_liked = serializers.SerializerMethodField()
 
     class Meta:
         model = Post
@@ -52,6 +54,7 @@ class PostListSerializer(serializers.ModelSerializer):
             'status', 'tags',
             'created_at', 'updated_at', 'published_at',
             'views_count', 'comments_count', 'images_count',
+            'likes_count', 'is_liked',
         ]
         read_only_fields = ['slug', 'author', 'views_count', 'published_at']
 
@@ -67,6 +70,12 @@ class PostListSerializer(serializers.ModelSerializer):
         if hasattr(obj, 'comments'):
             return obj.comments.count()
         return 0
+
+    def get_is_liked(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return obj.is_liked_by(request.user)
+        return False
 
 
 class PostDetailSerializer(serializers.ModelSerializer):

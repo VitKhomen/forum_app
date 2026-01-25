@@ -1,14 +1,15 @@
-from django.db import models
+import itertools
+from slugify import slugify as external_slugify
 
-# Create your models here.
 from django.db import models
 from django.conf import settings
 from taggit.managers import TaggableManager
 from django.utils import timezone
 from django.urls import reverse
+from django.contrib.contenttypes.fields import GenericRelation
 
-import itertools
-from slugify import slugify as external_slugify
+
+from django.db import models
 
 
 class Category(models.Model):
@@ -57,6 +58,7 @@ class Post(models.Model):
         max_length=10, choices=STATUS_CHOICES, default='draft'
     )
     tags = TaggableManager(blank=True)
+    likes = GenericRelation('likes.Like', related_query_name='post')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     published_at = models.DateTimeField(null=True, blank=True, db_index=True)
@@ -120,6 +122,17 @@ class Post(models.Model):
     def is_published(self):
         """Чи опублікований пост"""
         return self.status == 'published' and self.published_at is not None
+
+    @property
+    def likes_count(self):
+        """Кількість лайків"""
+        return self.likes.count()
+
+    def is_liked_by(self, user):
+        """Чи лайкнув користувач цей пост"""
+        if not user.is_authenticated:
+            return False
+        return self.likes.filter(user=user).exists()
 
 
 class PostImages(models.Model):

@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.contenttypes.fields import GenericRelation
 from django.conf import settings
 
 
@@ -12,6 +13,7 @@ class Comment(models.Model):
         'self', on_delete=models.CASCADE, null=True, blank=True, related_name='replies'
     )
     content = models.TextField()
+    likes = GenericRelation('likes.Like', related_query_name='comment')
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -41,3 +43,14 @@ class Comment(models.Model):
     @property
     def post_title(self):
         return self.post.title
+
+    @property
+    def likes_count(self):
+        """Кількість лайків"""
+        return self.likes.count()
+
+    def is_liked_by(self, user):
+        """Чи лайкнув користувач цей коментар"""
+        if not user.is_authenticated:
+            return False
+        return self.likes.filter(user=user).exists()
