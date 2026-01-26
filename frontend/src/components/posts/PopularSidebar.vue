@@ -69,6 +69,12 @@
                   <ChatBubbleLeftIcon class="w-3.5 h-3.5" />
                   <span>{{ post.comments_count || 0 }}</span>
                 </div>
+                <LikeButton
+                  content-type="post"
+                  :object-id="post.id"
+                  :initial-likes-count="post.likes_count || 0"
+                  :initial-is-liked="post.is_liked || false"
+                />
               </div>
             </div>
           </RouterLink>
@@ -100,6 +106,7 @@ import {
   EyeIcon, 
   ChatBubbleLeftIcon 
 } from '@heroicons/vue/24/outline'
+import LikeButton from '../ui/LikeButton.vue'
 
 defineProps({
   tags: {

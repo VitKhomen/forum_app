@@ -51,6 +51,15 @@
       >
         💬 Відповісти
       </button>
+      
+      <!-- кнопка лайка -->
+      <LikeButton
+        content-type="comment"
+        :object-id="comment.id"
+        :initial-likes-count="comment.likes_count || 0"
+        :initial-is-liked="comment.is_liked || false"
+        class="!px-2 !py-1 text-xs"
+      />
 
       <button
         v-if="!isReply && hasValidId && comment.replies_count > 0"
@@ -75,6 +84,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import LikeButton from '@/components/ui/LikeButton.vue'
 
 const props = defineProps({
   comment: {

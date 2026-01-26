@@ -60,6 +60,14 @@
             <ChatBubbleLeftIcon class="w-4 h-4" />
             <span>{{ post.comments_count || 0 }}</span>
           </div>
+
+          <!-- Like Button -->
+          <LikeButton
+            content-type="post"
+            :object-id="post.id"
+            :initial-likes-count="post.likes_count || 0"
+            :initial-is-liked="post.is_liked || false"
+          />
         </div>
       </div>
 
@@ -88,6 +96,7 @@ import {
 } from '@heroicons/vue/24/outline'
 import { format } from 'date-fns'
 import { uk } from 'date-fns/locale'
+import LikeButton from '@/components/ui/LikeButton.vue'
 
 const props = defineProps({
   post: {

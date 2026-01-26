@@ -76,6 +76,13 @@
                 <EyeIcon class="w-4 h-4" />
                 <span>{{ post.views_count || 0 }}</span>
               </div>
+              <!-- кнопка лайка -->
+              <LikeButton
+                content-type="post"
+                :object-id="post.id"
+                :initial-likes-count="post.likes_count || 0"
+                :initial-is-liked="post.is_liked || false"
+              />
             </div>
             
             <!-- Button -->
@@ -121,6 +128,7 @@ import {
   EyeIcon,
   NewspaperIcon
 } from '@heroicons/vue/24/outline'
+import LikeButton from '@/components/ui/LikeButton.vue'
 
 // Import Swiper styles
 import 'swiper/css'

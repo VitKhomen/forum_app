@@ -3,7 +3,7 @@
     <!-- Основний контент (2/3 на lg+) -->
     <div class="lg:col-span-2">
       <article class="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
-        <div v-if="post.image" class="cursor-pointer bg-gray-100 dark:bg-gray-800 rounded-t-lg overflow-hidden" @click="openLightbox(post.image)">
+        <div v-if="post.image" class="cursor-pointer ..." @click="openLightbox(post.image, 0)">
           <img
             :src="post.image"
             :alt="post.title"
@@ -56,6 +56,12 @@
                 <ChatBubbleLeftIcon class="w-5 h-5" />
                 <span>{{ post.comments_count || 0 }}</span>
               </div>
+              <LikeButton
+                content-type="post"
+                :object-id="post.id"
+                :initial-likes-count="post.likes_count || 0"
+                :initial-is-liked="post.is_liked || false"
+              />
             </div>
           </div>
 
@@ -73,10 +79,10 @@
           <!-- Additional Images (clickable gallery) -->
           <div v-if="post.images && post.images.length" class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
             <div
-            v-for="img in post.images"
-            :key="img.id"
-            class="relative rounded-lg cursor-pointer group overflow-hidden bg-gray-100 dark:bg-gray-800 aspect-[4/3]"
-            @click="openLightbox(img.image)"
+              v-for="(img, idx) in post.images"
+              :key="img.id"
+              class="..."
+              @click="openLightbox(img.image, idx + 1)" 
             >
             <img
             :src="img.image"
@@ -164,21 +170,47 @@
     <Teleport to="body">
       <div
         v-if="lightboxOpen"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90 p-4"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-90"
         @click="closeLightbox"
       >
         <div class="relative w-full h-full flex items-center justify-center p-4 md:p-8">
+          <!-- Стрілка вліво -->
+          <button
+            v-if="galleryImages.length > 1"
+            class="absolute left-4 md:left-12 text-white text-5xl hover:text-gray-300 transition"
+            @click.stop="prevImage"
+          >
+            ←
+          </button>
+
+          <!-- Головна картинка -->
           <img
-            :src="lightboxImage"
-            alt="Повний розмір"
-            class="max-w-full max-h-full object-contain"
+            :src="galleryImages[currentImageIndex]"
+            :alt="`Зображення ${currentImageIndex + 1} з ${galleryImages.length}`"
+            class="max-w-full max-h-full object-contain transition-opacity duration-300"
           />
+
+          <!-- Стрілка вправо -->
+          <button
+            v-if="galleryImages.length > 1"
+            class="absolute right-4 md:right-12 text-white text-5xl hover:text-gray-300 transition"
+            @click.stop="nextImage"
+          >
+            →
+          </button>
+
+          <!-- Кнопка закриття -->
           <button
             class="absolute top-4 right-4 text-white bg-black bg-opacity-50 rounded-full p-2 hover:bg-opacity-70 transition"
             @click.stop="closeLightbox"
           >
             <XMarkIcon class="w-8 h-8" />
           </button>
+
+          <!-- Індикатор (номер фото) -->
+          <div v-if="galleryImages.length > 1" class="absolute bottom-8 text-white text-lg bg-black bg-opacity-50 px-4 py-2 rounded-full">
+            {{ currentImageIndex + 1 }} / {{ galleryImages.length }}
+          </div>
         </div>
       </div>
     </Teleport>
@@ -206,6 +238,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useToast } from 'vue-toastification'
 import PopularSidebar from '@/components/posts/PopularSidebar.vue'
 import CommentsSection from '@/components/comments/CommentsSection.vue'
+import LikeButton from '@/components/ui/LikeButton.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -251,10 +284,35 @@ const deletePost = async (slug) => {
   }
 }
 
-const openLightbox = (src) => {
-  lightboxImage.value = src
+// Список усіх зображень для галереї
+const galleryImages = ref([])
+// Поточний індекс активної картинки в галереї
+const currentImageIndex = ref(0)
+// Відкрити лайтбокс з галереєю
+const openLightbox = (src, index = 0) => {
+  // Збираємо всі зображення поста
+  galleryImages.value = [
+    post.value.image,  // головна картинка перша
+    ...post.value.images.map(img => img.image)  // додаткові
+  ].filter(Boolean)  // прибираємо null/undefined
+
+  // Знаходимо індекс клікнутої картинки
+  currentImageIndex.value = galleryImages.value.indexOf(src) !== -1 
+    ? galleryImages.value.indexOf(src) 
+    : 0
+
   lightboxOpen.value = true
-  document.body.style.overflow = 'hidden' // блок скролу фону
+  document.body.style.overflow = 'hidden'
+}
+
+// Перейти до наступної картинки
+const nextImage = () => {
+  currentImageIndex.value = (currentImageIndex.value + 1) % galleryImages.value.length
+}
+
+// Попередня картинка
+const prevImage = () => {
+  currentImageIndex.value = (currentImageIndex.value - 1 + galleryImages.value.length) % galleryImages.value.length
 }
 
 const closeLightbox = () => {

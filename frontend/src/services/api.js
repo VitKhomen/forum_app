@@ -135,4 +135,16 @@ export const feedbackAPI = {
   send: (data) => api.post('/feedback/send/', data),
 }
 
+// Likes API
+export const likesAPI = {
+  toggle: (contentType, objectId) => api.post('/likes/toggle/', {
+    content_type: contentType,
+    object_id: objectId
+  }),
+  
+  getCount: (contentType, objectId) => api.get('/likes/count/', {
+    params: { content_type: contentType, object_id: objectId }
+  }),
+}
+
 export default api
