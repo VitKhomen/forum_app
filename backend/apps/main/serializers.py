@@ -86,6 +86,8 @@ class PostDetailSerializer(serializers.ModelSerializer):
     tags = TagListSerializerField()
     images = PostImageSerializer(many=True, read_only=True)
     videos = PostVideoSerializer(many=True, read_only=True)
+    likes_count = serializers.ReadOnlyField()
+    is_liked = serializers.SerializerMethodField()
 
     class Meta:
         model = Post
@@ -96,7 +98,7 @@ class PostDetailSerializer(serializers.ModelSerializer):
             'status', 'tags',
             'created_at', 'updated_at', 'published_at',
             'views_count', 'comments_count',
-            'images', 'videos',
+            'images', 'videos', 'likes_count', 'is_liked'
         ]
         read_only_fields = ['slug', 'author', 'views_count', 'published_at']
 
@@ -122,6 +124,13 @@ class PostDetailSerializer(serializers.ModelSerializer):
         if hasattr(obj, 'comments'):
             return obj.comments.count()
         return 0
+
+    def get_is_liked(self, obj):
+        """Перевірка чи поточний користувач лайкнув пост"""
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return obj.is_liked_by(request.user)
+        return False
 
 
 class PostCreateUpdateSerializer(TaggitSerializer, serializers.ModelSerializer):
