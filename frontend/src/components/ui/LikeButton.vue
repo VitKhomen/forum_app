@@ -1,31 +1,34 @@
 <template>
-  <button
-    @click="handleToggle"
-    :disabled="loading || !isAuthenticated"
+  <div
     :class="[
       'inline-flex items-center gap-1 transition-all',
-      isLiked
-        ? 'text-red-600 dark:text-red-400'
-        : 'text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400',
-      loading && 'opacity-50 cursor-not-allowed',
-      !isAuthenticated && 'cursor-not-allowed opacity-60'
+      !readonly && isAuthenticated && !loading ? 'cursor-pointer' : 'cursor-default',
+      isLiked ? 'text-red-600 dark:text-red-400' : 'text-gray-600 dark:text-gray-400',
+      loading && 'opacity-50',
+      readonly && 'pointer-events-none'
     ]"
-    :title="!isAuthenticated ? 'Увійдіть щоб лайкнути' : ''"
+    @click="!readonly && handleToggle()"
+    :title="readonly ? '' : (!isAuthenticated ? 'Увійдіть щоб лайкнути' : '')"
   >
+    <!-- Іконка серця -->
     <HeartIcon 
       :class="[
-        'w-4 h-4 transition-all',
-        isLiked ? 'fill-current scale-110' : '',
+        'w-4 h-4 transition-all duration-200',
+        isLiked ? 'fill-current scale-110' : 'scale-100',
         loading && 'animate-pulse'
       ]" 
     />
-    <span class="text-sm">{{ likesCount }}</span>
-  </button>
+
+    <!-- Кількість лайків — показуємо тільки якщо не readonly або хочеш завжди -->
+    <span v-if="!hideCount" class="text-sm font-medium">
+      {{ likesCount }}
+    </span>
+  </div>
 </template>
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { HeartIcon } from '@heroicons/vue/24/outline'
+import { HeartIcon } from '@heroicons/vue/24/outline'  // або /outline, якщо хочеш
 import { likesAPI } from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from 'vue-toastification'
@@ -34,7 +37,7 @@ const props = defineProps({
   contentType: {
     type: String,
     required: true,
-    validator: (value) => ['post', 'comment'].includes(value)
+    validator: value => ['post', 'comment'].includes(value)
   },
   objectId: {
     type: Number,
@@ -45,6 +48,16 @@ const props = defineProps({
     default: 0
   },
   initialIsLiked: {
+    type: Boolean,
+    default: false
+  },
+  // Новий пропс: режим "тільки перегляд" (без кліку)
+  readonly: {
+    type: Boolean,
+    default: false
+  },
+  // Чи ховати кількість лайків (для мінімалістичного вигляду)
+  hideCount: {
     type: Boolean,
     default: false
   }
@@ -61,6 +74,7 @@ const likesCount = ref(props.initialLikesCount)
 const isLiked = ref(props.initialIsLiked)
 
 const handleToggle = async () => {
+  if (props.readonly) return
   if (!isAuthenticated.value) {
     toast.warning('Увійдіть щоб лайкнути')
     return
@@ -82,12 +96,14 @@ const handleToggle = async () => {
   }
 }
 
-// Синхронізація з props
-watch(() => props.initialLikesCount, (newVal) => {
-  likesCount.value = newVal
-})
-
-watch(() => props.initialIsLiked, (newVal) => {
-  isLiked.value = newVal
-})
+// Синхронізація з props (якщо батьківський компонент оновлює)
+watch(() => props.initialLikesCount, (newVal) => likesCount.value = newVal)
+watch(() => props.initialIsLiked, (newVal) => isLiked.value = newVal)
 </script>
+
+<style scoped>
+/* Додаткові стилі для readonly-режиму (опціонально) */
+.readonly-heart {
+  opacity: 0.8;
+}
+</style>

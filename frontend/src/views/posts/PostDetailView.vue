@@ -3,7 +3,13 @@
     <!-- Основний контент (2/3 на lg+) -->
     <div class="lg:col-span-2">
       <article class="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
-        <div v-if="post.image" class="cursor-pointer ..." @click="openLightbox(post.image, 0)">
+        <!-- Main Image - клікабельна -->
+        <!-- ЗМІНЕНО: передаємо індекс 0 (перше зображення в галереї) -->
+        <div 
+          v-if="post.image" 
+          class="cursor-pointer overflow-hidden"
+          @click="openLightbox(0)"
+        >
           <img
             :src="post.image"
             :alt="post.title"
@@ -56,12 +62,15 @@
                 <ChatBubbleLeftIcon class="w-5 h-5" />
                 <span>{{ post.comments_count || 0 }}</span>
               </div>
-              <LikeButton
-                content-type="post"
-                :object-id="post.id"
-                :initial-likes-count="post.likes_count || 0"
-                :initial-is-liked="post.is_liked || false"
-              />
+              
+              <div @click.stop>
+                <LikeButton
+                  content-type="post"
+                  :object-id="post.id"
+                  :initial-likes-count="post.likes_count || 0"
+                  :initial-is-liked="post.is_liked || false"
+                />
+              </div>
             </div>
           </div>
 
@@ -77,19 +86,20 @@
           <div class="border-b border-gray-200 dark:border-gray-700 my-8"></div>
           
           <!-- Additional Images (clickable gallery) -->
+          <!-- ЗМІНЕНО: індекси починаються з 1, бо 0 - це головне зображення -->
           <div v-if="post.images && post.images.length" class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
             <div
               v-for="(img, idx) in post.images"
               :key="img.id"
-              class="..."
-              @click="openLightbox(img.image, idx + 1)" 
+              class="relative overflow-hidden rounded-lg cursor-pointer group aspect-square"
+              @click="openLightbox(idx + 1)"
             >
-            <img
-            :src="img.image"
-            alt="Додаткове зображення"
-            class="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
-            />
-            <!-- Оверлей з темнішим фоном + біла іконка в центрі з тінню для кращої видимості -->
+              <img
+                :src="img.image"
+                alt="Додаткове зображення"
+                class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              />
+              <!-- Оверлей -->
               <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                 <div class="absolute inset-0 bg-black bg-opacity-50"></div>
                 <div class="relative z-10 p-4">
@@ -177,7 +187,7 @@
           <!-- Стрілка вліво -->
           <button
             v-if="galleryImages.length > 1"
-            class="absolute left-4 md:left-12 text-white text-5xl hover:text-gray-300 transition"
+            class="absolute left-4 md:left-12 text-white text-5xl hover:text-gray-300 transition z-10"
             @click.stop="prevImage"
           >
             ←
@@ -193,7 +203,7 @@
           <!-- Стрілка вправо -->
           <button
             v-if="galleryImages.length > 1"
-            class="absolute right-4 md:right-12 text-white text-5xl hover:text-gray-300 transition"
+            class="absolute right-4 md:right-12 text-white text-5xl hover:text-gray-300 transition z-10"
             @click.stop="nextImage"
           >
             →
@@ -201,7 +211,7 @@
 
           <!-- Кнопка закриття -->
           <button
-            class="absolute top-4 right-4 text-white bg-black bg-opacity-50 rounded-full p-2 hover:bg-opacity-70 transition"
+            class="absolute top-4 right-4 text-white bg-black bg-opacity-50 rounded-full p-2 hover:bg-opacity-70 transition z-10"
             @click.stop="closeLightbox"
           >
             <XMarkIcon class="w-8 h-8" />
@@ -250,24 +260,24 @@ const popularTags = ref([])
 
 const loadingPopular = ref(true)
 const loadingTags = ref(true)
-// Lightbox state
-const lightboxOpen = ref(false)
-const lightboxImage = ref('')
 
 const authStore = useAuthStore()
+
+// Lightbox state
+const lightboxOpen = ref(false)
+const galleryImages = ref([])
+const currentImageIndex = ref(0)
 
 // Перевірка чи користувач є автором
 const isAuthor = computed(() => {
   if (!post.value || !authStore.user) return false
   
-  // Перевіряємо різні варіанти
   const postAuthorId = post.value.author_info?.id || post.value.author
   const currentUserId = authStore.user?.id || authStore.user?.pk
   
   const postAuthorUsername = post.value.author_info?.username
   const currentUsername = authStore.user?.username || authStore.currentUsername
   
-  // Перевірка по ID або по username
   return postAuthorId === currentUserId || postAuthorUsername === currentUsername
 })
 
@@ -284,23 +294,26 @@ const deletePost = async (slug) => {
   }
 }
 
-// Список усіх зображень для галереї
-const galleryImages = ref([])
-// Поточний індекс активної картинки в галереї
-const currentImageIndex = ref(0)
-// Відкрити лайтбокс з галереєю
-const openLightbox = (src, index = 0) => {
-  // Збираємо всі зображення поста
-  galleryImages.value = [
-    post.value.image,  // головна картинка перша
-    ...post.value.images.map(img => img.image)  // додаткові
-  ].filter(Boolean)  // прибираємо null/undefined
-
-  // Знаходимо індекс клікнутої картинки
-  currentImageIndex.value = galleryImages.value.indexOf(src) !== -1 
-    ? galleryImages.value.indexOf(src) 
-    : 0
-
+// Відкрити лайтбокс - ВИПРАВЛЕНА ВЕРСІЯ
+const openLightbox = (index) => {
+  // Формуємо масив ОДИН РАЗ з усіма зображеннями
+  galleryImages.value = []
+  
+  // Додаємо головне зображення (якщо є)
+  if (post.value.image) {
+    galleryImages.value.push(post.value.image)
+  }
+  
+  // Додаємо додаткові зображення
+  if (post.value.images && post.value.images.length > 0) {
+    post.value.images.forEach(img => {
+      galleryImages.value.push(img.image)
+    })
+  }
+  
+  // Встановлюємо поточний індекс
+  currentImageIndex.value = index
+  
   lightboxOpen.value = true
   document.body.style.overflow = 'hidden'
 }
@@ -317,7 +330,8 @@ const prevImage = () => {
 
 const closeLightbox = () => {
   lightboxOpen.value = false
-  lightboxImage.value = ''
+  galleryImages.value = []
+  currentImageIndex.value = 0
   document.body.style.overflow = ''
 }
 
@@ -359,11 +373,9 @@ const fetchPopular = async () => {
 
 const fetchPopularTags = async () => {
   try {
-    // Отримуємо всі пости і витягуємо теги
     const { data } = await postsAPI.getAll({ page_size: 50 })
     const posts = data.results || data
     
-    // Збираємо всі теги
     const tagsMap = {}
     posts.forEach(post => {
       if (post.tags && Array.isArray(post.tags)) {
@@ -373,7 +385,6 @@ const fetchPopularTags = async () => {
       }
     })
     
-    // Сортуємо по популярності і беремо топ 10
     popularTags.value = Object.entries(tagsMap)
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count)

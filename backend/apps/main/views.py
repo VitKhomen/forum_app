@@ -95,6 +95,12 @@ class PostViewSet(viewsets.ModelViewSet):
             instance.views_count += 1  # оновлюємо локальний об'єкт
         return super().retrieve(request, *args, **kwargs)
 
+    def get_serializer_context(self):
+        """Передаємо request у context серіалізатора"""
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+
     @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
     def my(self, request):
         """GET /api/posts/my/ — список тільки моїх постів"""

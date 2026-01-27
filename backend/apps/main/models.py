@@ -43,7 +43,7 @@ class Post(models.Model):
 
     title = models.CharField(max_length=200)
     slug = models.SlugField(max_length=200, unique=True, blank=True)
-    content = models.TextField()
+    content = models.TextField(blank=True, null=True)
     image = models.ImageField(
         upload_to='posts/%Y/%m/%d/', blank=True, null=True)
     category = models.ForeignKey(

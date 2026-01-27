@@ -78,11 +78,12 @@
               </div>
               <!-- кнопка лайка -->
               <LikeButton
-                content-type="post"
-                :object-id="post.id"
-                :initial-likes-count="post.likes_count || 0"
-                :initial-is-liked="post.is_liked || false"
-              />
+                  content-type="post"
+                  :object-id="post.id"
+                  :initial-likes-count="post.likes_count || 0"
+                  :initial-is-liked="post.is_liked || false"
+                  readonly
+                />
             </div>
             
             <!-- Button -->

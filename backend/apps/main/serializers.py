@@ -86,6 +86,8 @@ class PostDetailSerializer(serializers.ModelSerializer):
     tags = TagListSerializerField()
     images = PostImageSerializer(many=True, read_only=True)
     videos = PostVideoSerializer(many=True, read_only=True)
+    likes_count = serializers.ReadOnlyField()
+    is_liked = serializers.SerializerMethodField()
 
     class Meta:
         model = Post
@@ -96,7 +98,7 @@ class PostDetailSerializer(serializers.ModelSerializer):
             'status', 'tags',
             'created_at', 'updated_at', 'published_at',
             'views_count', 'comments_count',
-            'images', 'videos',
+            'images', 'videos', 'likes_count', 'is_liked'
         ]
         read_only_fields = ['slug', 'author', 'views_count', 'published_at']
 
@@ -123,6 +125,13 @@ class PostDetailSerializer(serializers.ModelSerializer):
             return obj.comments.count()
         return 0
 
+    def get_is_liked(self, obj):
+        """Перевірка чи поточний користувач лайкнув пост"""
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return obj.is_liked_by(request.user)
+        return False
+
 
 class PostCreateUpdateSerializer(TaggitSerializer, serializers.ModelSerializer):
     """
@@ -146,18 +155,18 @@ class PostCreateUpdateSerializer(TaggitSerializer, serializers.ModelSerializer):
         ]
 
     def validate_title(self, value):
-        if len(value) < 5:
+        if len(value) < 4:
             raise serializers.ValidationError(
-                "Заголовок повинен містити принаймні 5 символів"
+                "Заголовок повинен містити принаймні 4 символів"
             )
         return value
 
-    def validate_content(self, value):
-        if len(value) < 50:
-            raise serializers.ValidationError(
-                "Контент повинен містити принаймні 50 символів"
-            )
-        return value
+    # def validate_content(self, value):
+    #     if len(value) < 50:
+    #         raise serializers.ValidationError(
+    #             "Контент повинен містити принаймні 50 символів"
+    #         )
+    #     return value
 
     def create(self, validated_data):
         validated_data['author'] = self.context['request'].user
