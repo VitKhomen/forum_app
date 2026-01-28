@@ -18,7 +18,7 @@
           </RouterLink>
         </div>
 
-        <!-- Desktop Navigation + Search Icon -->
+        <!-- Desktop Navigation + Theme Toggle + Search Icon -->
         <div class="hidden md:flex items-center space-x-6">
           <!-- Основні посилання -->
           <RouterLink
@@ -85,6 +85,9 @@
             </RouterLink>
           </template>
 
+          <!-- Перемикач теми -->
+          <ThemeToggle />
+
           <!-- Кнопка пошуку (лупа) -->
           <button
             @click="toggleSearch"
@@ -98,6 +101,9 @@
 
         <!-- Мобільні кнопки -->
         <div class="md:hidden flex items-center gap-3">
+          <!-- Перемикач теми (мобільний) -->
+          <ThemeToggle />
+          
           <button
             @click="toggleSearch"
             class="p-2 rounded-full text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition"
@@ -286,6 +292,7 @@ import {
   XMarkIcon,
   MagnifyingGlassIcon,
 } from '@heroicons/vue/24/outline'
+import ThemeToggle from '@/components/ui/ThemeToggle.vue'
 
 const router = useRouter()
 const route = useRoute()

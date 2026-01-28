@@ -18,13 +18,16 @@
 import { onMounted } from 'vue'
 import { RouterView } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useTheme } from '@/composables/useTheme'
 import TheHeader from '@/components/layout/TheHeader.vue'
 import TheFooter from '@/components/layout/TheFooter.vue'
 
 const authStore = useAuthStore()
+const { initTheme } = useTheme()
 
 onMounted(() => {
   authStore.init()
+  initTheme()
 })
 </script>
 
