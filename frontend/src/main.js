@@ -29,4 +29,8 @@ app.use(createPinia())
 app.use(router)
 app.use(Toast, toastOptions)
 
+import { useThemeStore } from './stores/theme'
+const themeStore = useThemeStore()
+themeStore.initTheme()
+
 app.mount('#app')

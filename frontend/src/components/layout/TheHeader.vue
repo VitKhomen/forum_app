@@ -85,6 +85,8 @@
             </RouterLink>
           </template>
 
+          <ThemeToggle />
+
           <!-- Кнопка пошуку (лупа) -->
           <button
             @click="toggleSearch"
@@ -143,6 +145,8 @@
             </RouterLink>
           </div>
         </div>
+
+      <!-- Перемикач теми -->
       </Transition>
 
       <!-- Панель пошуку (з'являється під хедером) -->
@@ -268,6 +272,7 @@
               >
                 Реєстрація
               </RouterLink>
+              <ThemeToggle />
             </template>
           </div>
         </div>
@@ -286,6 +291,7 @@ import {
   XMarkIcon,
   MagnifyingGlassIcon,
 } from '@heroicons/vue/24/outline'
+import ThemeToggle from '@/components/ui/ThemeToggle.vue'
 
 const router = useRouter()
 const route = useRoute()

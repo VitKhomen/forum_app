@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+@theme {
+  /* Налаштування темної теми */
+  --color-*: initial;
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
@@ -25,14 +30,13 @@
   transition-timing-function: ease-in-out;
 }
 
-/* Правильне перенесення тексту для довгих слів */
+/* Правильне перенесення тексту */
 .break-words {
   word-break: break-word;
   overflow-wrap: anywhere;
   hyphens: auto;
 }
 
-/* Обмеження кількості рядків з правильним переносом */
 .line-clamp-1,
 .line-clamp-2,
 .line-clamp-3 {
@@ -55,12 +59,10 @@
   -webkit-line-clamp: 3;
 }
 
-/* Запобігання переповненню контейнерів */
 .overflow-wrap-anywhere {
   overflow-wrap: anywhere;
 }
 
-/* Додаткове форматування для контенту постів */
 .prose {
   word-break: break-word;
   overflow-wrap: anywhere;
