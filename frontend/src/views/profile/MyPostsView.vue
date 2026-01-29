@@ -49,7 +49,7 @@
               <span>👁️ {{ post.views_count }} переглядів</span>
               <span>💬 {{ post.comments_count }} коментарів</span>
               <span :class="post.status === 'published' ? 'text-green-600' : 'text-yellow-600'">
-                {{ post.status === 'published' ? '✅ Опубліковано' : '📝 Чернетка' }}
+                {{ post.status === 'published' ? 'Опубліковано' : 'Чернетка' }}
               </span>
             </div>
           </div>

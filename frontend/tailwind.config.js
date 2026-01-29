@@ -1,12 +1,16 @@
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
-    './index.html',
-    './src/**/*.{vue,js,ts,jsx,tsx}',
+    "./index.html",
+    "./src/**/*.{vue,js,ts,jsx,tsx}",
   ],
-  darkMode: 'class',  // ← ОЦЕ КЛЮЧОВЕ! Змінює на class
+  darkMode: 'class', // Використовуємо class strategy
   theme: {
-    extend: {},
+    extend: {
+      colors: {
+        // Можна додати кастомні кольори
+      }
+    },
   },
   plugins: [],
 }

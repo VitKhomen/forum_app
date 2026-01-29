@@ -86,7 +86,6 @@
           <div class="border-b border-gray-200 dark:border-gray-700 my-8"></div>
           
           <!-- Additional Images (clickable gallery) -->
-          <!-- ЗМІНЕНО: індекси починаються з 1, бо 0 - це головне зображення -->
           <div v-if="post.images && post.images.length" class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
             <div
               v-for="(img, idx) in post.images"

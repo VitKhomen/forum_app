@@ -10,7 +10,7 @@
         />
         <div>
           <p class="font-semibold text-gray-900 dark:text-white">
-            {{ comment.author_info?.full_name || comment.author_info?.username }}
+            {{ comment.author_info?.username || comment.author_info?.full_name }}
           </p>
           <p class="text-sm text-gray-500 dark:text-gray-400">
             {{ formatDate(comment.created_at) }}

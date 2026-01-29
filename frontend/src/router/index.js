@@ -107,12 +107,6 @@ const router = createRouter({
       }
     },
     {
-      path: '/about',
-      name: 'about',
-      component: () => import('@/views/AboutView.vue'),
-      meta: { title: 'Про нас' }
-    },
-    {
       path: '/contact',
       name: 'contact',
       component: () => import('@/views/ContactView.vue'),
@@ -123,7 +117,7 @@ const router = createRouter({
       name: 'not-found',
       component: () => import('@/views/NotFoundView.vue'),
       meta: { title: 'Сторінка не знайдена' }
-    }
+    },
   ]
 })
 

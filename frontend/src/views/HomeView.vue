@@ -4,7 +4,7 @@
     <section v-if="!loadingTrending && trendingPosts.length">
       <div class="flex justify-between items-center mb-6">
         <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
-          🔥 В тренді
+          В тренді
         </h2>
         <RouterLink
           to="/posts/trending"
@@ -27,7 +27,7 @@
     <section v-if="!loadingRecent && recentPosts.length">
       <div class="flex justify-between items-center mb-6">
         <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
-          📰 Останні пости
+          Останні пости
         </h2>
         <RouterLink
           to="/posts"

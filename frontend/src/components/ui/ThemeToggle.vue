@@ -5,37 +5,30 @@
     :aria-label="isDark ? 'Увімкнути світлу тему' : 'Увімкнути темну тему'"
     :title="isDark ? 'Світла тема' : 'Темна тема'"
   >
-    <Transition name="theme-switch" mode="out-in">
-      <SunIconSolid v-if="!isDark" key="sun" class="w-6 h-6" />
-      <MoonIconSolid v-else key="moon" class="w-6 h-6" />
+    <!-- Іконка сонця (світла тема) -->
+    <Transition name="fade" mode="out-in">
+      <SunIcon v-if="!isDark" key="sun" class="w-6 h-6 transition-transform hover:rotate-180 duration-500" />
+      <!-- Іконка місяця (темна тема) -->
+      <MoonIcon v-else key="moon" class="w-6 h-6 transition-transform hover:-rotate-12 duration-300" />
     </Transition>
   </button>
 </template>
 
 <script setup>
-import { SunIcon as SunIconSolid, MoonIcon as MoonIconSolid } from '@heroicons/vue/24/solid'
+import { SunIcon, MoonIcon } from '@heroicons/vue/24/outline'
 import { useTheme } from '@/composables/useTheme'
 
 const { isDark, toggleTheme } = useTheme()
 </script>
 
 <style scoped>
-/* Плавна анімація зміни іконки */
-.theme-switch-enter-active,
-.theme-switch-leave-active {
-  transition: all 0.4s ease;
-  transform-origin: center;
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
 }
 
-.theme-switch-enter-from,
-.theme-switch-leave-to {
+.fade-enter-from,
+.fade-leave-to {
   opacity: 0;
-  transform: scale(0.8) rotate(-90deg);
-}
-
-.theme-switch-enter-to,
-.theme-switch-leave-from {
-  opacity: 1;
-  transform: scale(1) rotate(0deg);
 }
 </style>

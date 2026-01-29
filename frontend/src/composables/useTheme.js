@@ -23,14 +23,12 @@ export function useTheme() {
 
   // Застосування теми до документа
   const applyTheme = () => {
-    console.log('Applying theme:', isDark.value ? 'dark' : 'light')
     if (isDark.value) {
-        document.documentElement.classList.add('dark')
+      document.documentElement.classList.add('dark')
     } else {
-        document.documentElement.classList.remove('dark')
+      document.documentElement.classList.remove('dark')
     }
-    console.log('Current html class:', document.documentElement.className)
-    }
+  }
 
   // Перемикання теми
   const toggleTheme = () => {
@@ -55,7 +53,6 @@ export function useTheme() {
   onMounted(() => {
     initTheme()
   })
-  
 
   return {
     isDark,
