@@ -71,6 +71,7 @@
                 </div>
                 <LikeButton
                   content-type="post"
+                  size="sm"
                   :object-id="post.id"
                   :initial-likes-count="post.likes_count || 0"
                   :initial-is-liked="post.is_liked || false"

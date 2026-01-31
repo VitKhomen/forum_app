@@ -1,9 +1,9 @@
 <template>
   <div
     :class="[
-      'inline-flex items-center gap-1 transition-all',
+      'inline-flex items-center gap-1 align-middle',
       !readonly && isAuthenticated && !loading ? 'cursor-pointer' : 'cursor-default',
-      isLiked ? 'text-red-600 dark:text-red-400' : 'text-gray-600 dark:text-gray-400',
+      isLiked ? 'text-red-600 dark:text-red-400' : 'text-gray-500 dark:text-gray-400',
       loading && 'opacity-50',
       readonly && 'pointer-events-none'
     ]"
@@ -13,14 +13,15 @@
     <!-- Іконка серця -->
     <HeartIcon 
       :class="[
-        'w-4 h-4 transition-all duration-200',
+        currentSize.icon,
+        'transition-all duration-200',
         isLiked ? 'fill-current scale-110' : 'scale-100',
         loading && 'animate-pulse'
       ]" 
     />
 
     <!-- Кількість лайків — показуємо тільки якщо не readonly або хочеш завжди -->
-    <span v-if="!hideCount" class="text-sm font-medium">
+    <span v-if="!hideCount" :class="['font-medium', currentSize.text]">
       {{ likesCount }}
     </span>
   </div>
@@ -60,6 +61,10 @@ const props = defineProps({
   hideCount: {
     type: Boolean,
     default: false
+  },
+  size: {
+    type: String,
+    default: 'sm', // sm | md | lg | xl
   }
 })
 
@@ -95,6 +100,27 @@ const handleToggle = async () => {
     loading.value = false
   }
 }
+
+const sizeClasses = {
+  sm: {
+    icon: 'w-3.5 h-3.5',
+    text: 'text-xs'
+  },
+  md: {
+    icon: 'w-5 h-5',
+    text: 'text-base'
+  },
+  lg: {
+    icon: 'w-6 h-6',
+    text: 'text-lg'
+  },
+  xl: {
+    icon: 'w-8 h-8',
+    text: 'text-xl'
+  }
+}
+
+const currentSize = computed(() => sizeClasses[props.size] || sizeClasses.md)
 
 // Синхронізація з props (якщо батьківський компонент оновлює)
 watch(() => props.initialLikesCount, (newVal) => likesCount.value = newVal)
