@@ -61,13 +61,13 @@
               
               <!-- Meta Info -->
               <div class="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
-                <div class="flex items-center gap-1">
+                <div class="flex items-center gap-1" :title="'Переглядів: ' + post.views_count">
                   <EyeIcon class="w-3.5 h-3.5" />
                   <span>{{ formatNumber(post.views_count || 0) }}</span>
                 </div>
-                <div class="flex items-center gap-1">
+                <div class="flex items-center gap-1" :title="'Коментарів: ' + commentsCount(post.id)">
                   <ChatBubbleLeftIcon class="w-3.5 h-3.5" />
-                  <span>{{ post.comments_count || 0 }}</span>
+                  <span>{{ commentsCount(post.id) }}</span>
                 </div>
                 <LikeButton
                   content-type="post"
@@ -102,33 +102,45 @@
 
 <script setup>
 import { RouterLink } from 'vue-router'
-import { 
-  TagIcon, 
-  FireIcon, 
-  EyeIcon, 
-  ChatBubbleLeftIcon 
-} from '@heroicons/vue/24/outline'
+import { TagIcon, FireIcon, EyeIcon, ChatBubbleLeftIcon } from '@heroicons/vue/24/outline'
 import LikeButton from '../ui/LikeButton.vue'
+import { useCommentsSync } from '@/composables/useCommentsSync'
+import { computed, onMounted, onUnmounted } from 'vue'
 
-defineProps({
-  tags: {
-    type: Array,
-    default: () => []
-  },
-  posts: {
-    type: Array,
-    default: () => []
-  }
+const props = defineProps({
+  tags: { type: Array, default: () => [] },
+  posts: { type: Array, default: () => [] }
 })
 
-// Форматування великих чисел (1000 -> 1K)
+const { getCommentsCount, subscribe } = useCommentsSync()
+
+// Функція для отримання кількості коментарів
+const commentsCount = (postId) => {
+  const cached = getCommentsCount(postId)
+  if (cached !== undefined) return cached
+  
+  // props доступний тут
+  const post = props.posts.find(p => p.id === postId)
+  return post ? (post.comments_count || 0) : 0
+}
+
+// Підписка на оновлення
+let unsubscribe = null
+
+onMounted(() => {
+  unsubscribe = subscribe((updatedPostId, newCount) => {
+    // Нічого не треба робити явно — computed оновиться автоматично
+  })
+})
+
+onUnmounted(() => {
+  if (unsubscribe) unsubscribe()
+})
+
+// Форматування чисел
 const formatNumber = (num) => {
-  if (num >= 1000000) {
-    return (num / 1000000).toFixed(1) + 'M'
-  }
-  if (num >= 1000) {
-    return (num / 1000).toFixed(1) + 'K'
-  }
+  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M'
+  if (num >= 1000) return (num / 1000).toFixed(1) + 'K'
   return num.toString()
 }
 </script>

@@ -56,9 +56,10 @@
             <EyeIcon class="w-4 h-4" />
             <span>{{ post.views_count || 0 }}</span>
           </div>
-          <div class="flex items-center gap-1" :title="'Коментарів: ' + post.comments_count">
+          <div class="flex items-center gap-1" :title="'Коментарів: ' + localCommentsCount">
             <ChatBubbleLeftIcon class="w-4 h-4" />
-            <span>{{ post.comments_count || 0 }}</span>
+            <!-- ✅ ЗМІНЕНО: Використовуємо локальну змінну -->
+            <span>{{ localCommentsCount }}</span>
           </div>
 
           <!-- Like Button -->
@@ -87,6 +88,7 @@
 </template>
 
 <script setup>
+import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { 
   NewspaperIcon, 
@@ -97,11 +99,49 @@ import {
 import { format } from 'date-fns'
 import { uk } from 'date-fns/locale'
 import LikeButton from '@/components/ui/LikeButton.vue'
+import { useCommentsSync } from '@/composables/useCommentsSync'
 
 const props = defineProps({
   post: {
     type: Object,
     required: true
+  }
+})
+
+const { subscribe, getCommentsCount } = useCommentsSync()
+
+// ✅ ДОДАНО: Локальна змінна для відстеження коментарів
+const localCommentsCount = ref(props.post.comments_count || 0)
+
+// ✅ ДОДАНО: Watch для синхронізації з props (якщо post оновиться ззовні)
+watch(() => props.post.comments_count, (newCount) => {
+  if (newCount !== undefined && newCount !== null) {
+    localCommentsCount.value = newCount
+  }
+}, { immediate: true })
+
+// ✅ ДОДАНО: Підписка на глобальні зміни коментарів
+let unsubscribe = null
+
+onMounted(() => {
+  // Перевіряємо чи є збережена кількість коментарів
+  const cached = getCommentsCount(props.post.id)
+  if (cached !== undefined) {
+    localCommentsCount.value = cached
+  }
+  
+  // Підписуємось на оновлення
+  unsubscribe = subscribe((postId, count) => {
+    if (postId === props.post.id) {
+      localCommentsCount.value = count
+    }
+  })
+})
+
+onUnmounted(() => {
+  // Відписуємось при знищенні компонента
+  if (unsubscribe) {
+    unsubscribe()
   }
 })
 
