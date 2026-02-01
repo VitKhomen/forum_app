@@ -4,7 +4,6 @@
     <div class="lg:col-span-2">
       <article class="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
         <!-- Main Image - клікабельна -->
-        <!-- ЗМІНЕНО: передаємо індекс 0 (перше зображення в галереї) -->
         <div 
           v-if="post.image" 
           class="cursor-pointer overflow-hidden"
@@ -60,13 +59,13 @@
               </div>
               <div class="flex items-center gap-1">
                 <ChatBubbleLeftIcon class="w-5 h-5" />
-                <span>{{ post.comments_count || 0 }}</span>
+                <!-- ✅ ЗМІНЕНО: Використовуємо локальну змінну commentsCount замість post.comments_count -->
+                <span>{{ commentsCount }}</span>
               </div>
               
               <div @click.stop>
                 <LikeButton
                   content-type="post"
-                  size="gl"
                   :object-id="post.id"
                   :initial-likes-count="post.likes_count || 0"
                   :initial-is-liked="post.is_liked || false"
@@ -163,9 +162,11 @@
       </article>
       
       <!-- Comments Section -->
+      <!-- ✅ ДОДАНО: Обробник @update-comments-count -->
       <CommentsSection 
         :post-id="post.id" 
-        :post-slug="post.slug" 
+        :post-slug="post.slug"
+        @update-comments-count="updateCommentsCount"
       />    
     </div> 
       
@@ -249,6 +250,7 @@ import { useToast } from 'vue-toastification'
 import PopularSidebar from '@/components/posts/PopularSidebar.vue'
 import CommentsSection from '@/components/comments/CommentsSection.vue'
 import LikeButton from '@/components/ui/LikeButton.vue'
+import { useCommentsSync } from '@/composables/useCommentsSync'
 
 const route = useRoute()
 const router = useRouter()
@@ -262,11 +264,15 @@ const loadingPopular = ref(true)
 const loadingTags = ref(true)
 
 const authStore = useAuthStore()
+const { updateCommentsCount: syncCommentsCount } = useCommentsSync()
 
 // Lightbox state
 const lightboxOpen = ref(false)
 const galleryImages = ref([])
 const currentImageIndex = ref(0)
+
+// ✅ ДОДАНО: Локальна змінна для відстеження кількості коментарів
+const commentsCount = ref(0)
 
 // Перевірка чи користувач є автором
 const isAuthor = computed(() => {
@@ -294,36 +300,39 @@ const deletePost = async (slug) => {
   }
 }
 
-// Відкрити лайтбокс - ВИПРАВЛЕНА ВЕРСІЯ
+// ✅ ДОДАНО: Функція для оновлення лічильника коментарів
+const updateCommentsCount = (count) => {
+  commentsCount.value = count
+  
+  // ✅ ДОДАНО: Публікуємо зміни глобально для PostCard
+  if (post.value?.id) {
+    syncCommentsCount(post.value.id, count)
+  }
+}
+
+// Відкрити лайтбокс
 const openLightbox = (index) => {
-  // Формуємо масив ОДИН РАЗ з усіма зображеннями
   galleryImages.value = []
   
-  // Додаємо головне зображення (якщо є)
   if (post.value.image) {
     galleryImages.value.push(post.value.image)
   }
   
-  // Додаємо додаткові зображення
   if (post.value.images && post.value.images.length > 0) {
     post.value.images.forEach(img => {
       galleryImages.value.push(img.image)
     })
   }
   
-  // Встановлюємо поточний індекс
   currentImageIndex.value = index
-  
   lightboxOpen.value = true
   document.body.style.overflow = 'hidden'
 }
 
-// Перейти до наступної картинки
 const nextImage = () => {
   currentImageIndex.value = (currentImageIndex.value + 1) % galleryImages.value.length
 }
 
-// Попередня картинка
 const prevImage = () => {
   currentImageIndex.value = (currentImageIndex.value - 1 + galleryImages.value.length) % galleryImages.value.length
 }
@@ -349,6 +358,8 @@ const fetchPost = async () => {
     loading.value = true
     const { data } = await postsAPI.getBySlug(route.params.slug)
     post.value = data
+    // ✅ ДОДАНО: Ініціалізуємо локальний лічильник з даних поста
+    commentsCount.value = data.comments_count || 0
   } catch (error) {
     console.error('Error fetching post:', error)
   } finally {
@@ -414,7 +425,6 @@ onMounted(() => {
   overflow-wrap: anywhere;
 }
 
-/* Плавна анімація для лайтбоксу */
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.3s;

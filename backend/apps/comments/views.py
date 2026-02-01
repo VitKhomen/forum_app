@@ -45,6 +45,16 @@ class CommentListCreateView(generics.ListCreateAPIView):
             return CommentCreateSerializer
         return CommentSerializer
 
+    def create(self, request, *args, **kwargs):
+        serializer = CommentCreateSerializer(
+            data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        comment = serializer.save()
+
+        full_serializer = CommentSerializer(
+            comment, context={'request': request})
+        return Response(full_serializer.data, status=201)
+
 
 class CommentDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Comment.objects.filter(is_active=True).select_related(
@@ -59,10 +69,27 @@ class CommentDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = CommentDetailSerializer
     permission_classes = [IsAuthorOrReadOnly]
 
-    def get_serializer_class(self):
-        if self.request.method in ['PUT', 'PATCH']:
-            return CommentUpdateSerializer
-        return CommentDetailSerializer
+    def update(self, request, *args, **kwargs):
+        """Перевизначаємо update щоб повертати повний серіалізований об'єкт"""
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+
+        # Використовуємо CommentUpdateSerializer для валідації та збереження
+        serializer = CommentUpdateSerializer(
+            instance,
+            data=request.data,
+            partial=partial,
+            context={'request': request}
+        )
+        serializer.is_valid(raise_exception=True)
+        comment = serializer.save()
+
+        # Повертаємо повний об'єкт через CommentDetailSerializer
+        full_serializer = CommentDetailSerializer(
+            comment,
+            context={'request': request}
+        )
+        return Response(full_serializer.data)
 
     def perform_destroy(self, instance):
         instance.is_active = False
