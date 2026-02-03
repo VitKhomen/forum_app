@@ -10,6 +10,7 @@ urlpatterns = [
     path('api/v1/comments/', include('apps.comments.urls')),
     path('api/v1/feedback/', include('apps.feedback.urls')),
     path('api/v1/likes/', include('apps.likes.urls')),
+    path('api/v1/karma/', include('apps.karma.urls')),
 ]
 
 if settings.DEBUG:
