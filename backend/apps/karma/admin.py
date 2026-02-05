@@ -1,5 +1,4 @@
 from django.contrib import admin
-
 from .models import KarmaHistory
 
 
@@ -12,4 +11,4 @@ class KarmaHistoryAdmin(admin.ModelAdmin):
     date_hierarchy = 'created_at'
 
     def has_add_permission(self, request):
-        return False  # Тільки через signals
+        return False

@@ -118,6 +118,12 @@ const router = createRouter({
       component: () => import('@/views/NotFoundView.vue'),
       meta: { title: 'Сторінка не знайдена' }
     },
+    {
+      path: '/leaderboard',
+      name: 'Leaderboard',
+      component: () => import('@/views/LeaderboardView.vue'),
+      meta: { requiresAuth: false }
+    },
   ]
 })
 

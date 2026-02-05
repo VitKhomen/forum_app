@@ -80,5 +80,6 @@ const quickLinks = [
   { name: 'Всі пости', path: '/posts' },
   { name: 'В тренді', path: '/posts/trending' },
   { name: 'Популярні', path: '/posts/popular' },
+  { name: 'Рейтинг', path: '/leaderboard' },
 ]
 </script>

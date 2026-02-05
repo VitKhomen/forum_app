@@ -48,6 +48,7 @@
         <div class="flex items-center gap-2">
           <UserCircleIcon class="w-5 h-5" />
           <span>{{ post.author_username }}</span>
+          <KarmaBadge :karma="post.author.karma_points" :level="post.author.karma_level" size="small" />
         </div>
 
         <!-- Stats -->
@@ -56,13 +57,12 @@
             <EyeIcon class="w-4 h-4" />
             <span>{{ post.views_count || 0 }}</span>
           </div>
-          <div class="flex items-center gap-1" :title="'Коментарів: ' + localCommentsCount">
+
+          <div class="flex items-center gap-1" :title="'Коментарів: ' + commentsCount">
             <ChatBubbleLeftIcon class="w-4 h-4" />
-            <!-- ✅ ЗМІНЕНО: Використовуємо локальну змінну -->
-            <span>{{ localCommentsCount }}</span>
+            <span>{{ commentsCount }}</span>
           </div>
 
-          <!-- Like Button -->
           <LikeButton
             content-type="post"
             :object-id="post.id"
@@ -88,18 +88,15 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted, onUnmounted } from 'vue'
+import { computed, onMounted, onUnmounted } from 'vue'
 import { RouterLink } from 'vue-router'
-import { 
-  NewspaperIcon, 
-  UserCircleIcon, 
-  EyeIcon, 
-  ChatBubbleLeftIcon 
-} from '@heroicons/vue/24/outline'
+import { NewspaperIcon, UserCircleIcon, EyeIcon, ChatBubbleLeftIcon } from '@heroicons/vue/24/outline'
 import { format } from 'date-fns'
 import { uk } from 'date-fns/locale'
 import LikeButton from '@/components/ui/LikeButton.vue'
 import { useCommentsSync } from '@/composables/useCommentsSync'
+import KarmaBadge from '@/components/ui/KarmaBadge.vue'
+
 
 const props = defineProps({
   post: {
@@ -108,41 +105,28 @@ const props = defineProps({
   }
 })
 
-const { subscribe, getCommentsCount } = useCommentsSync()
+const { getCommentsCount, subscribe } = useCommentsSync()
 
-// ✅ ДОДАНО: Локальна змінна для відстеження коментарів
-const localCommentsCount = ref(props.post.comments_count || 0)
+// Реактивна кількість коментарів для цього поста
+const commentsCount = computed(() => {
+  const cached = getCommentsCount(props.post.id)
+  return cached !== undefined ? cached : (props.post.comments_count || 0)
+})
 
-// ✅ ДОДАНО: Watch для синхронізації з props (якщо post оновиться ззовні)
-watch(() => props.post.comments_count, (newCount) => {
-  if (newCount !== undefined && newCount !== null) {
-    localCommentsCount.value = newCount
-  }
-}, { immediate: true })
-
-// ✅ ДОДАНО: Підписка на глобальні зміни коментарів
+// Підписка на глобальні оновлення
 let unsubscribe = null
 
 onMounted(() => {
-  // Перевіряємо чи є збережена кількість коментарів
-  const cached = getCommentsCount(props.post.id)
-  if (cached !== undefined) {
-    localCommentsCount.value = cached
-  }
-  
-  // Підписуємось на оновлення
-  unsubscribe = subscribe((postId, count) => {
-    if (postId === props.post.id) {
-      localCommentsCount.value = count
+  unsubscribe = subscribe((updatedPostId, newCount) => {
+    // Якщо оновився саме цей пост — computed автоматично перерахується
+    if (updatedPostId === props.post.id) {
+      // Нічого не треба — Vue сам відреагує
     }
   })
 })
 
 onUnmounted(() => {
-  // Відписуємось при знищенні компонента
-  if (unsubscribe) {
-    unsubscribe()
-  }
+  if (unsubscribe) unsubscribe()
 })
 
 const formatDate = (dateString) => {

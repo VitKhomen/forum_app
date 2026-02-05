@@ -28,6 +28,15 @@
             {{ authStore.user?.full_name || authStore.user?.username }}
           </h2>
           <p class="text-gray-600 dark:text-gray-400">@{{ authStore.user?.username }}</p>
+          
+          <!-- ✅ ВИПРАВЛЕНО: Використовуємо authStore.user -->
+          <div class="mt-2">
+            <KarmaBadge 
+              :karma="authStore.user?.karma_points || 0" 
+              :level="authStore.user?.karma_level || 1" 
+            />
+          </div>
+          
           <p class="text-gray-600 dark:text-gray-400 mt-2">{{ authStore.user?.email }}</p>
           
           <div class="mt-4 flex gap-6 text-sm">
@@ -113,6 +122,14 @@
           <CalendarIcon class="w-10 h-10 text-purple-600" />
         </div>
       </div>
+    </div>
+
+    <!-- ✅ ВИПРАВЛЕНО: Історія карми -->
+    <div v-if="authStore.user?.username" class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+      <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">
+        Історія карми
+      </h2>
+      <KarmaHistory :username="authStore.user.username" :limit="10" />
     </div>
 
     <!-- Edit Profile Modal -->
@@ -330,6 +347,8 @@ import {
 import { format } from 'date-fns'
 import { uk } from 'date-fns/locale'
 import { useToast } from 'vue-toastification'
+import KarmaBadge from '@/components/ui/KarmaBadge.vue'
+import KarmaHistory from '@/components/karma/KarmaHistory.vue'
 
 const authStore = useAuthStore()
 const toast = useToast()

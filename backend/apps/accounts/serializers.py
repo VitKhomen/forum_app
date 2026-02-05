@@ -67,15 +67,19 @@ class UserProfileSerializer(serializers.ModelSerializer):
     full_name = serializers.ReadOnlyField()
     posts_count = serializers.SerializerMethodField()
     comments_count = serializers.SerializerMethodField()
+    karma_points = serializers.IntegerField(read_only=True)
+    karma_level = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = User
         fields = (
             'id', 'username', 'email', 'first_name', 'last_name',
             'full_name', 'avatar', 'bio', 'created_at', 'updated_at',
-            'posts_count', 'comments_count'
+            'posts_count', 'comments_count',
+            'karma_points', 'karma_level'
         )
-        read_only_fields = ('id', 'created_at', 'updated_at')
+        read_only_fields = ('id', 'created_at', 'updated_at',
+                            'karma_points', 'karma_level')
 
     def get_posts_count(self, obj):
         """Кількість пості"""

@@ -147,4 +147,12 @@ export const likesAPI = {
   }),
 }
 
+export const karmaAPI = {
+  getMyKarma: () => api.get('/karma/my_karma/'),
+  getMyKarmaHistory: (params) => api.get('/karma/my_karma/', { params }),
+  getUserKarma: (username) => api.get(`/karma/user/${username}/`),
+  getUserKarmaHistory: (username, params) => api.get(`/karma/user/${username}/`, { params }),
+  getLeaderboard: (params) => api.get('/karma/leaderboard/', { params }),
+}
+
 export default api
