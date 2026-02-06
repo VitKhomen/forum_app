@@ -44,6 +44,10 @@ class PostListSerializer(serializers.ModelSerializer):
     excerpt = serializers.SerializerMethodField()
     likes_count = serializers.ReadOnlyField()
     is_liked = serializers.SerializerMethodField()
+    author_karma_points = serializers.IntegerField(
+        source='author.karma_points', read_only=True)
+    author_karma_level = serializers.IntegerField(
+        source='author.karma_level', read_only=True)
 
     class Meta:
         model = Post
@@ -55,6 +59,8 @@ class PostListSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at', 'published_at',
             'views_count', 'comments_count', 'images_count',
             'likes_count', 'is_liked',
+            'author_karma_points', 'author_karma_level',
+
         ]
         read_only_fields = ['slug', 'author', 'views_count', 'published_at']
 
@@ -88,6 +94,10 @@ class PostDetailSerializer(serializers.ModelSerializer):
     videos = PostVideoSerializer(many=True, read_only=True)
     likes_count = serializers.ReadOnlyField()
     is_liked = serializers.SerializerMethodField()
+    author_karma_points = serializers.IntegerField(
+        source='author.karma_points', read_only=True)
+    author_karma_level = serializers.IntegerField(
+        source='author.karma_level', read_only=True)
 
     class Meta:
         model = Post
@@ -98,7 +108,8 @@ class PostDetailSerializer(serializers.ModelSerializer):
             'status', 'tags',
             'created_at', 'updated_at', 'published_at',
             'views_count', 'comments_count',
-            'images', 'videos', 'likes_count', 'is_liked'
+            'images', 'videos', 'likes_count', 'is_liked',
+            'author_karma_points', 'author_karma_level',
         ]
         read_only_fields = ['slug', 'author', 'views_count', 'published_at']
 

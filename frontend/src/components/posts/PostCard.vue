@@ -46,9 +46,13 @@
       <div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
         <!-- Author -->
         <div class="flex items-center gap-2">
-          <UserCircleIcon class="w-5 h-5" />
+          <UserCircleIcon class="w-6 h-3" />
           <span>{{ post.author_username }}</span>
-          <KarmaBadge :karma="post.author.karma_points" :level="post.author.karma_level" size="small" />
+          
+          <KarmaBadge 
+            :karma="post.author_karma_points || 0" 
+            :level="post.author_karma_level || 1" 
+          />
         </div>
 
         <!-- Stats -->
@@ -96,7 +100,6 @@ import { uk } from 'date-fns/locale'
 import LikeButton from '@/components/ui/LikeButton.vue'
 import { useCommentsSync } from '@/composables/useCommentsSync'
 import KarmaBadge from '@/components/ui/KarmaBadge.vue'
-
 
 const props = defineProps({
   post: {

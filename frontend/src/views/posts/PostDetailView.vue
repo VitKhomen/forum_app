@@ -46,9 +46,10 @@
                 <p class="font-medium text-gray-900 dark:text-white">
                   {{ post.author_info?.username }}
                 </p>
-                <p class="text-sm text-gray-500 dark:text-gray-400">
-                  {{ post.author_info?.fullname }}
-                </p>
+                <KarmaBadge 
+                  :karma="post.author_karma_points || 0" 
+                  :level="post.author_karma_level || 1" 
+                />
               </div>
             </div>
 
@@ -59,7 +60,6 @@
               </div>
               <div class="flex items-center gap-1">
                 <ChatBubbleLeftIcon class="w-5 h-5" />
-                <!-- ✅ ЗМІНЕНО: Використовуємо локальну змінну commentsCount замість post.comments_count -->
                 <span>{{ commentsCount }}</span>
               </div>
               
@@ -252,6 +252,7 @@ import PopularSidebar from '@/components/posts/PopularSidebar.vue'
 import CommentsSection from '@/components/comments/CommentsSection.vue'
 import LikeButton from '@/components/ui/LikeButton.vue'
 import { useCommentsSync } from '@/composables/useCommentsSync'
+import KarmaBadge from '@/components/ui/KarmaBadge.vue'
 
 const route = useRoute()
 const router = useRouter()
