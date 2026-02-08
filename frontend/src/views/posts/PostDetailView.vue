@@ -39,9 +39,17 @@
           <!-- Author & Stats -->
           <div class="flex items-center justify-between pb-6 mb-6 border-b border-gray-200 dark:border-gray-700">
             <div class="flex items-center gap-3">
-              <div class="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center">
-                <UserCircleIcon class="w-8 h-8 text-gray-500" />
+              <!-- ✅ ВИПРАВЛЕНО: використовуємо author_info -->
+              <div class="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden flex-shrink-0">
+                <img
+                  v-if="post.author_info?.avatar"
+                  :src="post.author_info.avatar"
+                  :alt="post.author_info.username"
+                  class="w-full h-full object-cover"
+                />
+                <UserCircleIcon v-else class="w-full h-full text-gray-500" />
               </div>
+              
               <div>
                 <p class="font-medium text-gray-900 dark:text-white">
                   {{ post.author_info?.username }}

@@ -12,6 +12,8 @@ class UserAdmin(BaseUserAdmin):
         'username',
         'full_name_display',
         'avatar_preview',
+        'karma_points',
+        'karma_level',
         'is_staff',
         'is_active',
         'date_joined',
@@ -36,6 +38,9 @@ class UserAdmin(BaseUserAdmin):
         ('Важливі дати', {
             'fields': ('last_login', 'date_joined', 'created_at', 'updated_at'),
             'classes': ('collapse',)  # згорнутий блок
+        }),
+        ('Карма та рівень', {
+            'fields': ('karma_points', 'karma_level'),
         }),
     )
 

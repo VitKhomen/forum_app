@@ -1,14 +1,18 @@
-<!-- components/ui/KarmaBadge.vue -->
 <template>
-  <div class="karma-badge" :class="size">
-    <span class="icon">⭐</span>
-    <span class="value">{{ karma }}</span>
-    <span v-if="showLevel" class="level">lvl {{ level }}</span>
-  </div>
+  <span 
+    class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
+    :class="badgeClass"
+    :style="badgeStyle"
+    :title="`Карма: ${karma}`"
+  >
+    {{ level }} lvl
+  </span>
 </template>
 
 <script setup>
-defineProps({
+import { computed } from 'vue'
+
+const props = defineProps({
   karma: {
     type: Number,
     default: 0
@@ -16,49 +20,45 @@ defineProps({
   level: {
     type: Number,
     default: 1
-  },
-  size: {
-    type: String,
-    default: 'medium', // small, medium, large
-    validator: (value) => ['small', 'medium', 'large'].includes(value)
-  },
-  showLevel: {
-    type: Boolean,
-    default: true
   }
+})
+
+// Колір залежно від рівня
+const badgeClass = computed(() => {
+  const lvl = props.level
+  
+  // Для високих рівнів використовуємо градієнт
+  if (lvl >= 10) {
+    return 'text-white font-semibold shadow-sm'
+  } else if (lvl >= 7) {
+    return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+  } else if (lvl >= 5) {
+    return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400'
+  } else if (lvl >= 3) {
+    return 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
+  } else {
+    return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+  }
+})
+
+// Градієнт для високих рівнів
+const badgeStyle = computed(() => {
+  if (props.level >= 10) {
+    return {
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+    }
+  }
+  return {}
 })
 </script>
 
 <style scoped>
-.karma-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 20px;
-  color: white;
-  font-weight: 600;
-  white-space: nowrap;
+span {
+  transition: all 0.2s ease;
 }
 
-.karma-badge.small {
-  padding: 2px 8px;
-  font-size: 0.85em;
-  gap: 4px;
-}
-
-.karma-badge.large {
-  padding: 8px 16px;
-  font-size: 1.1em;
-  gap: 8px;
-}
-
-.icon { font-size: 1em; }
-.value { font-size: 1em; }
-.level { 
-  font-size: 0.85em; 
-  opacity: 0.9; 
-  margin-left: 2px;
+span:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.1);
 }
 </style>
