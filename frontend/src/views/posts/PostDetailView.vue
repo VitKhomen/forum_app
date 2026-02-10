@@ -37,10 +37,9 @@
           </h1>
 
           <!-- Author & Stats -->
-          <div class="flex items-center justify-between pb-6 mb-6 border-b border-gray-200 dark:border-gray-700">
+          <div class="flex items-center justify-between pb-6 mb-6">
             <div class="flex items-center gap-3">
-              <!-- ✅ ВИПРАВЛЕНО: використовуємо author_info -->
-              <div class="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden flex-shrink-0">
+              <div class="w-20 h-20 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden flex-shrink-0">
                 <img
                   v-if="post.author_info?.avatar"
                   :src="post.author_info.avatar"
@@ -51,124 +50,140 @@
               </div>
               
               <div>
-                <p class="font-medium text-gray-900 dark:text-white">
-                  {{ post.author_info?.username }}
-                </p>
-                <KarmaBadge 
-                  :karma="post.author_karma_points || 0" 
-                  :level="post.author_karma_level || 1" 
+                <AuthorWithKarma
+                  :username="post.author_info.username"
+                  :karma="post.author_karma_points || 0"
+                  :level="post.author_karma_level || 1"
                 />
               </div>
             </div>
 
-            <div class="flex items-center gap-4 text-gray-500 dark:text-gray-400">
-              <div class="flex items-center gap-1">
-                <EyeIcon class="w-5 h-5" />
-                <span>{{ post.views_count }}</span>
-              </div>
-              <div class="flex items-center gap-1">
-                <ChatBubbleLeftIcon class="w-5 h-5" />
-                <span>{{ commentsCount }}</span>
-              </div>
-              
-              <div @click.stop>
-                <LikeButton
-                  content-type="post"
-                  size="gl"
-                  :object-id="post.id"
-                  :initial-likes-count="post.likes_count || 0"
-                  :initial-is-liked="post.is_liked || false"
-                />
-              </div>
-            </div>
           </div>
-
+          
           <!-- Post Content -->
-          <div class="prose dark:text-white max-w-none mb-8">
-            <div 
-              v-html="post.content" 
-              class="whitespace-pre-wrap break-words overflow-wrap-anywhere"
-              style="word-break: break-word; overflow-wrap: anywhere;"
-            ></div>
-          </div>
-
-          <div class="border-b border-gray-200 dark:border-gray-700 my-8"></div>
+          <template v-if="post.content && post.content.trim()">
+            <div class="border-b border-gray-200 dark:border-gray-700 my-8"></div>
+            
+            <div class="prose dark:prose-invert max-w-none mb-8">
+              <div 
+                v-html="post.content" 
+                class="whitespace-pre-wrap break-words overflow-wrap-anywhere"
+                style="word-break: break-word; overflow-wrap: anywhere;"
+              ></div>
+            </div>
+          </template>
+          
           
           <!-- Additional Images (clickable gallery) -->
-          <div v-if="post.images && post.images.length" class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
-            <div
-              v-for="(img, idx) in post.images"
-              :key="img.id"
-              class="relative overflow-hidden rounded-lg cursor-pointer group aspect-square"
-              @click="openLightbox(idx + 1)"
-            >
-              <img
-                :src="img.image"
-                alt="Додаткове зображення"
-                class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-              />
-              <!-- Оверлей -->
-              <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                <div class="absolute inset-0 bg-black bg-opacity-50"></div>
-                <div class="relative z-10 p-4">
-                  <svg class="w-16 h-16 text-white drop-shadow-lg" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
+          <template v-if="post.images && post.images.length">
+            <div class="border-b border-gray-200 dark:border-gray-700 my-8"></div>
+            
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+              <div
+                v-for="(img, idx) in post.images"
+                :key="img.id"
+                class="relative overflow-hidden rounded-lg cursor-pointer group aspect-square"
+                @click="openLightbox(idx + 1)"
+              >
+                <img
+                  :src="img.image"
+                  alt="Додаткове зображення"
+                  class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                />
+                <!-- Оверлей для збільшення -->
+                <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <div class="absolute inset-0 bg-black bg-opacity-50"></div>
+                  <div class="relative z-10 p-4">
+                    <svg class="w-16 h-16 text-white drop-shadow-lg" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-          
-          <div class="border-b border-gray-200 dark:border-gray-700 my-8"></div>
+          </template>
           
           <!-- Additional Videos -->
-          <div v-if="post.videos && post.videos.length" class="space-y-6 mb-8">
-            <div
-              v-for="video in post.videos"
-              :key="video.id"
-              class="relative rounded-lg overflow-hidden bg-black"
-            >
-              <video
-                :src="video.video"
-                controls
-                class="w-full aspect-video"
-                preload="metadata"
+          <template v-if="post.videos && post.videos.length">
+            <div class="border-b border-gray-200 dark:border-gray-700 my-8"></div>
+            
+            <div class="space-y-6 mb-8">
+              <div
+                v-for="video in post.videos"
+                :key="video.id"
+                class="relative rounded-lg overflow-hidden bg-black"
               >
-                Ваш браузер не підтримує відео.
-              </video>
+                <video
+                  :src="video.video"
+                  controls
+                  class="w-full aspect-video"
+                  preload="metadata"
+                >
+                  Ваш браузер не підтримує відео.
+                </video>
+              </div>
             </div>
-          </div>
-
-          <!-- Tags -->
-          <div v-if="post.tags && post.tags.length" class="flex flex-wrap gap-2 mb-8">
+          </template>
+      
+      <!-- Tags + Stats -->
+      <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+        <!-- Теги + статистика в одному рядку, але на мобілках вертикально -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <!-- Теги -->
+          <div v-if="post.tags && post.tags.length" class="flex flex-wrap gap-2">
             <RouterLink
               v-for="tag in post.tags"
               :key="tag"
               :to="`/posts?tag=${tag}`"
-              class="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-3 py-1 rounded-lg text-sm hover:bg-gray-200 dark:hover:bg-gray-600 break-words"
+              class="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-3 py-1 rounded-lg text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
             >
               #{{ tag }}
             </RouterLink>
           </div>
 
-          <!-- Edit/Delete Buttons for Author -->
-          <div v-if="isAuthor" class="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-200 dark:border-gray-700">
-            <RouterLink
-              :to="`/profile/edit-post/${post.slug}`"
-              class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-center font-medium"
-            >
-              Редагувати
-            </RouterLink>
-            
-            <button
-              @click="deletePost(post.slug)"
-              class="px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium"
-            >
-              Видалити
-            </button>
+          <!-- Статистика (зліва на мобілках, праворуч на десктопі) -->
+          <div class="flex items-center gap-6 text-sm text-gray-500 dark:text-gray-400">
+            <div class="flex items-center gap-1.5">
+              <EyeIcon class="w-5 h-5" />
+              <span>{{ post.views_count || 0 }}</span>
+            </div>
+
+            <div class="flex items-center gap-1.5">
+              <ChatBubbleLeftIcon class="w-5 h-5" />
+              <span>{{ commentsCount }}</span>
+            </div>
+
+            <div @click.stop>
+              <LikeButton
+                content-type="post"
+                size="md"
+                :object-id="post.id"
+                :initial-likes-count="post.likes_count || 0"
+                :initial-is-liked="post.is_liked || false"
+              />
+            </div>
           </div>
         </div>
-      </article>
+      </div>
+    
+      <!-- Edit/Delete Buttons for Author -->
+      <div v-if="isAuthor" class="flex flex-col sm:flex-row gap-3 pt-6">
+        <RouterLink
+          :to="`/profile/edit-post/${post.slug}`"
+          class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-center font-medium"
+        >
+          Редагувати
+        </RouterLink>
+        
+        <button
+          @click="deletePost(post.slug)"
+          class="px-6 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium"
+        >
+          Видалити
+        </button>
+      </div>
+    </div>
+  </article>
       
       <!-- Comments Section -->
       <!-- ✅ ДОДАНО: Обробник @update-comments-count -->
@@ -260,7 +275,7 @@ import PopularSidebar from '@/components/posts/PopularSidebar.vue'
 import CommentsSection from '@/components/comments/CommentsSection.vue'
 import LikeButton from '@/components/ui/LikeButton.vue'
 import { useCommentsSync } from '@/composables/useCommentsSync'
-import KarmaBadge from '@/components/ui/KarmaBadge.vue'
+import AuthorWithKarma from '@/components/ui/KarmaBadge.vue'
 
 const route = useRoute()
 const router = useRouter()

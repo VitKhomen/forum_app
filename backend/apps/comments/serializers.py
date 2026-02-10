@@ -27,6 +27,8 @@ class CommentSerializer(serializers.ModelSerializer):
             'username': author.username,
             'full_name': author.full_name,
             'avatar': author.avatar.url if hasattr(author, 'avatar') and author.avatar else None,
+            'karma_points': author.karma_points,
+            'karma_level': author.karma_level,
         }
 
     def get_is_liked(self, obj):

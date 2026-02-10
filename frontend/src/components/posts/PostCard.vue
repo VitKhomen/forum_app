@@ -1,6 +1,6 @@
 <template>
-  <article class="bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow">
-    <!-- Image -->
+  <article class="bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-md hover:shadow-xl transition-shadow flex flex-col h-full">
+    <!-- Image (фіксована висота) -->
     <RouterLink :to="`/posts/${post.slug}`">
       <div class="aspect-video overflow-hidden bg-gray-200 dark:bg-gray-700">
         <img
@@ -15,8 +15,8 @@
       </div>
     </RouterLink>
 
-    <!-- Content -->
-    <div class="p-5">
+    <!-- Контент (займає весь доступний простір) -->
+    <div class="p-5 flex flex-col flex-grow">
       <!-- Category & Date -->
       <div class="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 mb-2">
         <RouterLink
@@ -37,21 +37,19 @@
         </h3>
       </RouterLink>
 
-      <!-- Excerpt -->
-      <p class="text-gray-600 dark:text-gray-300 text-sm mb-4 line-clamp-3">
+      <!-- Excerpt (займає весь простір, що залишився) -->
+      <p class="text-gray-600 dark:text-gray-300 text-sm mb-4 line-clamp-3 flex-grow">
         {{ post.excerpt || truncateText(post.content, 120) }}
       </p>
 
-      <!-- Footer -->
-      <div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+      <!-- Footer — завжди внизу завдяки mt-auto -->
+      <div class="flex items-center justify-between text-xs text-gray-500 dark:text-gray-400 mt-auto">
         <!-- Author -->
         <div class="flex items-center gap-2">
-          <UserCircleIcon class="w-6 h-3" />
-          <span>{{ post.author_username }}</span>
-          
-          <KarmaBadge 
-            :karma="post.author_karma_points || 0" 
-            :level="post.author_karma_level || 1" 
+          <AuthorWithKarma
+            :username="post.author_username"
+            :karma="post.author_karma_points || 0"
+            :level="post.author_karma_level || 1"
           />
         </div>
 
@@ -75,21 +73,22 @@
           />
         </div>
       </div>
+    </div>
 
-      <!-- Tags -->
-      <div v-if="post.tags && post.tags.length" class="mt-3 flex flex-wrap gap-2">
-        <RouterLink
-          v-for="tag in post.tags.slice(0, 3)"
-          :key="tag"
-          :to="`/posts?tag=${tag}`"
-          class="text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
-        >
-          #{{ tag }}
-        </RouterLink>
-      </div>
+    <!-- Tags (під контентом, але перед footer) -->
+    <div v-if="post.tags && post.tags.length" class="px-5 pb-5 pt-2 flex flex-wrap gap-2">
+      <RouterLink
+        v-for="tag in post.tags.slice(0, 3)"
+        :key="tag"
+        :to="`/posts?tag=${tag}`"
+        class="text-xs bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600"
+      >
+        #{{ tag }}
+      </RouterLink>
     </div>
   </article>
 </template>
+
 
 <script setup>
 import { computed, onMounted, onUnmounted } from 'vue'
@@ -99,7 +98,7 @@ import { format } from 'date-fns'
 import { uk } from 'date-fns/locale'
 import LikeButton from '@/components/ui/LikeButton.vue'
 import { useCommentsSync } from '@/composables/useCommentsSync'
-import KarmaBadge from '@/components/ui/KarmaBadge.vue'
+import AuthorWithKarma from '@/components/ui/KarmaBadge.vue'
 
 const props = defineProps({
   post: {
@@ -146,3 +145,5 @@ const truncateText = (text, length) => {
   return text.length > length ? text.substring(0, length) + '...' : text
 }
 </script>
+
+

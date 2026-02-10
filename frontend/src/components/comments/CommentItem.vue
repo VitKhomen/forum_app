@@ -9,9 +9,11 @@
           class="w-10 h-10 rounded-full object-cover"
         />
         <div>
-          <p class="font-semibold text-gray-900 dark:text-white">
-            {{ author.username || author.full_name || 'Анонім' }}
-          </p>
+          <AuthorWithKarma
+            :username="comment.author_info.username"
+            :karma="comment.author_info.karma_points || 0"
+            :level="comment.author_info.karma_level || 1"
+          />
           <p class="text-sm text-gray-500 dark:text-gray-400">
             {{ formatDate(comment.created_at) }}
           </p>
@@ -72,6 +74,7 @@
 <script setup>
 import { computed } from 'vue'
 import LikeButton from '@/components/ui/LikeButton.vue'
+import AuthorWithKarma from '@/components/ui/KarmaBadge.vue'
 
 const props = defineProps({
   comment: { type: Object, required: true },

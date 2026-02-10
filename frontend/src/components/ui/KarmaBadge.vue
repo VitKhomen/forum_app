@@ -1,18 +1,34 @@
 <template>
-  <span 
-    class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
+  <!-- ✅ Username + Icon + Level в одному кольоровому овалі -->
+  <div
+    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all cursor-default"
     :class="badgeClass"
     :style="badgeStyle"
-    :title="`Карма: ${karma}`"
+    :title="`${username} • Карма: ${karma} • Рівень ${level}`"
   >
-    {{ level }} lvl
-  </span>
+    <!-- Username -->
+    <span class="font-medium text-sm">
+      {{ username }}
+    </span>
+    
+    <!-- ✅ Іконка залежно від рівня -->
+    <span class="text-sm">{{ levelIcon }}</span>
+    
+    <!-- Level -->
+    <span class="text-xs font-semibold whitespace-nowrap">
+      {{ level }} lvl
+    </span>
+  </div>
 </template>
 
 <script setup>
 import { computed } from 'vue'
 
 const props = defineProps({
+  username: {
+    type: String,
+    required: true
+  },
   karma: {
     type: Number,
     default: 0
@@ -23,13 +39,29 @@ const props = defineProps({
   }
 })
 
+// ✅ Іконка залежно від рівня
+const levelIcon = computed(() => {
+  const lvl = props.level
+  
+  if (lvl >= 10) {
+    return '👑'  // Корона - легенда
+  } else if (lvl >= 7) {
+    return '🔥'  // Вогонь - експерт
+  } else if (lvl >= 5) {
+    return '💎'  // Діамант - досвідчений
+  } else if (lvl >= 3) {
+    return '⭐'  // Зірка - активний
+  } else {
+    return '🌱'  // Паросток - новачок
+  }
+})
+
 // Колір залежно від рівня
 const badgeClass = computed(() => {
   const lvl = props.level
   
-  // Для високих рівнів використовуємо градієнт
   if (lvl >= 10) {
-    return 'text-white font-semibold shadow-sm'
+    return 'text-white font-semibold shadow-md'
   } else if (lvl >= 7) {
     return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
   } else if (lvl >= 5) {
@@ -53,12 +85,13 @@ const badgeStyle = computed(() => {
 </script>
 
 <style scoped>
-span {
+div {
   transition: all 0.2s ease;
 }
 
-span:hover {
+div:hover {
   transform: translateY(-1px);
   filter: brightness(1.1);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
 }
 </style>

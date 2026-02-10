@@ -69,8 +69,11 @@
             <!-- Meta Info -->
             <div class="flex items-center gap-3 text-xs text-gray-300">
               <div class="flex items-center gap-1">
-                <UserCircleIcon class="w-4 h-4" />
-                <span>{{ post.author_username }}</span>
+                <AuthorWithKarma
+                  :username="post.author_username"
+                  :karma="post.author_karma_points || 0"
+                  :level="post.author_karma_level || 1"
+                />
               </div>
               <div class="flex items-center gap-1">
                 <EyeIcon class="w-4 h-4" />
@@ -135,6 +138,8 @@ import LikeButton from '@/components/ui/LikeButton.vue'
 import 'swiper/css'
 import 'swiper/css/navigation'
 import 'swiper/css/pagination'
+import AuthorWithKarma from '@/components/ui/KarmaBadge.vue'
+
 
 const props = defineProps({
   posts: {
