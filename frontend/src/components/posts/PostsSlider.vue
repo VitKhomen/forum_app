@@ -66,10 +66,11 @@
               {{ post.excerpt || truncateText(post.content, 80) }}
             </p>
             
-            <!-- Meta Info -->
+            <!-- Meta Info with Author -->
             <div class="flex items-center gap-3 text-xs text-gray-300">
               <div class="flex items-center gap-1">
                 <AuthorWithKarma
+                  size="sm"
                   :username="post.author_username"
                   :karma="post.author_karma_points || 0"
                   :level="post.author_karma_level || 1"

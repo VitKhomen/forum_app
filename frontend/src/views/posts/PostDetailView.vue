@@ -36,9 +36,10 @@
             {{ post.title }}
           </h1>
 
-          <!-- Author & Stats -->
-          <div class="flex items-center justify-between pb-6 mb-6">
-            <div class="flex items-center gap-3">
+          <!-- Author -->
+          <div class="flex items-center justify-between pb-6 mb-6 border-b border-gray-200 dark:border-gray-700">
+            <div class="flex items-start gap-3">
+              <!-- Avatar -->
               <div class="w-20 h-20 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden flex-shrink-0">
                 <img
                   v-if="post.author_info?.avatar"
@@ -51,7 +52,8 @@
               
               <div>
                 <AuthorWithKarma
-                  :username="post.author_info.username"
+                  size="lg"
+                  :username="post.author_info?.username"
                   :karma="post.author_karma_points || 0"
                   :level="post.author_karma_level || 1"
                 />

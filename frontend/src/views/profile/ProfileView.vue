@@ -27,28 +27,17 @@
           <h2 class="text-2xl font-semibold text-gray-900 dark:text-white">
             {{ authStore.user?.full_name || authStore.user?.username }}
           </h2>
-          <p class="text-gray-600 dark:text-gray-400">@{{ authStore.user?.username }}</p>
-          
           <div class="mt-2">
-            <KarmaBadge 
-              :karma="authStore.user?.karma_points || 0" 
-              :level="authStore.user?.karma_level || 1" 
-            />
+            <AuthorWithKarma
+                  size="lg"
+                  :username="authStore.user?.username"
+                  :karma="authStore.user?.karma_points || 0"
+                  :level="authStore.user?.karma_level || 1"
+                />
           </div>
           
           <p class="text-gray-600 dark:text-gray-400 mt-2">{{ authStore.user?.email }}</p>
           
-          <div class="mt-4 flex gap-6 text-sm">
-            <div>
-              <span class="font-semibold">{{ authStore.user?.posts_count || 0 }}</span>
-              <span class="text-gray-600 dark:text-gray-400"> постів</span>
-            </div>
-            <div>
-              <span class="font-semibold">{{ authStore.user?.comments_count || 0 }}</span>
-              <span class="text-gray-600 dark:text-gray-400"> коментарів</span>
-            </div>
-          </div>
-
           <p v-if="authStore.user?.bio" class="mt-4 text-gray-700 dark:text-gray-300">
             {{ authStore.user.bio }}
           </p>
@@ -85,7 +74,8 @@
     </div>
 
     <!-- Stats -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <!-- Пости -->
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <div class="flex items-center justify-between">
           <div>
@@ -98,6 +88,7 @@
         </div>
       </div>
 
+      <!-- Коментарі -->
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <div class="flex items-center justify-between">
           <div>
@@ -110,6 +101,19 @@
         </div>
       </div>
 
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-gray-600 dark:text-gray-400 text-sm">Лайки</p>
+            <p class="text-2xl font-bold text-gray-900 dark:text-white">
+              {{ authStore.user?.likes_received_count || 0 }}
+            </p>
+          </div>
+          <HeartIcon class="w-10 h-10 text-red-600" />
+        </div>
+      </div>
+
+      <!-- Дата реєстрації -->
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <div class="flex items-center justify-between">
           <div>
@@ -340,13 +344,13 @@ import {
   NewspaperIcon, 
   ChatBubbleLeftIcon, 
   CalendarIcon,
-  XMarkIcon
+  XMarkIcon,
+  HeartIcon
 } from '@heroicons/vue/24/outline'
 import { format } from 'date-fns'
 import { uk } from 'date-fns/locale'
 import { useToast } from 'vue-toastification'
-import KarmaBadge from '@/components/ui/KarmaBadge.vue'
-import KarmaHistory from '@/components/karma/KarmaHistory.vue'
+import AuthorWithKarma from '@/components/ui/KarmaBadge.vue'
 
 const authStore = useAuthStore()
 const toast = useToast()

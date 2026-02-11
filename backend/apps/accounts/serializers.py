@@ -67,6 +67,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
     full_name = serializers.ReadOnlyField()
     posts_count = serializers.SerializerMethodField()
     comments_count = serializers.SerializerMethodField()
+    likes_received_count = serializers.SerializerMethodField()
     karma_points = serializers.IntegerField(read_only=True)
     karma_level = serializers.IntegerField(read_only=True)
 
@@ -75,11 +76,11 @@ class UserProfileSerializer(serializers.ModelSerializer):
         fields = (
             'id', 'username', 'email', 'first_name', 'last_name',
             'full_name', 'avatar', 'bio', 'created_at', 'updated_at',
-            'posts_count', 'comments_count',
+            'posts_count', 'comments_count', 'likes_received_count',
             'karma_points', 'karma_level'
         )
         read_only_fields = ('id', 'created_at', 'updated_at',
-                            'karma_points', 'karma_level')
+                            'karma_points', 'karma_level', 'likes_received_count')
 
     def get_posts_count(self, obj):
         """Кількість пості"""
@@ -93,6 +94,39 @@ class UserProfileSerializer(serializers.ModelSerializer):
         try:
             return obj.comments.count()
         except AttributeError:
+            return 0
+
+    def get_likes_received_count(self, obj):
+        from django.contrib.contenttypes.models import ContentType
+        from apps.likes.models import Like
+
+        try:
+            total = 0
+
+            # Лайки на постах
+            from apps.main.models import Post  # ← твій шлях до Post
+            post_ct = ContentType.objects.get_for_model(Post)
+            post_ids = list(obj.posts.values_list('id', flat=True))
+            if post_ids:
+                total += Like.objects.filter(
+                    content_type=post_ct,
+                    object_id__in=post_ids
+                ).count()
+
+            # Лайки на коментарях
+            from apps.comments.models import Comment  # ← твій шлях до Comment
+            comment_ct = ContentType.objects.get_for_model(Comment)
+            comment_ids = list(obj.comments.values_list('id', flat=True))
+            if comment_ids:
+                total += Like.objects.filter(
+                    content_type=comment_ct,
+                    object_id__in=comment_ids
+                ).count()
+
+            return total
+
+        except Exception as e:
+            print(f"Error: {e}")
             return 0
 
 

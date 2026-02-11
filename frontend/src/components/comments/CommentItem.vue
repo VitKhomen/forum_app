@@ -10,6 +10,7 @@
         />
         <div>
           <AuthorWithKarma
+            size="md"
             :username="comment.author_info.username"
             :karma="comment.author_info.karma_points || 0"
             :level="comment.author_info.karma_level || 1"

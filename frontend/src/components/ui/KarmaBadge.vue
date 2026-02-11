@@ -1,21 +1,21 @@
 <template>
-  <!-- ✅ Username + Icon + Level в одному кольоровому овалі -->
+  <!-- ✅ Username + Icon + Level з динамічним розміром -->
   <div
-    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all cursor-default"
-    :class="badgeClass"
+    class="inline-flex items-center rounded-full transition-all cursor-default"
+    :class="[badgeClass, sizeClasses]"
     :style="badgeStyle"
     :title="`${username} • Карма: ${karma} • Рівень ${level}`"
   >
     <!-- Username -->
-    <span class="font-medium text-sm">
+    <span :class="textSizeClasses.username">
       {{ username }}
     </span>
     
     <!-- ✅ Іконка залежно від рівня -->
-    <span class="text-sm">{{ levelIcon }}</span>
+    <span :class="textSizeClasses.icon">{{ levelIcon }}</span>
     
     <!-- Level -->
-    <span class="text-xs font-semibold whitespace-nowrap">
+    <span :class="textSizeClasses.level">
       {{ level }} lvl
     </span>
   </div>
@@ -36,10 +36,54 @@ const props = defineProps({
   level: {
     type: Number,
     default: 1
+  },
+  // ✅ Новий пропс для розміру
+  size: {
+    type: String,
+    default: 'md', // 'sm' | 'md' | 'lg'
+    validator: (value) => ['sm', 'md', 'lg'].includes(value)
   }
 })
 
-// ✅ Іконка залежно від рівня
+// ✅ Класи розмірів для контейнера
+const sizeClasses = computed(() => {
+  switch (props.size) {
+    case 'sm':
+      return 'gap-1 px-2 py-0.5'  // Для карток/слайдера
+    case 'lg':
+      return 'gap-2 px-4 py-2'    // Для деталей
+    case 'md':
+    default:
+      return 'gap-1.5 px-3 py-1.5' // Стандартний
+  }
+})
+
+// ✅ Класи розмірів для тексту
+const textSizeClasses = computed(() => {
+  switch (props.size) {
+    case 'sm':
+      return {
+        username: 'font-medium text-xs',
+        icon: 'text-xs',
+        level: 'text-[10px] font-semibold whitespace-nowrap'
+      }
+    case 'lg':
+      return {
+        username: 'font-semibold text-base',
+        icon: 'text-base',
+        level: 'text-sm font-bold whitespace-nowrap'
+      }
+    case 'md':
+    default:
+      return {
+        username: 'font-medium text-sm',
+        icon: 'text-sm',
+        level: 'text-xs font-semibold whitespace-nowrap'
+      }
+  }
+})
+
+// Іконка залежно від рівня
 const levelIcon = computed(() => {
   const lvl = props.level
   

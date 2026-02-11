@@ -129,20 +129,21 @@ const router = createRouter({
 
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
-  
-  // Set page title
-  document.title = `${to.meta.title || 'Форум'} | Forum`
 
-  // Check if route requires authentication
-  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-    next({ name: 'login', query: { redirect: to.fullPath } })
-    return
+  if (!authStore.initialized) {
+    await authStore.init()
   }
 
-  // Redirect authenticated users from guest pages
-  if (to.meta.guest && authStore.isAuthenticated) {
-    next({ name: 'home' })
-    return
+  const requiresAuth = to.meta.requiresAuth
+  const guestOnly = to.meta.guestOnly  
+
+  if (requiresAuth && !authStore.isAuthenticated) {
+    // Не авторизований — на логін
+    return next('/login')
+  }
+
+  if (guestOnly && authStore.isAuthenticated) {
+    return next('/')
   }
 
   next()

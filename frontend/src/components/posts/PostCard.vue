@@ -47,6 +47,7 @@
         <!-- Author -->
         <div class="flex items-center gap-2">
           <AuthorWithKarma
+            size="sm"
             :username="post.author_username"
             :karma="post.author_karma_points || 0"
             :level="post.author_karma_level || 1"

@@ -9,13 +9,14 @@ const toast = useToast()
 export const useAuthStore = defineStore('auth', () => {
   const user = ref(null)
   const loading = ref(false)
+  const initialized = ref(false)
 
   const isAuthenticated = computed(() => !!user.value)
   const isStaff = computed(() => user.value?.is_staff || false)
 
   const setTokens = (access, refresh) => {
-    Cookies.set('access_token', access, { expires: 1/24 }) // 1 hour
-    Cookies.set('refresh_token', refresh, { expires: 7 }) // 7 days
+    Cookies.set('access_token', access, { expires: 1/24 })
+    Cookies.set('refresh_token', refresh, { expires: 7 })
   }
 
   const removeTokens = () => {
@@ -95,10 +96,7 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       loading.value = true
       
-      // Якщо profileData це FormData, відправляємо як є
-      // Якщо це звичайний об'єкт, конвертуємо в FormData
       let formData = profileData
-      
       if (!(profileData instanceof FormData)) {
         formData = new FormData()
         Object.keys(profileData).forEach(key => {
@@ -143,17 +141,19 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  // Initialize auth on app load
   const init = async () => {
     const token = Cookies.get('access_token')
     if (token) {
       await fetchProfile()
     }
+    // ✅ Завжди встановлюємо initialized після перевірки
+    initialized.value = true
   }
 
   return {
     user,
     loading,
+    initialized,
     isAuthenticated,
     isStaff,
     login,
