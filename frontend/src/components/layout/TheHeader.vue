@@ -2,8 +2,18 @@
   <header class="bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-50">
     <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between items-center h-16">
-        <!-- Logo -->
+
+        <!-- Logo + Burger зліва -->
         <div class="flex items-center gap-3">
+          <!-- ✅ Burger кнопка для sidebar -->
+          <button
+            @click="sidebarOpen = true"
+            class="p-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+            aria-label="Меню"
+          >
+            <Bars3Icon class="w-6 h-6" />
+          </button>
+
           <RouterLink to="/" class="flex items-center gap-2">
             <img
               src="https://pub-f6a1145b5cea4dd298fe674249772346.r2.dev/logo/logo.png"
@@ -18,54 +28,18 @@
           </RouterLink>
         </div>
 
-        <!-- Desktop Navigation + Theme Toggle + Search Icon -->
-        <div class="hidden md:flex items-center space-x-6">
-          <!-- Основні посилання -->
-          <RouterLink
-            to="/"
-            class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 px-3 py-2 text-sm font-medium transition"
-          >
-            Головна
-          </RouterLink>
-          <RouterLink
-            to="/posts"
-            class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 px-3 py-2 text-sm font-medium transition"
-          >
-            Всі пости
-          </RouterLink>
-          <RouterLink
-            to="/posts/popular"
-            class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 px-3 py-2 text-sm font-medium transition"
-          >
-            Популярні
-          </RouterLink>
-          <RouterLink
-            to="/posts/trending"
-            class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 px-3 py-2 text-sm font-medium transition"
-          >
-            В тренді
-          </RouterLink>
-
-          <!-- Кнопка Категорії з випадаючим меню -->
-          <button
-            @click="toggleCategories"
-            class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 px-3 py-2 text-sm font-medium transition"
-            :class="{ 'text-blue-600 dark:text-blue-400': showCategories }"
-          >
-            Категорії
-          </button>
-
-          <!-- Авторизація -->
+        <!-- Desktop: тільки авторизація + тема + пошук -->
+        <div class="flex items-center gap-2">
           <template v-if="authStore.isAuthenticated">
             <RouterLink
               to="/profile"
-              class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 px-3 py-2 text-sm font-medium transition"
+              class="hidden md:block text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 px-3 py-2 text-sm font-medium transition"
             >
               Профіль
             </RouterLink>
             <button
               @click="handleLogout"
-              class="text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 px-3 py-2 text-sm font-medium transition"
+              class="hidden md:block text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 px-3 py-2 text-sm font-medium transition"
             >
               Вийти
             </button>
@@ -73,217 +47,255 @@
           <template v-else>
             <RouterLink
               to="/login"
-              class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 px-3 py-2 text-sm font-medium transition"
+              class="hidden md:block text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 px-3 py-2 text-sm font-medium transition"
             >
               Вхід
             </RouterLink>
             <RouterLink
               to="/register"
-              class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
+              class="hidden md:block bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
             >
               Реєстрація
             </RouterLink>
           </template>
 
-          <!-- Перемикач теми -->
           <ThemeToggle />
 
-          <!-- Кнопка пошуку (лупа) -->
-          <button
-            @click="toggleSearch"
-            class="p-2 rounded-full text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition"
-            :class="{ 'bg-gray-200 dark:bg-gray-700': showSearch }"
-            aria-label="Пошук"
-          >
-            <MagnifyingGlassIcon class="w-6 h-6" />
-          </button>
-        </div>
-
-        <!-- Мобільні кнопки -->
-        <div class="md:hidden flex items-center gap-3">
-          <!-- Перемикач теми (мобільний) -->
-          <ThemeToggle />
-          
           <button
             @click="toggleSearch"
             class="p-2 rounded-full text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition"
             :class="{ 'bg-gray-200 dark:bg-gray-700': showSearch }"
           >
             <MagnifyingGlassIcon class="w-6 h-6" />
-          </button>
-          <button
-            @click="mobileMenuOpen = !mobileMenuOpen"
-            class="p-2 rounded-full text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition"
-          >
-            <Bars3Icon v-if="!mobileMenuOpen" class="w-6 h-6" />
-            <XMarkIcon v-else class="w-6 h-6" />
           </button>
         </div>
       </div>
 
-      <!-- Панель категорій (з'являється під хедером) -->
-      <Transition name="slide-down">
-        <div
-          v-if="showCategories"
-          class="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 py-5"
-        >
-          <div class="max-w-7xl mx-auto">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Оберіть категорію</h3>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              <RouterLink
-                v-for="cat in categories"
-                :key="cat.id"
-                :to="{ name: 'posts', query: { category__slug: cat.slug } }"
-                @click="showCategories = false"
-                class="px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white hover:bg-blue-50 dark:hover:bg-blue-900 hover:border-blue-500 transition"
-              >
-                {{ cat.name }}
-              </RouterLink>
-            </div>
-            <RouterLink
-              :to="{ name: 'posts' }"
-              @click="showCategories = false"
-              class="mt-4 inline-block text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 text-sm font-medium"
-            >
-              ← Показати всі пости
-            </RouterLink>
-          </div>
-        </div>
-      </Transition>
-
-      <!-- Панель пошуку (з'являється під хедером) -->
+      <!-- Панель пошуку -->
       <Transition name="slide-down">
         <div
           v-if="showSearch"
-          class="border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 py-5"
+          class="border-t border-gray-200 dark:border-gray-700 py-5"
         >
-          <div class="max-w-7xl mx-auto">
-            <div class="flex flex-col sm:flex-row gap-4 items-center">
-              <input
-                v-model="searchQuery"
-                @keyup.enter="triggerSearch"
-                type="search"
-                placeholder="Пошук по заголовку або змісту..."
-                class="flex-1 min-w-[200px] px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                autofocus
-              />
-
-              <select
-                v-model="selectedCategory"
-                class="px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-              >
-                <option value="">Всі категорії</option>
-                <option v-for="cat in categories" :key="cat.id" :value="cat.slug">
-                  {{ cat.name }}
-                </option>
-              </select>
-
-              <button
-                @click="triggerSearch"
-                class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition shadow-md whitespace-nowrap"
-              >
-                Шукати
-              </button>
-            </div>
-
-            <!-- Показуємо активні фільтри -->
-            <div v-if="hasActiveFilters" class="mt-4 flex flex-wrap gap-2">
-              <span class="text-sm text-gray-600 dark:text-gray-400">Активні фільтри:</span>
-              <span
-                v-if="searchQuery"
-                class="inline-flex items-center gap-2 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-full text-sm"
-              >
-                Пошук: "{{ searchQuery }}"
-                <button @click="clearSearch" class="hover:text-blue-600">
-                  <XMarkIcon class="w-4 h-4" />
-                </button>
-              </span>
-              <span
-                v-if="selectedCategory"
-                class="inline-flex items-center gap-2 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-3 py-1 rounded-full text-sm"
-              >
-                Категорія: {{ getCategoryName(selectedCategory) }}
-                <button @click="clearCategory" class="hover:text-green-600">
-                  <XMarkIcon class="w-4 h-4" />
-                </button>
-              </span>
-            </div>
-          </div>
-        </div>
-      </Transition>
-
-      <!-- Мобільне меню -->
-      <Transition name="slide-down">
-        <div v-if="mobileMenuOpen && !showSearch && !showCategories" class="md:hidden pb-4 border-t border-gray-200 dark:border-gray-700">
-          <div class="flex flex-col space-y-2 pt-4">
-            <RouterLink
-              to="/"
-              @click="mobileMenuOpen = false"
-              class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 px-3 py-2 text-sm font-medium transition"
+          <div class="flex flex-col sm:flex-row gap-4 items-center">
+            <input
+              v-model="searchQuery"
+              @keyup.enter="triggerSearch"
+              type="search"
+              placeholder="Пошук по заголовку або змісту..."
+              class="flex-1 min-w-[200px] px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+              autofocus
+            />
+            <select
+              v-model="selectedCategory"
+              class="px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
             >
-              Головна
-            </RouterLink>
-            <RouterLink
-              to="/posts"
-              @click="mobileMenuOpen = false"
-              class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 px-3 py-2 text-sm font-medium transition"
-            >
-              Пости
-            </RouterLink>
+              <option value="">Всі категорії</option>
+              <option v-for="cat in categories" :key="cat.id" :value="cat.slug">
+                {{ cat.name }}
+              </option>
+            </select>
             <button
-              @click="toggleCategoriesMobile"
-              class="text-left text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 px-3 py-2 text-sm font-medium transition"
+              @click="triggerSearch"
+              class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition whitespace-nowrap"
             >
-              Категорії
+              Шукати
             </button>
-            <RouterLink
-              to="/contact"
-              @click="mobileMenuOpen = false"
-              class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 px-3 py-2 text-sm font-medium transition"
-            >
-              Контакти
-            </RouterLink>
+          </div>
 
-            <template v-if="authStore.isAuthenticated">
-              <RouterLink 
-                to="/profile" 
-                @click="mobileMenuOpen = false" 
-                class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 px-3 py-2 text-sm font-medium transition"
-              >
-                Профіль
-              </RouterLink>
-              <button 
-                @click="handleLogout" 
-                class="text-left text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-red-400 px-3 py-2 text-sm font-medium transition"
-              >
-                Вийти
-              </button>
-            </template>
-            <template v-else>
-              <RouterLink 
-                to="/login" 
-                @click="mobileMenuOpen = false" 
-                class="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 px-3 py-2 text-sm font-medium transition"
-              >
-                Вхід
-              </RouterLink>
-              <RouterLink 
-                to="/register" 
-                @click="mobileMenuOpen = false" 
-                class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium text-center transition"
-              >
-                Реєстрація
-              </RouterLink>
-            </template>
+          <div v-if="hasActiveFilters" class="mt-4 flex flex-wrap gap-2">
+            <span class="text-sm text-gray-600 dark:text-gray-400">Активні фільтри:</span>
+            <span
+              v-if="searchQuery"
+              class="inline-flex items-center gap-2 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-full text-sm"
+            >
+              Пошук: "{{ searchQuery }}"
+              <button @click="clearSearch"><XMarkIcon class="w-4 h-4" /></button>
+            </span>
+            <span
+              v-if="selectedCategory"
+              class="inline-flex items-center gap-2 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-3 py-1 rounded-full text-sm"
+            >
+              Категорія: {{ getCategoryName(selectedCategory) }}
+              <button @click="clearCategory"><XMarkIcon class="w-4 h-4" /></button>
+            </span>
           </div>
         </div>
       </Transition>
     </nav>
   </header>
+
+  <!-- ✅ SIDEBAR DRAWER -->
+  <Teleport to="body">
+    <!-- Backdrop -->
+    <Transition name="fade">
+      <div
+        v-if="sidebarOpen"
+        class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+        @click="sidebarOpen = false"
+      />
+    </Transition>
+
+    <!-- Drawer -->
+    <Transition name="slide-left">
+      <div
+        v-if="sidebarOpen"
+        class="fixed top-0 left-0 z-50 h-full w-72 bg-white dark:bg-gray-900 shadow-2xl flex flex-col"
+      >
+        <!-- Drawer header -->
+        <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700">
+          <RouterLink to="/" @click="sidebarOpen = false" class="flex items-center gap-2">
+            <img
+              src="https://pub-f6a1145b5cea4dd298fe674249772346.r2.dev/logo/logo.png"
+              width="28"
+              height="28"
+              alt="Logo"
+              class="rounded"
+            />
+            <span class="text-xl font-bold text-gray-900 dark:text-white">JustForum</span>
+          </RouterLink>
+          <button
+            @click="sidebarOpen = false"
+            class="p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
+          >
+            <XMarkIcon class="w-5 h-5" />
+          </button>
+        </div>
+
+        <!-- Nav links -->
+        <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+          <!-- Головні -->
+          <p class="px-3 py-1 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+            Навігація
+          </p>
+
+          <RouterLink
+            v-for="link in mainLinks"
+            :key="link.to"
+            :to="link.to"
+            @click="sidebarOpen = false"
+            class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+            :class="{ 'bg-blue-50 dark:bg-gray-800 text-blue-600 dark:text-blue-400': $route.path === link.to }"
+          >
+            <component :is="link.icon" class="w-5 h-5 flex-shrink-0" />
+            {{ link.label }}
+          </RouterLink>
+
+          <!-- Категорії -->
+          <div class="pt-3">
+            <button
+              @click="categoriesExpanded = !categoriesExpanded"
+              class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            >
+              <div class="flex items-center gap-3">
+                <TagIcon class="w-5 h-5 flex-shrink-0" />
+                Категорії
+              </div>
+              <ChevronDownIcon
+                class="w-4 h-4 transition-transform duration-200"
+                :class="{ 'rotate-180': categoriesExpanded }"
+              />
+            </button>
+
+            <Transition name="expand">
+              <div v-if="categoriesExpanded" class="ml-4 mt-1 space-y-0.5 border-l-2 border-gray-200 dark:border-gray-700 pl-3">
+                <RouterLink
+                  v-for="cat in categories"
+                  :key="cat.id"
+                  :to="{ name: 'posts', query: { category__slug: cat.slug } }"
+                  @click="sidebarOpen = false"
+                  class="block px-3 py-2 rounded-lg text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-800 transition-colors"
+                >
+                  {{ cat.name }}
+                </RouterLink>
+              </div>
+            </Transition>
+          </div>
+
+          <!-- Авторизація -->
+          <div class="pt-3">
+            <p class="px-3 py-1 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+              Акаунт
+            </p>
+
+            <template v-if="authStore.isAuthenticated">
+              <RouterLink
+                to="/profile"
+                @click="sidebarOpen = false"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+              >
+                <UserCircleIcon class="w-5 h-5" />
+                Профіль
+              </RouterLink>
+              <RouterLink
+                to="/profile/create-post"
+                @click="sidebarOpen = false"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-green-50 dark:hover:bg-gray-800 hover:text-green-600 dark:hover:text-green-400 transition-colors"
+              >
+                <PencilSquareIcon class="w-5 h-5" />
+                Створити пост
+              </RouterLink>
+              <button
+                @click="handleLogout"
+                class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-gray-800 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+              >
+                <ArrowRightOnRectangleIcon class="w-5 h-5" />
+                Вийти
+              </button>
+            </template>
+
+            <template v-else>
+              <RouterLink
+                to="/login"
+                @click="sidebarOpen = false"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+              >
+                <ArrowLeftOnRectangleIcon class="w-5 h-5" />
+                Вхід
+              </RouterLink>
+              <RouterLink
+                to="/register"
+                @click="sidebarOpen = false"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+              >
+                <UserPlusIcon class="w-5 h-5" />
+                Реєстрація
+              </RouterLink>
+            </template>
+          </div>
+        </nav>
+
+        <!-- Drawer footer — karma badge якщо авторизований -->
+        <div
+          v-if="authStore.isAuthenticated && authStore.user"
+          class="px-5 py-4 border-t border-gray-200 dark:border-gray-700"
+        >
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex-shrink-0">
+              <img
+                v-if="authStore.user.avatar"
+                :src="authStore.user.avatar"
+                class="w-full h-full object-cover"
+              />
+              <UserCircleIcon v-else class="w-full h-full text-gray-400" />
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
+                {{ authStore.user.full_name || authStore.user.username }}
+              </p>
+              <p class="text-xs text-gray-500 dark:text-gray-400 truncate">
+                {{ authStore.user.karma_points || 0 }} карми • рівень {{ authStore.user.karma_level || 1 }}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { RouterLink, useRouter, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { categoriesAPI } from '@/services/api'
@@ -291,6 +303,17 @@ import {
   Bars3Icon,
   XMarkIcon,
   MagnifyingGlassIcon,
+  HomeIcon,
+  NewspaperIcon,
+  FireIcon,
+  ArrowTrendingUpIcon,
+  TagIcon,
+  UserCircleIcon,
+  PencilSquareIcon,
+  ArrowRightOnRectangleIcon,
+  ArrowLeftOnRectangleIcon,
+  UserPlusIcon,
+  ChevronDownIcon,
 } from '@heroicons/vue/24/outline'
 import ThemeToggle from '@/components/ui/ThemeToggle.vue'
 
@@ -298,17 +321,22 @@ const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
 
-const mobileMenuOpen = ref(false)
+const sidebarOpen = ref(false)
+const categoriesExpanded = ref(false)
 const showSearch = ref(false)
-const showCategories = ref(false)
-
 const searchQuery = ref('')
 const selectedCategory = ref('')
 const categories = ref([])
 
-const hasActiveFilters = computed(() => {
-  return searchQuery.value.trim() || selectedCategory.value
-})
+// Основні посилання для sidebar
+const mainLinks = [
+  { to: '/',               label: 'Головна',   icon: HomeIcon },
+  { to: '/posts',          label: 'Всі пости', icon: NewspaperIcon },
+  { to: '/posts/popular',  label: 'Популярні', icon: FireIcon },
+  { to: '/posts/trending', label: 'В тренді',  icon: ArrowTrendingUpIcon },
+]
+
+const hasActiveFilters = computed(() => searchQuery.value.trim() || selectedCategory.value)
 
 const getCategoryName = (slug) => {
   const cat = categories.value.find(c => c.slug === slug)
@@ -317,66 +345,27 @@ const getCategoryName = (slug) => {
 
 const toggleSearch = () => {
   showSearch.value = !showSearch.value
-  if (showSearch.value) {
-    showCategories.value = false
-    mobileMenuOpen.value = false
-    syncFromRoute()
-  }
-}
-
-const toggleCategories = () => {
-  showCategories.value = !showCategories.value
-  if (showCategories.value) {
-    showSearch.value = false
-    mobileMenuOpen.value = false
-  }
-}
-
-const toggleCategoriesMobile = () => {
-  mobileMenuOpen.value = false
-  showCategories.value = true
+  if (showSearch.value) syncFromRoute()
 }
 
 const syncFromRoute = () => {
-  if (route.query.search) {
-    searchQuery.value = route.query.search
-  }
-  if (route.query.category__slug) {
-    selectedCategory.value = route.query.category__slug
-  }
+  if (route.query.search) searchQuery.value = route.query.search
+  if (route.query.category__slug) selectedCategory.value = route.query.category__slug
 }
 
 const triggerSearch = () => {
   const query = {}
-  
-  if (searchQuery.value.trim()) {
-    query.search = searchQuery.value.trim()
-  }
-  
-  if (selectedCategory.value) {
-    query.category__slug = selectedCategory.value
-  }
-
+  if (searchQuery.value.trim()) query.search = searchQuery.value.trim()
+  if (selectedCategory.value) query.category__slug = selectedCategory.value
   showSearch.value = false
-
-  router.push({
-    name: 'posts',
-    query,
-  })
+  router.push({ name: 'posts', query })
 }
 
-const clearSearch = () => {
-  searchQuery.value = ''
-  triggerSearch()
-}
-
-const clearCategory = () => {
-  selectedCategory.value = ''
-  triggerSearch()
-}
+const clearSearch = () => { searchQuery.value = ''; triggerSearch() }
+const clearCategory = () => { selectedCategory.value = ''; triggerSearch() }
 
 const handleLogout = async () => {
-  mobileMenuOpen.value = false
+  sidebarOpen.value = false
   await authStore.logout()
   router.push('/')
 }
@@ -391,10 +380,13 @@ const fetchCategories = async () => {
 }
 
 watch(() => route.query, () => {
-  if (route.name === 'posts') {
-    syncFromRoute()
-  }
+  if (route.name === 'posts') syncFromRoute()
 }, { immediate: true })
+
+// Закривати sidebar при переході
+watch(() => route.path, () => {
+  sidebarOpen.value = false
+})
 
 onMounted(() => {
   fetchCategories()
@@ -402,15 +394,40 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* Пошук */
 .slide-down-enter-active,
 .slide-down-leave-active {
   transition: all 0.3s ease;
   max-height: 500px;
   overflow: hidden;
 }
-
 .slide-down-enter-from,
 .slide-down-leave-to {
+  max-height: 0;
+  opacity: 0;
+}
+
+/* Backdrop */
+.fade-enter-active,
+.fade-leave-active { transition: opacity 0.25s ease }
+.fade-enter-from,
+.fade-leave-to { opacity: 0 }
+
+/* Drawer slide from left */
+.slide-left-enter-active,
+.slide-left-leave-active { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) }
+.slide-left-enter-from,
+.slide-left-leave-to { transform: translateX(-100%) }
+
+/* Категорії expand */
+.expand-enter-active,
+.expand-leave-active {
+  transition: all 0.2s ease;
+  overflow: hidden;
+  max-height: 500px;
+}
+.expand-enter-from,
+.expand-leave-to {
   max-height: 0;
   opacity: 0;
 }

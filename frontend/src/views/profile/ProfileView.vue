@@ -127,12 +127,22 @@
       </div>
     </div>
 
-    <div v-if="authStore.user?.username" class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-      <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-4">
-        Історія карми
-      </h2>
-      <KarmaHistory :username="authStore.user.username" :limit="10" />
-    </div>
+     <!-- Karma history -->
+      <div v-if="authStore.user?.username" class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-xl font-bold text-gray-900 dark:text-white">
+            Історія карми
+          </h2>
+          <button
+            @click="showKarmaModal = true"
+            class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-colors"
+          >
+            <ClockIcon class="w-4 h-4" />
+            Переглянути все
+          </button>
+        </div>
+        <KarmaHistory :username="authStore.user.username" :limit="5" />
+      </div>
 
     <!-- Edit Profile Modal -->
     <Transition name="modal">
@@ -332,6 +342,11 @@
         </div>
       </div>
     </Transition>
+    <KarmaHistoryModal
+  v-model="showKarmaModal"
+  :username="authStore.user?.username || ''"
+/>
+
   </div>
 </template>
 
@@ -351,6 +366,8 @@ import { format } from 'date-fns'
 import { uk } from 'date-fns/locale'
 import { useToast } from 'vue-toastification'
 import AuthorWithKarma from '@/components/ui/KarmaBadge.vue'
+import { ClockIcon } from '@heroicons/vue/24/outline'
+import KarmaHistoryModal from '@/components/ui/KarmaHistoryModal.vue'
 
 const authStore = useAuthStore()
 const toast = useToast()
@@ -372,6 +389,8 @@ const passwordForm = ref({
   new_password: '',
   new_password_confirm: ''
 })
+
+const showKarmaModal = ref(false)
 
 const formatDate = (dateString) => {
   if (!dateString) return ''
