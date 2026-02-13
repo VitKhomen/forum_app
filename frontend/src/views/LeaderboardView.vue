@@ -1,82 +1,159 @@
-<!-- views/LeaderboardView.vue -->
 <template>
-  <div class="leaderboard-view">
-    <div class="container">
-      <h1>🏆 Рейтинг користувачів</h1>
+  <div class="max-w-3xl mx-auto px-4 py-8 space-y-6">
 
-      <!-- Топ 3 (Podium) -->
-      <div v-if="topThree.length === 3" class="podium">
+    <!-- Header -->
+    <div class="text-center mb-8">
+      <h1 class="text-4xl font-bold text-gray-900 dark:text-white">🏆 Рейтинг</h1>
+      <p class="text-gray-500 dark:text-gray-400 mt-2 text-sm">Найактивніші учасники спільноти</p>
+    </div>
+
+    <!-- Loading -->
+    <div v-if="loading" class="flex justify-center py-20">
+      <div class="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-purple-500"></div>
+    </div>
+
+    <template v-else-if="users.length">
+
+      <!-- TOP 3 Podium -->
+      <div v-if="topThree.length === 3" class="grid grid-cols-3 gap-3 items-end mb-8">
+
         <!-- 2 місце -->
-        <div class="podium-item second">
-          <div class="medal">🥈</div>
-          <div class="rank">2</div>
-          <div class="username">{{ topThree[1].username }}</div>
-          <KarmaBadge 
-            :karma="topThree[1].karma_points" 
-            :level="topThree[1].karma_level" 
+        <div class="flex flex-col items-center">
+          <div class="relative mb-3">
+            <div class="w-16 h-16 rounded-full overflow-hidden ring-4 ring-gray-300 dark:ring-gray-600 bg-gray-200 dark:bg-gray-700">
+              <img v-if="topThree[1].avatar" :src="topThree[1].avatar" class="w-full h-full object-cover" />
+              <UserCircleIcon v-else class="w-full h-full text-gray-400 p-1" />
+            </div>
+            <span class="absolute -bottom-1 -right-1 text-xl">🥈</span>
+          </div>
+          <p class="font-semibold text-sm text-gray-900 dark:text-white text-center truncate w-full px-1">
+            {{ topThree[1].username }}
+          </p>
+          <AuthorWithKarma
+            :username="''"
+            :karma="topThree[1].karma_points"
+            :level="topThree[1].karma_level"
+            size="sm"
           />
+          <div class="mt-3 w-full bg-gray-200 dark:bg-gray-700 rounded-t-lg h-16 flex items-center justify-center">
+            <span class="text-2xl font-bold text-gray-500 dark:text-gray-400">2</span>
+          </div>
         </div>
 
-        <!-- 1 місце -->
-        <div class="podium-item first">
-          <div class="medal">🥇</div>
-          <div class="rank">1</div>
-          <div class="username">{{ topThree[0].username }}</div>
-          <KarmaBadge 
-            :karma="topThree[0].karma_points" 
-            :level="topThree[0].karma_level" 
-            size="large"
+        <!-- 1 місце (вище) -->
+        <div class="flex flex-col items-center">
+          <div class="relative mb-3">
+            <div class="w-20 h-20 rounded-full overflow-hidden ring-4 ring-yellow-400 bg-gray-200 dark:bg-gray-700 shadow-lg shadow-yellow-400/30">
+              <img v-if="topThree[0].avatar" :src="topThree[0].avatar" class="w-full h-full object-cover" />
+              <UserCircleIcon v-else class="w-full h-full text-gray-400 p-1" />
+            </div>
+            <span class="absolute -bottom-1 -right-1 text-2xl">🥇</span>
+          </div>
+          <p class="font-bold text-base text-gray-900 dark:text-white text-center truncate w-full px-1">
+            {{ topThree[0].username }}
+          </p>
+          <AuthorWithKarma
+            :username="''"
+            :karma="topThree[0].karma_points"
+            :level="topThree[0].karma_level"
+            size="sm"
           />
+          <div class="mt-3 w-full bg-yellow-400 rounded-t-lg h-28 flex items-center justify-center shadow-lg">
+            <span class="text-3xl font-bold text-yellow-900">1</span>
+          </div>
         </div>
 
         <!-- 3 місце -->
-        <div class="podium-item third">
-          <div class="medal">🥉</div>
-          <div class="rank">3</div>
-          <div class="username">{{ topThree[2].username }}</div>
-          <KarmaBadge 
-            :karma="topThree[2].karma_points" 
-            :level="topThree[2].karma_level" 
+        <div class="flex flex-col items-center">
+          <div class="relative mb-3">
+            <div class="w-16 h-16 rounded-full overflow-hidden ring-4 ring-orange-400 bg-gray-200 dark:bg-gray-700">
+              <img v-if="topThree[2].avatar" :src="topThree[2].avatar" class="w-full h-full object-cover" />
+              <UserCircleIcon v-else class="w-full h-full text-gray-400 p-1" />
+            </div>
+            <span class="absolute -bottom-1 -right-1 text-xl">🥉</span>
+          </div>
+          <p class="font-semibold text-sm text-gray-900 dark:text-white text-center truncate w-full px-1">
+            {{ topThree[2].username }}
+          </p>
+          <AuthorWithKarma
+            :username="''"
+            :karma="topThree[2].karma_points"
+            :level="topThree[2].karma_level"
+            size="sm"
           />
+          <div class="mt-3 w-full bg-orange-300 dark:bg-orange-700 rounded-t-lg h-10 flex items-center justify-center">
+            <span class="text-2xl font-bold text-orange-900 dark:text-orange-200">3</span>
+          </div>
         </div>
       </div>
 
-      <!-- Остальные пользователи -->
-      <div class="leaderboard-table">
-        <div 
-          v-for="(user, index) in restUsers" 
+      <!-- Решта користувачів -->
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg overflow-hidden">
+        <div
+          v-for="(user, index) in restUsers"
           :key="user.username"
-          class="table-row"
+          class="flex items-center gap-4 px-5 py-3.5 border-b border-gray-100 dark:border-gray-700/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-700/40 transition-colors"
+          :class="{ 'bg-purple-50/50 dark:bg-purple-900/10': isCurrentUser(user.username) }"
         >
-          <div class="rank">{{ index + 4 }}</div>
-          <router-link :to="`/profile/${user.username}`" class="username">
-            {{ user.username }}
-          </router-link>
-          <KarmaBadge 
-            :karma="user.karma_points" 
-            :level="user.karma_level" 
-            size="small"
-          />
+          <!-- Rank -->
+          <span class="w-7 text-center text-sm font-bold text-gray-400 dark:text-gray-500 flex-shrink-0">
+            {{ index + 4 }}
+          </span>
+
+          <!-- Avatar -->
+          <div class="w-9 h-9 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex-shrink-0">
+            <img v-if="user.avatar" :src="user.avatar" class="w-full h-full object-cover" />
+            <UserCircleIcon v-else class="w-full h-full text-gray-400 p-0.5" />
+          </div>
+
+          <!-- Username + badge -->
+          <div class="flex-1 min-w-0">
+            <AuthorWithKarma
+              :username="user.username"
+              :karma="user.karma_points"
+              :level="user.karma_level"
+              size="sm"
+            />
+          </div>
+
+          <!-- "Це ти" мітка -->
+          <span
+            v-if="isCurrentUser(user.username)"
+            class="text-xs text-purple-600 dark:text-purple-400 font-medium flex-shrink-0"
+          >
+            це ти
+          </span>
         </div>
       </div>
 
-      <div v-if="loading" class="loading">Завантаження...</div>
+    </template>
+
+    <!-- Empty -->
+    <div v-else class="text-center py-20 text-gray-500 dark:text-gray-400">
+      <p class="text-5xl mb-4">🏜️</p>
+      <p>Поки немає учасників</p>
     </div>
+
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useKarma } from '@/composables/useKarma'
-import KarmaBadge from '@/components/ui/KarmaBadge.vue'
+import { useAuthStore } from '@/stores/auth'
+import { UserCircleIcon } from '@heroicons/vue/24/outline'
+import AuthorWithKarma from '@/components/ui/KarmaBadge.vue'
 
 const { getLeaderboard } = useKarma()
+const authStore = useAuthStore()
 
 const users = ref([])
 const loading = ref(false)
 
 const topThree = computed(() => users.value.slice(0, 3))
 const restUsers = computed(() => users.value.slice(3))
+
+const isCurrentUser = (username) => authStore.user?.username === username
 
 const loadLeaderboard = async () => {
   loading.value = true
@@ -87,121 +164,5 @@ const loadLeaderboard = async () => {
   }
 }
 
-onMounted(() => {
-  loadLeaderboard()
-})
+onMounted(loadLeaderboard)
 </script>
-
-<style scoped>
-.leaderboard-view {
-  min-height: 100vh;
-  padding: 40px 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
-.container {
-  max-width: 1000px;
-  margin: 0 auto;
-}
-
-h1 {
-  text-align: center;
-  color: white;
-  margin-bottom: 40px;
-  font-size: 2.5rem;
-}
-
-.podium {
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  gap: 20px;
-  margin-bottom: 40px;
-}
-
-.podium-item {
-  background: white;
-  border-radius: 12px;
-  padding: 24px;
-  text-align: center;
-  min-width: 200px;
-  position: relative;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-}
-
-.podium-item.first {
-  order: 2;
-  padding-top: 40px;
-  transform: scale(1.1);
-}
-
-.podium-item.second {
-  order: 1;
-  padding-top: 30px;
-}
-
-.podium-item.third {
-  order: 3;
-  padding-top: 30px;
-}
-
-.medal {
-  font-size: 3rem;
-  margin-bottom: 8px;
-}
-
-.rank {
-  font-size: 1.2rem;
-  font-weight: bold;
-  color: #6c757d;
-  margin-bottom: 8px;
-}
-
-.username {
-  font-size: 1.2rem;
-  font-weight: 600;
-  margin-bottom: 12px;
-  color: #010102
-}
-
-.leaderboard-table {
-  background: white;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-}
-
-.table-row {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 16px;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.table-row:last-child {
-  border-bottom: none;
-}
-
-.table-row:hover {
-  background: #f8f9fa;
-}
-
-.table-row .rank {
-  font-weight: bold;
-  min-width: 40px;
-  font-size: 1.1rem;
-  color: #6c757d;
-}
-
-.table-row .username {
-  flex: 1;
-  font-weight: 600;
-  text-decoration: none;
-  color: #333;
-}
-
-.table-row .username:hover {
-  color: #667eea;
-}
-</style>

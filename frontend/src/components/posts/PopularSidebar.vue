@@ -25,60 +25,98 @@
 
     <!-- Популярні Пости -->
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
-      <div class="p-6 border-b border-gray-200 dark:border-gray-700">
+      <div class="p-5 border-b border-gray-200 dark:border-gray-700">
         <h3 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
           <FireIcon class="w-5 h-5 text-orange-500" />
           Популярні Пости
         </h3>
       </div>
 
-      <div v-if="posts && posts.length" class="divide-y divide-gray-200 dark:divide-gray-700">
+      <div v-if="posts && posts.length" class="divide-y divide-gray-100 dark:divide-gray-700/50">
         <article
           v-for="(post, index) in posts"
           :key="post.slug"
-          class="p-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition"
+          class="group relative"
         >
-          <RouterLink :to="`/posts/${post.slug}`" class="flex gap-4">
-            <!-- Номер або Зображення -->
-            <div class="flex-shrink-0">
-              <div v-if="post.image" class="w-20 h-20 rounded-lg overflow-hidden">
-                <img
-                  :src="post.image"
-                  :alt="post.title"
-                  class="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
-                />
-              </div>
-              <div v-else class="w-20 h-20 rounded-lg bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center shadow-md">
-                <span class="text-2xl font-bold text-white">{{ index + 1 }}</span>
+          <RouterLink :to="`/posts/${post.slug}`" class="block">
+
+            <!-- З зображенням — image card з overlay -->
+            <div v-if="post.image" class="relative h-32 overflow-hidden">
+              <!-- Зображення на весь блок -->
+              <img
+                :src="post.image"
+                :alt="post.title"
+                class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+              />
+
+              <!-- Градієнт знизу -->
+              <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+
+
+              <!-- Заголовок і мета знизу поверх картинки -->
+              <div class="absolute bottom-0 left-0 right-0 p-3">
+                <h4 class="text-sm font-semibold text-white line-clamp-2 leading-snug mb-1.5">
+                  {{ post.title }}
+                </h4>
+                <div class="flex items-center gap-3 text-xs text-white/75">
+                  <div class="flex items-center gap-2">
+                    <AuthorWithKarma
+                      size="sm"
+                      :username="post.author_username"
+                      :karma="post.author_karma_points || 0"
+                      :level="post.author_karma_level || 1"
+                    />
+                  </div>
+                  <div class="flex items-center gap-1">
+                    <EyeIcon class="w-3.5 h-3.5" />
+                    <span>{{ formatNumber(post.views_count || 0) }}</span>
+                  </div>
+                  <div class="flex items-center gap-1">
+                    <ChatBubbleLeftIcon class="w-3.5 h-3.5" />
+                    <span>{{ commentsCount(post.id) }}</span>
+                  </div>
+                  <div class="flex items-center gap-1">
+                    <HeartIcon class="w-3.5 h-3.5" />
+                    <span>{{ post.likes_count || 0 }}</span>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <!-- Контент -->
-            <div class="flex-1 min-w-0">
-              <h4 class="text-sm font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2 hover:text-orange-600 dark:hover:text-orange-400 transition">
-                {{ post.title }}
-              </h4>
+            <div v-else class="relative h-24 overflow-hidden flex items-center gap-3 px-4"
+              :class="gradientClass(index)"
+              >
               
-              <!-- Meta Info -->
-              <div class="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400">
-                <div class="flex items-center gap-1" :title="'Переглядів: ' + post.views_count">
-                  <EyeIcon class="w-3.5 h-3.5" />
-                  <span>{{ formatNumber(post.views_count || 0) }}</span>
+              <!-- Заголовок + мета -->
+              <div class="flex-1 min-w-0">
+                <h4 class="text-sm font-semibold text-white line-clamp-2 leading-snug mb-1">
+                  {{ post.title }}
+                </h4>
+                <div class="flex items-center gap-3 text-xs text-white/70">
+                  <div class="flex items-center gap-2">
+                    <AuthorWithKarma
+                      size="sm"
+                      :username="post.author_username"
+                      :karma="post.author_karma_points || 0"
+                      :level="post.author_karma_level || 1"
+                    />
+                  </div>
+                  <div class="flex items-center gap-1">
+                    <EyeIcon class="w-3 h-3" />
+                    <span>{{ formatNumber(post.views_count || 0) }}</span>
+                  </div>
+                  <div class="flex items-center gap-1">
+                    <ChatBubbleLeftIcon class="w-3 h-3" />
+                    <span>{{ commentsCount(post.id) }}</span>
+                  </div>
+                  <div class="flex items-center gap-1">
+                    <HeartIcon class="w-3 h-3" />
+                    <span>{{ post.likes_count || 0 }}</span>
+                  </div>
                 </div>
-                <div class="flex items-center gap-1" :title="'Коментарів: ' + commentsCount(post.id)">
-                  <ChatBubbleLeftIcon class="w-3.5 h-3.5" />
-                  <span>{{ commentsCount(post.id) }}</span>
-                </div>
-                <LikeButton
-                  content-type="post"
-                  size="sm"
-                  :object-id="post.id"
-                  :initial-likes-count="post.likes_count || 0"
-                  :initial-is-liked="post.is_liked || false"
-                  readonly
-                />
               </div>
             </div>
+
           </RouterLink>
         </article>
       </div>
@@ -101,11 +139,11 @@
 </template>
 
 <script setup>
+import { onMounted, onUnmounted } from 'vue'
 import { RouterLink } from 'vue-router'
-import { TagIcon, FireIcon, EyeIcon, ChatBubbleLeftIcon } from '@heroicons/vue/24/outline'
-import LikeButton from '../ui/LikeButton.vue'
+import { TagIcon, FireIcon, EyeIcon, ChatBubbleLeftIcon, HeartIcon } from '@heroicons/vue/24/outline'
 import { useCommentsSync } from '@/composables/useCommentsSync'
-import { computed, onMounted, onUnmounted } from 'vue'
+import AuthorWithKarma from '@/components/ui/KarmaBadge.vue'
 
 const props = defineProps({
   tags: { type: Array, default: () => [] },
@@ -114,30 +152,28 @@ const props = defineProps({
 
 const { getCommentsCount, subscribe } = useCommentsSync()
 
-// Функція для отримання кількості коментарів
 const commentsCount = (postId) => {
   const cached = getCommentsCount(postId)
   if (cached !== undefined) return cached
-  
-  // props доступний тут
   const post = props.posts.find(p => p.id === postId)
   return post ? (post.comments_count || 0) : 0
 }
 
-// Підписка на оновлення
 let unsubscribe = null
+onMounted(() => { unsubscribe = subscribe(() => {}) })
+onUnmounted(() => { if (unsubscribe) unsubscribe() })
 
-onMounted(() => {
-  unsubscribe = subscribe((updatedPostId, newCount) => {
-    // Нічого не треба робити явно — computed оновиться автоматично
-  })
-})
+// Різні градієнти для постів без зображення
+const gradients = [
+  'bg-gradient-to-r from-orange-500 to-red-500',
+  'bg-gradient-to-r from-blue-500 to-indigo-600',
+  'bg-gradient-to-r from-emerald-500 to-teal-600',
+  'bg-gradient-to-r from-purple-500 to-pink-500',
+  'bg-gradient-to-r from-amber-500 to-orange-600',
+]
 
-onUnmounted(() => {
-  if (unsubscribe) unsubscribe()
-})
+const gradientClass = (index) => gradients[index % gradients.length]
 
-// Форматування чисел
 const formatNumber = (num) => {
   if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M'
   if (num >= 1000) return (num / 1000).toFixed(1) + 'K'
