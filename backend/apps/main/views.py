@@ -1,5 +1,6 @@
 from django.db import transaction, models
-from django.db.models import Q, F
+from django.db.models import Count, ExpressionWrapper, FloatField, F, Q
+from django.db.models.functions import Cast
 from django.shortcuts import get_object_or_404
 
 from rest_framework import viewsets, status
@@ -326,15 +327,47 @@ class PostVideosViewSet(BasePostMediaViewSet):
 @permission_classes([AllowAny])
 def popular_posts(request):
     """
-    GET /api/posts/popular/?limit=7           → для сайдбару (без пагінації)
-    GET /api/posts/popular/?page=1&page_size=20 → для окремої сторінки (з пагінацією)
+    GET /api/posts/popular/?sort=hot       → hot score (default)
+    GET /api/posts/popular/?sort=views     → тільки перегляди
+    GET /api/posts/popular/?sort=likes     → тільки лайки
+    GET /api/posts/popular/?sort=comments  → тільки коментарі
+    GET /api/posts/popular/?limit=7        → для сайдбару (без пагінації)
     """
-    queryset = Post.objects.filter(status='published') \
-                           .select_related('author', 'category') \
-                           .prefetch_related('tags') \
-                           .order_by('-views_count')
+    sort = request.query_params.get('sort', 'hot')
 
-    # Фільтри та пошук (працюють в обох режимах)
+    # ✅ Annotate лайки і коментарі через COUNT (можна сортувати в БД!)
+    queryset = Post.objects.filter(status='published') \
+        .select_related('author', 'category') \
+        .prefetch_related('tags') \
+        .annotate(
+            likes_count_ann=Count('likes', distinct=True),
+            comments_count_ann=Count('comments', distinct=True),
+    )
+
+    # ✅ Hot score через annotate
+    if sort == 'hot':
+        queryset = queryset.annotate(
+            hot_score=ExpressionWrapper(
+                Cast(F('views_count'), FloatField()) * 0.45
+                + Cast(F('likes_count_ann'), FloatField()) * 2.8
+                + Cast(F('comments_count_ann'), FloatField()) * 4.2,
+                output_field=FloatField()
+            )
+        ).order_by('-hot_score')
+
+    elif sort == 'views':
+        queryset = queryset.order_by('-views_count')
+
+    elif sort == 'likes':
+        queryset = queryset.order_by('-likes_count_ann')
+
+    elif sort == 'comments':
+        queryset = queryset.order_by('-comments_count_ann')
+
+    else:
+        queryset = queryset.order_by('-views_count')
+
+    # Пошук і фільтрація категорій
     if 'search' in request.query_params:
         search = request.query_params['search']
         queryset = queryset.filter(
@@ -347,16 +380,15 @@ def popular_posts(request):
         queryset = queryset.filter(
             category__slug=request.query_params['category__slug'])
 
-    # Якщо є limit — повертаємо фіксовану кількість (для сайдбару)
+    # Для сайдбару — без пагінації
     if 'limit' in request.query_params:
-        # max 20 для безпеки
         limit = min(int(request.query_params['limit']), 20)
         posts = queryset[:limit]
         serializer = PostListSerializer(
             posts, many=True, context={'request': request})
         return Response(serializer.data)
 
-    # Інакше — повна пагінація (для окремої сторінки)
+    # Для сторінки — з пагінацією
     paginator = PageNumberPagination()
     paginator.page_size = 20
     paginator.page_size_query_param = 'page_size'
@@ -372,21 +404,32 @@ def popular_posts(request):
 @permission_classes([AllowAny])
 def trending_posts(request):
     """
-    GET /api/posts/trending/?limit=10&days=7
-    Trending пости (нові з найбільшою кількістю переглядів)
+    GET /api/posts/trending/?days=7
+    Trending = hot_score але тільки за останні N днів
     """
     from django.utils import timezone
     from datetime import timedelta
 
-    limit = int(request.query_params.get('limit', 14))
     days = int(request.query_params.get('days', 14))
+    limit = int(request.query_params.get('limit', 14))
     date_from = timezone.now() - timedelta(days=days)
 
     posts = Post.objects.filter(
         status='published',
         published_at__gte=date_from
     ).select_related('author', 'category') \
-     .order_by('-views_count')[:limit]
+     .prefetch_related('tags') \
+     .annotate(
+         likes_count_ann=Count('likes', distinct=True),
+         comments_count_ann=Count('comments', distinct=True),
+         hot_score=ExpressionWrapper(
+             Cast(F('views_count'), FloatField()) * 0.45
+             + Cast(F('likes_count_ann'), FloatField()) * 2.8
+             + Cast(F('comments_count_ann'), FloatField()) * 4.2,
+             output_field=FloatField()
+         )
+    ).order_by('-hot_score')[:limit]
+
     serializer = PostListSerializer(
         posts, many=True, context={'request': request})
     return Response(serializer.data)

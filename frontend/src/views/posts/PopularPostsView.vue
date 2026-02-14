@@ -1,86 +1,100 @@
 <template>
-  <div class="space-y-8">
-    <!-- Page Title + Filters -->
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-      <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
-        Популярні
-      </h1>
+  <div class="space-y-6">
 
-      <div class="flex flex-wrap gap-4 w-full md:w-auto">
-        <input
-          v-model="searchQuery"
-          type="search"
-          placeholder="Пошук..."
-          class="flex-1 min-w-[200px] px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+    <!-- Header + Sort Tabs -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Популярні</h1>
 
-        <select
-          v-model="selectedCategory"
-          class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="">Всі категорії</option>
-          <option v-for="cat in categories" :key="cat.id" :value="cat.slug">
-            {{ cat.name }}
-          </option>
-        </select>
-
+      <!-- Sort tabs -->
+      <div class="flex bg-gray-100 dark:bg-gray-800 rounded-xl p-1 gap-1">
         <button
-          @click="fetchPosts"
-          class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition whitespace-nowrap"
+          v-for="tab in sortTabs"
+          :key="tab.value"
+          @click="setSort(tab.value)"
+          class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all"
+          :class="activeSort === tab.value
+            ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+            : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'"
         >
-          Застосувати
+          <span>{{ tab.icon }}</span>
+          <span class="hidden sm:inline">{{ tab.label }}</span>
         </button>
       </div>
     </div>
 
-    <!-- Posts Grid -->
-    <div v-if="!loading && posts.length" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <PostCard v-for="post in posts" :key="post.id" :post="post" />
-    </div>
-
-    <!-- Empty State -->
-    <div v-else-if="!loading && !posts.length" class="text-center py-12 text-gray-600 dark:text-gray-400">
-      Постів
+    <!-- Search + Category filters -->
+    <div class="flex flex-wrap gap-3">
+      <input
+        v-model="searchQuery"
+        @keyup.enter="applyFilters"
+        type="search"
+        placeholder="Пошук..."
+        class="flex-1 min-w-[200px] px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+      />
+      <select
+        v-model="selectedCategory"
+        @change="applyFilters"
+        class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+      >
+        <option value="">Всі категорії</option>
+        <option v-for="cat in categories" :key="cat.id" :value="cat.slug">
+          {{ cat.name }}
+        </option>
+      </select>
+      <button
+        @click="applyFilters"
+        class="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+      >
+        Шукати
+      </button>
     </div>
 
     <!-- Loading -->
-    <div v-if="loading" class="text-center py-12">
-      <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-gray-300 border-t-blue-600"></div>
+    <div v-if="loading" class="flex justify-center py-20">
+      <div class="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-blue-500"></div>
+    </div>
+
+    <!-- Posts Grid -->
+    <div v-else-if="posts.length" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <PostCard v-for="post in posts" :key="post.id" :post="post" />
+    </div>
+
+    <!-- Empty -->
+    <div v-else class="text-center py-20 text-gray-500 dark:text-gray-400">
+      <p class="text-5xl mb-3">🔍</p>
+      <p>Нічого не знайдено</p>
     </div>
 
     <!-- Pagination -->
-    <div v-if="readyToRenderPages && totalPages > 1 && !loading" class="flex flex-wrap justify-center gap-2 mt-8">
-      <!-- Попередня -->
+    <div v-if="totalPages > 1 && !loading" class="flex flex-wrap justify-center gap-2">
       <button
         :disabled="currentPage === 1"
-        @click="currentPage = currentPage - 1"
-        class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 transition"
+        @click="goToPage(currentPage - 1)"
+        class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-40 transition"
       >
-        Попередня
+        ← Попередня
       </button>
 
-      <!-- Сторінки -->
-      <button
-        v-for="page in displayedPages"
-        :key="page"
-        @click="currentPage = page"
-        :class="[
-          'px-4 py-2 rounded-lg transition',
-          currentPage === page
-            ? 'bg-blue-600 text-white font-bold'
-            : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-        ]"
-      >
-        {{ page }}
-      </button>
+      <template v-for="page in visiblePages" :key="page">
+        <span v-if="page === '...'" class="px-3 py-2 text-gray-400">…</span>
+        <button
+          v-else
+          @click="goToPage(page)"
+          class="px-4 py-2 rounded-lg transition font-medium"
+          :class="currentPage === page
+            ? 'bg-blue-600 text-white'
+            : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'"
+        >
+          {{ page }}
+        </button>
+      </template>
 
-      <!-- Наступна -->
       <button
         :disabled="currentPage === totalPages"
-        @click="currentPage = currentPage + 1"
-        class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 transition"
+        @click="goToPage(currentPage + 1)"
+        class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-40 transition"
       >
-        Наступна
+        Наступна →
       </button>
     </div>
   </div>
@@ -101,38 +115,64 @@ const loading = ref(true)
 const searchQuery = ref('')
 const selectedCategory = ref('')
 const currentPage = ref(1)
-const totalPages = ref(1)
-const pageSize = 9  // має співпадати з backend (CommentPagination.page_size)
-const readyToRenderPages = ref(false)
+const totalCount = ref(0)
+const pageSize = 9
+
+const activeSort = ref('hot')
+
+const sortTabs = [
+  { value: 'hot',      icon: '🔥', label: 'Гарячі'     },
+  { value: 'views',    icon: '👁',  label: 'Перегляди'  },
+  { value: 'likes',    icon: '❤️',  label: 'Лайки'      },
+  { value: 'comments', icon: '💬',  label: 'Коментарі'  },
+]
+
+const totalPages = computed(() => Math.ceil(totalCount.value / pageSize))
+
+const visiblePages = computed(() => {
+  const total = totalPages.value
+  const current = currentPage.value
+  const pages = []
+
+  if (total <= 7) {
+    for (let i = 1; i <= total; i++) pages.push(i)
+    return pages
+  }
+
+  pages.push(1)
+  if (current > 3) pages.push('...')
+  for (let i = Math.max(2, current - 1); i <= Math.min(total - 1, current + 1); i++) {
+    pages.push(i)
+  }
+  if (current < total - 2) pages.push('...')
+  pages.push(total)
+  return pages
+})
 
 const fetchPosts = async () => {
   loading.value = true
-  readyToRenderPages.value = false
   try {
     const params = {
       page: currentPage.value,
-      page_size: pageSize
+      page_size: pageSize,
+      sort: activeSort.value,
     }
-
     if (searchQuery.value.trim()) params.search = searchQuery.value.trim()
     if (selectedCategory.value) params.category__slug = selectedCategory.value
 
     const { data } = await postsAPI.getPopular(params)
-
     posts.value = data.results || []
-    totalPages.value = data.count ? Math.ceil(data.count / pageSize) : 1
+    totalCount.value = data.count || 0
 
-    // Оновлюємо URL
-    router.push({
+    // Sync URL
+    router.replace({
       query: {
-        ...route.query,
-        page: currentPage.value.toString(),
+        sort: activeSort.value !== 'hot' ? activeSort.value : undefined,
+        page: currentPage.value > 1 ? String(currentPage.value) : undefined,
         search: searchQuery.value || undefined,
-        category__slug: selectedCategory.value || undefined
+        category__slug: selectedCategory.value || undefined,
       }
     })
-
-    readyToRenderPages.value = true  // показуємо кнопки після завантаження
   } catch (error) {
     console.error('Error fetching posts:', error)
   } finally {
@@ -145,57 +185,34 @@ const fetchCategories = async () => {
     const { data } = await categoriesAPI.getAll()
     categories.value = data.results || data
   } catch (error) {
-    console.error('Error fetching categories:', error)
+    console.error(error)
   }
 }
 
-// Розумна генерація номерів сторінок (не показуємо всі 100)
-const displayedPages = computed(() => {
-  const pages = []
-  const maxVisible = 7
-  let start = Math.max(1, currentPage.value - Math.floor(maxVisible / 2))
-  let end = Math.min(totalPages.value, start + maxVisible - 1)
-
-  if (end - start + 1 < maxVisible) {
-    start = Math.max(1, end - maxVisible + 1)
-  }
-
-  for (let i = start; i <= end; i++) {
-    pages.push(i)
-  }
-
-  return pages
-})
-
-// Синхронізація з URL
-watch(currentPage, (newPage) => {
-  // Оновлюємо URL
-  router.push({
-    query: {
-      ...route.query,
-      page: newPage,
-      search: searchQuery.value || undefined,
-      category__slug: selectedCategory.value || undefined
-    }
-  })
-  
-  // Завантажуємо нові пости
+const setSort = (sort) => {
+  activeSort.value = sort
+  currentPage.value = 1
   fetchPosts()
-  
-  // Скрол до верху
+}
+
+const applyFilters = () => {
+  currentPage.value = 1
+  fetchPosts()
+}
+
+const goToPage = (page) => {
+  if (page < 1 || page > totalPages.value) return
+  currentPage.value = page
+  fetchPosts()
   window.scrollTo({ top: 0, behavior: 'smooth' })
-}, { immediate: false })
+}
 
-watch(() => route.query, (query) => {
-  const newPage = Number(query.page) || 1
-  if (currentPage.value !== newPage) {
-    currentPage.value = newPage
-  }
-  searchQuery.value = query.search || ''
-  selectedCategory.value = query.category__slug || ''
-}, { immediate: true, deep: true })
-
+// Читаємо URL при завантаженні
 onMounted(() => {
+  activeSort.value = route.query.sort || 'hot'
+  currentPage.value = Number(route.query.page) || 1
+  searchQuery.value = route.query.search || ''
+  selectedCategory.value = route.query.category__slug || ''
   fetchCategories()
   fetchPosts()
 })
