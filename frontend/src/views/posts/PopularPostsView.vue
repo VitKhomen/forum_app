@@ -1,11 +1,11 @@
 <template>
   <div class="space-y-6">
 
-    <!-- Header + Sort Tabs -->
+    <!-- Заголовок + Сортування -->
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
       <h1 class="text-3xl font-bold text-gray-900 dark:text-white">Популярні</h1>
 
-      <!-- Sort tabs -->
+      <!-- Сортування (таби) -->
       <div class="flex bg-gray-100 dark:bg-gray-800 rounded-xl p-1 gap-1">
         <button
           v-for="tab in sortTabs"
@@ -22,55 +22,28 @@
       </div>
     </div>
 
-    <!-- Search + Category filters -->
-    <div class="flex flex-wrap gap-3">
-      <input
-        v-model="searchQuery"
-        @keyup.enter="applyFilters"
-        type="search"
-        placeholder="Пошук..."
-        class="flex-1 min-w-[200px] px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-      />
-      <select
-        v-model="selectedCategory"
-        @change="applyFilters"
-        class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-      >
-        <option value="">Всі категорії</option>
-        <option v-for="cat in categories" :key="cat.id" :value="cat.slug">
-          {{ cat.name }}
-        </option>
-      </select>
-      <button
-        @click="applyFilters"
-        class="px-5 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-      >
-        Шукати
-      </button>
-    </div>
-
-    <!-- Loading -->
+    <!-- Завантаження -->
     <div v-if="loading" class="flex justify-center py-20">
       <div class="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-blue-500"></div>
     </div>
 
-    <!-- Posts Grid -->
+    <!-- Список постів -->
     <div v-else-if="posts.length" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       <PostCard v-for="post in posts" :key="post.id" :post="post" />
     </div>
 
-    <!-- Empty -->
+    <!-- Порожньо -->
     <div v-else class="text-center py-20 text-gray-500 dark:text-gray-400">
       <p class="text-5xl mb-3">🔍</p>
       <p>Нічого не знайдено</p>
     </div>
 
-    <!-- Pagination -->
-    <div v-if="totalPages > 1 && !loading" class="flex flex-wrap justify-center gap-2">
+    <!-- Пагінація -->
+    <div v-if="totalPages > 1 && !loading" class="flex flex-wrap justify-center gap-2 mt-6">
       <button
         :disabled="currentPage === 1"
         @click="goToPage(currentPage - 1)"
-        class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-40 transition"
+        class="px-5 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 transition min-w-[100px]"
       >
         ← Попередня
       </button>
@@ -80,7 +53,7 @@
         <button
           v-else
           @click="goToPage(page)"
-          class="px-4 py-2 rounded-lg transition font-medium"
+          class="px-4 py-2 rounded-lg transition font-medium min-w-[48px]"
           :class="currentPage === page
             ? 'bg-blue-600 text-white'
             : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'"
@@ -92,7 +65,7 @@
       <button
         :disabled="currentPage === totalPages"
         @click="goToPage(currentPage + 1)"
-        class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-40 transition"
+        class="px-5 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 transition min-w-[100px]"
       >
         Наступна →
       </button>
@@ -103,21 +76,17 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { postsAPI, categoriesAPI } from '@/services/api'
+import { postsAPI } from '@/services/api'
 import PostCard from '@/components/posts/PostCard.vue'
 
 const route = useRoute()
 const router = useRouter()
 
 const posts = ref([])
-const categories = ref([])
 const loading = ref(true)
-const searchQuery = ref('')
-const selectedCategory = ref('')
 const currentPage = ref(1)
 const totalCount = ref(0)
 const pageSize = 9
-
 const activeSort = ref('hot')
 
 const sortTabs = [
@@ -157,45 +126,27 @@ const fetchPosts = async () => {
       page_size: pageSize,
       sort: activeSort.value,
     }
-    if (searchQuery.value.trim()) params.search = searchQuery.value.trim()
-    if (selectedCategory.value) params.category__slug = selectedCategory.value
 
     const { data } = await postsAPI.getPopular(params)
     posts.value = data.results || []
     totalCount.value = data.count || 0
 
-    // Sync URL
+    // Синхронізація URL (тільки sort та page)
     router.replace({
       query: {
         sort: activeSort.value !== 'hot' ? activeSort.value : undefined,
         page: currentPage.value > 1 ? String(currentPage.value) : undefined,
-        search: searchQuery.value || undefined,
-        category__slug: selectedCategory.value || undefined,
       }
     })
   } catch (error) {
-    console.error('Error fetching posts:', error)
+    console.error('Помилка завантаження популярних постів:', error)
   } finally {
     loading.value = false
   }
 }
 
-const fetchCategories = async () => {
-  try {
-    const { data } = await categoriesAPI.getAll()
-    categories.value = data.results || data
-  } catch (error) {
-    console.error(error)
-  }
-}
-
 const setSort = (sort) => {
   activeSort.value = sort
-  currentPage.value = 1
-  fetchPosts()
-}
-
-const applyFilters = () => {
   currentPage.value = 1
   fetchPosts()
 }
@@ -207,13 +158,10 @@ const goToPage = (page) => {
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
-// Читаємо URL при завантаженні
 onMounted(() => {
+  // Зчитуємо з URL тільки sort та page
   activeSort.value = route.query.sort || 'hot'
   currentPage.value = Number(route.query.page) || 1
-  searchQuery.value = route.query.search || ''
-  selectedCategory.value = route.query.category__slug || ''
-  fetchCategories()
   fetchPosts()
 })
 </script>

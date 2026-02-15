@@ -1,181 +1,141 @@
 <template>
   <div class="space-y-8">
-    <!-- Page Title + Filters -->
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-      <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
-        В тренді
-      </h1>
 
-      <div class="flex flex-wrap gap-4 w-full md:w-auto">
-        <input
-          v-model="searchQuery"
-          type="search"
-          placeholder="Пошук..."
-          class="flex-1 min-w-[200px] px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+    <!-- Заголовок -->
+    <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
+      В тренді
+    </h1>
 
-        <select
-          v-model="selectedCategory"
-          class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="">Всі категорії</option>
-          <option v-for="cat in categories" :key="cat.id" :value="cat.slug">
-            {{ cat.name }}
-          </option>
-        </select>
-
-        <button
-          @click="fetchPosts"
-          class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition whitespace-nowrap"
-        >
-          Застосувати
-        </button>
-      </div>
-    </div>
-
-    <!-- Posts Grid -->
+    <!-- Список постів -->
     <div v-if="!loading && posts.length" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       <PostCard v-for="post in posts" :key="post.id" :post="post" />
     </div>
 
-    <!-- Empty State -->
-    <div v-else-if="!loading && !posts.length" class="text-center py-12">
-      <p class="text-gray-600 dark:text-gray-400">Трендові новини не знайдено</p>
+    <!-- Порожній стан -->
+    <div v-else-if="!loading && !posts.length" class="text-center py-16 text-gray-600 dark:text-gray-400">
+      <p class="text-xl">Трендові новини не знайдено</p>
     </div>
 
-    <!-- Loading -->
-    <div v-if="loading" class="text-center py-12">
+    <!-- Завантаження -->
+    <div v-if="loading" class="text-center py-16">
       <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-gray-300 border-t-blue-600"></div>
     </div>
 
-    <!-- Pagination -->
-    <div v-if="totalPages > 1" class="flex justify-center gap-2 flex-wrap">
+    <!-- Пагінація (покращена версія) -->
+    <div v-if="totalPages > 1 && !loading" class="flex justify-center gap-2 flex-wrap mt-8">
       <button
-        v-for="page in totalPages"
+        :disabled="currentPage === 1"
+        @click="changePage(currentPage - 1)"
+        class="px-5 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 transition min-w-[100px]"
+      >
+        Попередня
+      </button>
+
+      <button
+        v-for="page in displayedPages"
         :key="page"
         @click="changePage(page)"
         :class="[
-          'px-4 py-2 rounded-lg transition',
+          'px-4 py-2 rounded-lg min-w-[48px] transition',
           currentPage === page
-            ? 'bg-blue-600 text-white'
+            ? 'bg-blue-600 text-white font-semibold'
             : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
         ]"
       >
         {{ page }}
+      </button>
+
+      <button
+        :disabled="currentPage === totalPages"
+        @click="changePage(currentPage + 1)"
+        class="px-5 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 transition min-w-[100px]"
+      >
+        Наступна
       </button>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
-import { postsAPI, categoriesAPI } from '@/services/api'
+import { ref, computed, watch, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { postsAPI } from '@/services/api'
 import PostCard from '@/components/posts/PostCard.vue'
 
 const route = useRoute()
+const router = useRouter()
 
 const posts = ref([])
-const categories = ref([])
 const loading = ref(true)
-const searchQuery = ref('')
-const selectedCategory = ref('')
 const currentPage = ref(1)
 const totalPages = ref(1)
 const totalCount = ref(0)
+const pageSize = 20  // або те значення, яке використовує твій бекенд
 
 const fetchPosts = async () => {
+  loading.value = true
   try {
-    loading.value = true
     const params = {
       page: currentPage.value,
-      days: 14
+      page_size: pageSize,
+      days: 14  // період трендовості — залишено як є
     }
-    
+
     const { data } = await postsAPI.getTrending(params)
-    
-    // Якщо бекенд повертає пагіновані дані
-    if (data.results) {
-      let filteredPosts = data.results
-      
-      // Фільтруємо по пошуку
-      if (searchQuery.value.trim()) {
-        const query = searchQuery.value.toLowerCase()
-        filteredPosts = filteredPosts.filter(post => 
-          post.title?.toLowerCase().includes(query) ||
-          post.excerpt?.toLowerCase().includes(query)
-        )
-      }
-      
-      // Фільтруємо по категорії
-      if (selectedCategory.value) {
-        filteredPosts = filteredPosts.filter(post => 
-          post.category?.slug === selectedCategory.value
-        )
-      }
-      
-      posts.value = filteredPosts
-      totalCount.value = data.count
-      
-      // Якщо є фільтри, перераховуємо кількість сторінок
-      if (searchQuery.value.trim() || selectedCategory.value) {
-        totalPages.value = Math.ceil(filteredPosts.length / (data.results.length || 1))
-      } else {
-        totalPages.value = Math.ceil(data.count / (data.results.length || 20))
-      }
-    } else {
-      // Якщо бекенд повертає простий масив
-      posts.value = data
-      totalPages.value = 1
-    }
+
+    posts.value = data.results || data || []
+    totalCount.value = data.count || posts.value.length
+    totalPages.value = data.count ? Math.ceil(data.count / pageSize) : 1
   } catch (error) {
-    console.error('Error fetching trending posts:', error)
+    console.error('Помилка завантаження трендових постів:', error)
     posts.value = []
   } finally {
     loading.value = false
   }
 }
 
-const fetchCategories = async () => {
-  try {
-    const { data } = await categoriesAPI.getAll()
-    categories.value = data.results || data
-  } catch (error) {
-    console.error('Error fetching categories:', error)
-  }
-}
+// Покращена пагінація (показує не всі сторінки одразу)
+const displayedPages = computed(() => {
+  const pages = []
+  const maxVisible = 7
+  let start = Math.max(1, currentPage.value - Math.floor(maxVisible / 2))
+  let end = Math.min(totalPages.value, start + maxVisible - 1)
 
-const applyFilters = () => {
-  currentPage.value = 1
-  fetchPosts()
-}
+  if (end - start + 1 < maxVisible) {
+    start = Math.max(1, end - maxVisible + 1)
+  }
+
+  for (let i = start; i <= end; i++) {
+    pages.push(i)
+  }
+  return pages
+})
 
 const changePage = (page) => {
+  if (page < 1 || page > totalPages.value) return
   currentPage.value = page
   window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
-// Читаємо параметри з URL при завантаженні
-const syncFromRoute = () => {
-  searchQuery.value = route.query.search || ''
-  selectedCategory.value = route.query.category__slug || ''
-}
+watch(
+  () => route.query.page,
+  (newPage) => {
+    const pageNum = Number(newPage) || 1
+    if (pageNum !== currentPage.value) {
+      currentPage.value = pageNum
+      fetchPosts()
+    }
+  },
+  { immediate: true }
+)
 
-// Оновлюємо пости при зміні сторінки
-watch(currentPage, () => {
-  fetchPosts()
+watch(currentPage, (newPage) => {
+  const query = {}
+  if (newPage > 1) query.page = String(newPage)
+  router.replace({ query })
 })
 
-// Оновлюємо пости при зміні query параметрів в URL
-watch(() => route.query, () => {
-  syncFromRoute()
-  currentPage.value = 1
-  fetchPosts()
-}, { deep: true })
-
 onMounted(() => {
-  syncFromRoute()
-  fetchCategories()
   fetchPosts()
 })
 </script>
