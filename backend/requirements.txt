@@ -1,3 +1,4 @@
+anyio==4.12.1
 asgiref==3.9.2
 boto3==1.41.2
 botocore==1.41.2
@@ -14,6 +15,9 @@ djangorestframework==3.16.1
 djangorestframework_simplejwt==5.5.1
 drf-nested-routers==0.95.0
 gunicorn==23.0.0
+h11==0.16.0
+httpcore==1.0.9
+httpx==0.28.1
 idna==3.11
 jmespath==1.0.1
 packaging==25.0

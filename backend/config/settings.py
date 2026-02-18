@@ -38,6 +38,7 @@ LOCAL_APPS = [
     'apps.feedback',
     'apps.likes',
     'apps.karma',
+    'apps.movies',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -296,3 +297,6 @@ EMAIL_USE_TLS = True
 EMAIL_PORT = 587
 EMAIL_HOST_USER = config('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
+
+# апі для фільмів
+TMDB_API_KEY = config('TMDB_API_KEY')
