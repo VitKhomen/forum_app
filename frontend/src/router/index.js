@@ -124,6 +124,18 @@ const router = createRouter({
       component: () => import('@/views/LeaderboardView.vue'),
       meta: { requiresAuth: false }
     },
+    {
+      path: '/movies/search',
+      name: 'movie-search',
+      component: () => import('@/views/movies/MovieSearchView.vue'),
+      meta: { title: 'Пошук фільмів' }
+    },
+    {
+      path: '/movies/:id',
+      name: 'movie-detail',
+      component: () => import('@/views/movies/MovieDetailView.vue'),
+      meta: { title: 'Фільм' }
+    },
   ]
 })
 

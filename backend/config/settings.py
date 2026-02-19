@@ -299,4 +299,11 @@ EMAIL_HOST_USER = config('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
 
 # апі для фільмів
-TMDB_API_KEY = config('TMDB_API_KEY')
+TMDB_API_KEY = config('TMDB_API_KEY', default='')
+# Кеш — Redis
+# CACHES = {
+#     "default": {
+#         "BACKEND": "django.core.cache.backends.redis.RedisCache",
+#         "LOCATION": config("REDIS_URL", default="redis://localhost:6379/1"),
+#     }
+# }
