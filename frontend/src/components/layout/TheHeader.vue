@@ -73,42 +73,20 @@
 
       <!-- Панель пошуку -->
       <Transition name="slide-down">
-        <div v-if="showSearch" class="border-t border-gray-200 dark:border-gray-700 py-5">
+        <div
+          v-if="showSearch"
+          class="border-t border-gray-200 dark:border-gray-700 py-5"
+        >
           <div class="flex flex-col sm:flex-row gap-4 items-center">
-            <!-- Перемикач типу пошуку -->
-            <div class="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1 gap-1 flex-shrink-0">
-              <button
-                @click="searchType = 'posts'"
-                class="px-3 py-1.5 text-sm font-medium rounded-md transition-all"
-                :class="searchType === 'posts'
-                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-                  : 'text-gray-500 dark:text-gray-400'"
-              >
-                📝 Пости
-              </button>
-              <button
-                @click="searchType = 'movies'"
-                class="px-3 py-1.5 text-sm font-medium rounded-md transition-all"
-                :class="searchType === 'movies'
-                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-                  : 'text-gray-500 dark:text-gray-400'"
-              >
-                🎬 Фільми
-              </button>
-            </div>
-
             <input
               v-model="searchQuery"
               @keyup.enter="triggerSearch"
               type="search"
-              :placeholder="searchType === 'movies' ? 'Назва фільму...' : 'Пошук по заголовку або змісту...'"
+              placeholder="Пошук по заголовку або змісту..."
               class="flex-1 min-w-[200px] px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
               autofocus
             />
-
-            <!-- Категорія тільки для постів -->
             <select
-              v-if="searchType === 'posts'"
               v-model="selectedCategory"
               class="px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
             >
@@ -117,7 +95,6 @@
                 {{ cat.name }}
               </option>
             </select>
-
             <button
               @click="triggerSearch"
               class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition whitespace-nowrap"
@@ -126,12 +103,7 @@
             </button>
           </div>
 
-          <!-- Підказка для фільмів -->
-          <p v-if="searchType === 'movies'" class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-            🎬 Пошук по базі TMDB — понад 500,000 фільмів
-          </p>
-
-          <div v-if="hasActiveFilters && searchType === 'posts'" class="mt-4 flex flex-wrap gap-2">
+          <div v-if="hasActiveFilters" class="mt-4 flex flex-wrap gap-2">
             <span class="text-sm text-gray-600 dark:text-gray-400">Активні фільтри:</span>
             <span
               v-if="searchQuery"
@@ -355,7 +327,6 @@ const showSearch = ref(false)
 const searchQuery = ref('')
 const selectedCategory = ref('')
 const categories = ref([])
-const searchType = ref('posts') // 'posts' | 'movies'
 
 // Основні посилання для sidebar
 const mainLinks = [
@@ -383,19 +354,12 @@ const syncFromRoute = () => {
 }
 
 const triggerSearch = () => {
-    if (searchType.value === 'movies') {
-      if (!searchQuery.value.trim()) return
-      showSearch.value = false
-      router.push({ name: 'movie-search', query: { q: searchQuery.value.trim() } })
-      return
-    }
-    
-    const query = {}
-    if (searchQuery.value.trim()) query.search = searchQuery.value.trim()
-    if (selectedCategory.value) query.category__slug = selectedCategory.value
-    showSearch.value = false
-    router.push({ name: 'posts', query })
-  }
+  const query = {}
+  if (searchQuery.value.trim()) query.search = searchQuery.value.trim()
+  if (selectedCategory.value) query.category__slug = selectedCategory.value
+  showSearch.value = false
+  router.push({ name: 'posts', query })
+}
 
 const clearSearch = () => { searchQuery.value = ''; triggerSearch() }
 const clearCategory = () => { selectedCategory.value = ''; triggerSearch() }

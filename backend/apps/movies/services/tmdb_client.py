@@ -1,4 +1,3 @@
-# apps/movies/services/tmdb_client.py
 import httpx
 from django.conf import settings
 from django.core.cache import cache
@@ -12,18 +11,15 @@ TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p"
 
 class TMDBClient:
     def __init__(self):
-        self.api_key = settings.TMDB_API_KEY
+        self.api_key = getattr(settings, 'TMDB_API_KEY', '')
         self.base_url = TMDB_BASE_URL
-        self.language = "uk-UA"  # або "en-US"
+        self.language = "uk-UA"
 
     def _get(self, endpoint: str, params: dict = None) -> dict | None:
-        """Базовий метод GET запиту"""
         if params is None:
             params = {}
-
         params["api_key"] = self.api_key
-        params["language"] = self.language
-
+        params.setdefault("language", self.language)
         try:
             with httpx.Client(timeout=10.0) as client:
                 response = client.get(
@@ -31,99 +27,83 @@ class TMDBClient:
                 response.raise_for_status()
                 return response.json()
         except httpx.HTTPStatusError as e:
-            logger.error(
-                f"TMDB HTTP error {e.response.status_code}: {endpoint}")
+            logger.error(f"TMDB HTTP {e.response.status_code}: {endpoint}")
             return None
         except httpx.RequestError as e:
             logger.error(f"TMDB request error: {e}")
             return None
 
-    def _cached_get(self, cache_key: str, endpoint: str, params: dict = None, timeout: int = 3600):
-        """GET з кешуванням через Django cache framework"""
+    def _cached_get(self, cache_key, endpoint, params=None, timeout=3600):
         cached = cache.get(cache_key)
         if cached is not None:
             return cached
-
         data = self._get(endpoint, params)
         if data:
             cache.set(cache_key, data, timeout)
         return data
 
-    # ─── Пошук ──────────────────────────────────────────────────
-    def search_movies(self, query: str, page: int = 1) -> dict | None:
-        cache_key = f"tmdb:search:{query}:{page}"
-        return self._cached_get(
-            cache_key,
-            "/search/movie",
-            {"query": query, "page": page},
-            timeout=1800  # 30 хвилин
-        )
+    # Пошук (movie або tv)
+    def search(self, query: str, page: int = 1, media_type: str = 'movie') -> dict | None:
+        cache_key = f"tmdb:search:{media_type}:{query}:{page}"
+        return self._cached_get(cache_key, f"/search/{media_type}", {"query": query, "page": page}, 1800)
 
-    # ─── Деталі фільму ───────────────────────────────────────────
+    # Деталі
     def get_movie(self, movie_id: int) -> dict | None:
         cache_key = f"tmdb:movie:{movie_id}"
-        return self._cached_get(
-            cache_key,
-            f"/movie/{movie_id}",
-            {"append_to_response": "videos,images,credits,similar"},
-            timeout=86400  # 24 години
-        )
+        return self._cached_get(cache_key, f"/movie/{movie_id}",
+                                {"append_to_response": "videos,credits,similar,recommendations"}, 86400)
 
-    # ─── Списки ─────────────────────────────────────────────────
-    def get_trending(self, time_window: str = "week") -> dict | None:
-        cache_key = f"tmdb:trending:{time_window}"
-        return self._cached_get(
-            cache_key,
-            f"/trending/movie/{time_window}",
-            timeout=3600
-        )
+    def get_tv(self, tv_id: int) -> dict | None:
+        cache_key = f"tmdb:tv:{tv_id}"
+        return self._cached_get(cache_key, f"/tv/{tv_id}",
+                                {"append_to_response": "videos,credits,similar,recommendations"}, 86400)
 
-    def get_popular(self, page: int = 1) -> dict | None:
-        cache_key = f"tmdb:popular:{page}"
-        return self._cached_get(cache_key, "/movie/popular", {"page": page}, timeout=3600)
+    # Trending
+    def get_trending(self, media_type='movie', time_window='week') -> dict | None:
+        cache_key = f"tmdb:trending:{media_type}:{time_window}"
+        return self._cached_get(cache_key, f"/trending/{media_type}/{time_window}", timeout=3600)
 
-    def get_top_rated(self, page: int = 1) -> dict | None:
-        cache_key = f"tmdb:top_rated:{page}"
-        return self._cached_get(cache_key, "/movie/top_rated", {"page": page}, timeout=3600)
+    # Списки
+    def get_popular(self, page=1, media_type='movie') -> dict | None:
+        cache_key = f"tmdb:popular:{media_type}:{page}"
+        return self._cached_get(cache_key, f"/{media_type}/popular", {"page": page}, 3600)
 
-    def get_upcoming(self, page: int = 1) -> dict | None:
+    def get_top_rated(self, page=1, media_type='movie') -> dict | None:
+        cache_key = f"tmdb:top_rated:{media_type}:{page}"
+        return self._cached_get(cache_key, f"/{media_type}/top_rated", {"page": page}, 3600)
+
+    def get_upcoming(self, page=1) -> dict | None:
         cache_key = f"tmdb:upcoming:{page}"
-        return self._cached_get(cache_key, "/movie/upcoming", {"page": page}, timeout=3600)
+        return self._cached_get(cache_key, "/movie/upcoming", {"page": page}, 3600)
 
-    def get_now_playing(self, page: int = 1) -> dict | None:
+    def get_now_playing(self, page=1) -> dict | None:
         cache_key = f"tmdb:now_playing:{page}"
-        return self._cached_get(cache_key, "/movie/now_playing", {"page": page}, timeout=3600)
+        return self._cached_get(cache_key, "/movie/now_playing", {"page": page}, 3600)
 
-    # ─── Жанри ──────────────────────────────────────────────────
-    def get_genres(self) -> dict | None:
-        cache_key = "tmdb:genres"
-        return self._cached_get(cache_key, "/genre/movie/list", timeout=86400)
+    def get_on_the_air(self, page=1) -> dict | None:
+        cache_key = f"tmdb:on_the_air:{page}"
+        return self._cached_get(cache_key, "/tv/on_the_air", {"page": page}, 3600)
 
-    # ─── Фільтрація ─────────────────────────────────────────────
-    def discover_movies(self, **filters) -> dict | None:
-        """
-        filters: genre_ids, year, sort_by, page, etc.
-        Приклад: discover_movies(with_genres="28,12", primary_release_year=2024)
-        """
-        cache_key = f"tmdb:discover:{hash(frozenset(filters.items()))}"
-        return self._cached_get(
-            cache_key,
-            "/discover/movie",
-            filters,
-            timeout=1800
-        )
+    # Жанри
+    def get_genres(self, media_type='movie') -> dict | None:
+        cache_key = f"tmdb:genres:{media_type}"
+        return self._cached_get(cache_key, f"/genre/{media_type}/list", timeout=86400)
 
-    # ─── Хелпери для зображень ──────────────────────────────────
+    # Discover
+    def discover(self, media_type='movie', **filters) -> dict | None:
+        cache_key = f"tmdb:discover:{media_type}:{hash(frozenset(filters.items()))}"
+        return self._cached_get(cache_key, f"/discover/{media_type}", filters, 1800)
+
+    # Рекомендації
+    def get_recommendations(self, item_id: int, media_type='movie') -> dict | None:
+        cache_key = f"tmdb:recommendations:{media_type}:{item_id}"
+        return self._cached_get(cache_key, f"/{media_type}/{item_id}/recommendations", timeout=3600)
+
     @staticmethod
     def image_url(path: str, size: str = "w500") -> str | None:
-        """
-        Розміри постерів: w92, w154, w185, w342, w500, w780, original
-        Розміри бекдропів: w300, w780, w1280, original
-        """
         if not path:
             return None
         return f"{TMDB_IMAGE_BASE}/{size}{path}"
 
 
-# Синглтон — один екземпляр на весь проект
 tmdb = TMDBClient()

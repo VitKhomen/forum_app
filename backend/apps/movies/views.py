@@ -12,45 +12,37 @@ from .serializers import WatchlistSerializer, MovieRatingSerializer, FavoriteMov
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
 def movie_search(request):
-    """GET /api/v1/movies/search/?q=inception&page=1"""
-    query = request.query_params.get('q', '').strip()
-    page = request.query_params.get('page', 1)
-
-    if not query:
-        return Response({'error': 'Параметр q обов\'язковий'}, status=400)
-
-    data = tmdb.search_movies(query, page=int(page))
+    q = request.query_params.get('q', '').strip()
+    page = int(request.query_params.get('page', 1))
+    media_type = request.query_params.get('media_type', 'movie')
+    if media_type not in ('movie', 'tv'):
+        media_type = 'movie'
+    if not q:
+        return Response({'error': "Параметр 'q' обов'язковий"}, status=400)
+    data = tmdb.search(q, page=page, media_type=media_type)
     if data is None:
-        return Response({'error': 'Помилка TMDB API'}, status=503)
-
+        return Response({'error': 'TMDB API недоступний'}, status=503)
     return Response(data)
 
 
 @api_view(['GET'])
-@permission_classes([permissions.AllowAny])
+@permission_classes([permissions.IsAuthenticatedOrReadOnly])
 def movie_detail(request, movie_id):
-    """GET /api/v1/movies/<id>/"""
-    data = tmdb.get_movie(movie_id)
+    media_type = request.query_params.get('media_type', 'movie')
+    data = tmdb.get_movie(
+        movie_id) if media_type == 'movie' else tmdb.get_tv(movie_id)
     if data is None:
-        return Response({'error': 'Фільм не знайдено'}, status=404)
+        return Response({'error': 'Не знайдено'}, status=404)
 
-    # Додаємо стан юзера якщо авторизований
-    user_state = {
-        'in_watchlist': False,
-        'is_favorite': False,
-        'user_rating': None,
-    }
-
+    user_state = {'in_watchlist': False,
+                  'is_favorite': False, 'user_rating': None}
     if request.user.is_authenticated:
         user_state['in_watchlist'] = WatchlistItem.objects.filter(
-            user=request.user, tmdb_id=movie_id
-        ).exists()
+            user=request.user, tmdb_id=movie_id).exists()
         user_state['is_favorite'] = FavoriteMovie.objects.filter(
-            user=request.user, tmdb_id=movie_id
-        ).exists()
+            user=request.user, tmdb_id=movie_id).exists()
         rating = MovieRating.objects.filter(
-            user=request.user, tmdb_id=movie_id
-        ).first()
+            user=request.user, tmdb_id=movie_id).first()
         if rating:
             user_state['user_rating'] = rating.rating
 
@@ -60,134 +52,129 @@ def movie_detail(request, movie_id):
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
 def movie_trending(request):
-    """GET /api/v1/movies/trending/?time_window=week"""
+    media_type = request.query_params.get('media_type', 'movie')
     time_window = request.query_params.get('time_window', 'week')
-    data = tmdb.get_trending(time_window)
+    if media_type not in ('movie', 'tv', 'all'):
+        media_type = 'movie'
+    data = tmdb.get_trending(media_type=media_type, time_window=time_window)
     if data is None:
-        return Response({'error': 'Помилка TMDB API'}, status=503)
-    return Response(data)
-
-
-@api_view(['GET'])
-@permission_classes([permissions.AllowAny])
-def movie_list_by_category(request, category):
-    """
-    GET /api/v1/movies/popular/
-    GET /api/v1/movies/top_rated/
-    GET /api/v1/movies/upcoming/
-    GET /api/v1/movies/now_playing/
-    """
-    page = int(request.query_params.get('page', 1))
-    handlers = {
-        'popular': tmdb.get_popular,
-        'top_rated': tmdb.get_top_rated,
-        'upcoming': tmdb.get_upcoming,
-        'now_playing': tmdb.get_now_playing,
-    }
-
-    handler = handlers.get(category)
-    if not handler:
-        return Response({'error': 'Невірна категорія'}, status=400)
-
-    data = handler(page=page)
-    if data is None:
-        return Response({'error': 'Помилка TMDB API'}, status=503)
+        return Response({'error': 'TMDB API недоступний'}, status=503)
     return Response(data)
 
 
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
 def movie_genres(request):
-    """GET /api/v1/movies/genres/"""
-    data = tmdb.get_genres()
+    media_type = request.query_params.get('media_type', 'movie')
+    if media_type not in ('movie', 'tv'):
+        media_type = 'movie'
+    data = tmdb.get_genres(media_type=media_type)
     if data is None:
-        return Response({'error': 'Помилка TMDB API'}, status=503)
+        return Response({'error': 'TMDB API недоступний'}, status=503)
     return Response(data)
 
 
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
 def movie_discover(request):
-    """
-    GET /api/v1/movies/discover/?with_genres=28&primary_release_year=2024&sort_by=popularity.desc
-    """
-    filters = {}
-    allowed_params = [
-        'with_genres', 'primary_release_year', 'vote_average.gte',
-        'vote_average.lte', 'sort_by', 'page', 'with_original_language'
-    ]
-    for param in allowed_params:
-        val = request.query_params.get(param)
-        if val:
-            filters[param] = val
+    media_type = request.query_params.get('media_type', 'movie')
+    if media_type not in ('movie', 'tv'):
+        media_type = 'movie'
 
-    data = tmdb.discover_movies(**filters)
+    allowed = [
+        'with_genres', 'primary_release_year', 'first_air_date_year',
+        'vote_average.gte', 'vote_average.lte', 'sort_by', 'page',
+        'with_original_language',
+    ]
+    filters = {k: request.query_params[k]
+               for k in allowed if k in request.query_params}
+
+    data = tmdb.discover(media_type=media_type, **filters)
     if data is None:
-        return Response({'error': 'Помилка TMDB API'}, status=503)
+        return Response({'error': 'TMDB API недоступний'}, status=503)
     return Response(data)
 
 
-# ─── Юзерські endpoints ───────────────────────────────────────────────────────
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
+def movie_recommendations(request, movie_id):
+    media_type = request.query_params.get('media_type', 'movie')
+    data = tmdb.get_recommendations(movie_id, media_type=media_type)
+    if data is None:
+        return Response({'error': 'TMDB API недоступний'}, status=503)
+    return Response(data)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
+def movie_list_by_category(request, category):
+    page = int(request.query_params.get('page', 1))
+    media_type = request.query_params.get('media_type', 'movie')
+
+    handlers = {
+        'popular': lambda: tmdb.get_popular(page=page, media_type=media_type),
+        'top_rated': lambda: tmdb.get_top_rated(page=page, media_type=media_type),
+        'upcoming': lambda: tmdb.get_upcoming(page=page),
+        'now_playing': lambda: tmdb.get_now_playing(page=page),
+        'on_the_air': lambda: tmdb.get_on_the_air(page=page),
+    }
+
+    handler = handlers.get(category)
+    if not handler:
+        return Response({'error': f'Невідома категорія: {category}'}, status=400)
+
+    data = handler()
+    if data is None:
+        return Response({'error': 'TMDB API недоступний'}, status=503)
+    return Response(data)
+
+
+# ─── Юзерські endpoints ────────────────────────────────────────────────────────
 
 @api_view(['POST', 'DELETE'])
 @permission_classes([permissions.IsAuthenticated])
 def toggle_watchlist(request, movie_id):
-    """POST/DELETE /api/v1/movies/<id>/watchlist/"""
     item, created = WatchlistItem.objects.get_or_create(
-        user=request.user,
-        tmdb_id=movie_id,
-        defaults=_get_movie_defaults(movie_id)
+        user=request.user, tmdb_id=movie_id,
+        defaults=_movie_defaults(movie_id)
     )
-
     if not created:
         item.delete()
         return Response({'in_watchlist': False})
-
-    return Response({'in_watchlist': True}, status=status.HTTP_201_CREATED)
+    return Response({'in_watchlist': True}, status=201)
 
 
 @api_view(['POST', 'DELETE'])
 @permission_classes([permissions.IsAuthenticated])
 def toggle_favorite(request, movie_id):
-    """POST/DELETE /api/v1/movies/<id>/favorite/"""
     item, created = FavoriteMovie.objects.get_or_create(
-        user=request.user,
-        tmdb_id=movie_id,
-        defaults=_get_movie_defaults(movie_id)
+        user=request.user, tmdb_id=movie_id,
+        defaults=_movie_defaults(movie_id)
     )
-
     if not created:
         item.delete()
         return Response({'is_favorite': False})
-
-    return Response({'is_favorite': True}, status=status.HTTP_201_CREATED)
+    return Response({'is_favorite': True}, status=201)
 
 
 @api_view(['POST', 'PUT', 'DELETE'])
 @permission_classes([permissions.IsAuthenticated])
 def movie_rating(request, movie_id):
-    """POST/PUT/DELETE /api/v1/movies/<id>/rate/"""
     if request.method == 'DELETE':
         MovieRating.objects.filter(
             user=request.user, tmdb_id=movie_id).delete()
         return Response({'user_rating': None})
-
-    serializer = MovieRatingSerializer(data={
-        **request.data,
-        'tmdb_id': movie_id,
-    })
+    serializer = MovieRatingSerializer(
+        data={**request.data, 'tmdb_id': movie_id})
     serializer.is_valid(raise_exception=True)
-
     obj, created = MovieRating.objects.update_or_create(
-        user=request.user,
-        tmdb_id=movie_id,
+        user=request.user, tmdb_id=movie_id,
         defaults={
             'rating': serializer.validated_data['rating'],
             'review': serializer.validated_data.get('review', ''),
-            'title': serializer.validated_data.get('title', ''),
         }
     )
-    return Response({'user_rating': obj.rating}, status=status.HTTP_201_CREATED if created else 200)
+    return Response({'user_rating': obj.rating}, status=201 if created else 200)
 
 
 class MyWatchlistView(generics.ListAPIView):
@@ -195,7 +182,7 @@ class MyWatchlistView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return WatchlistItem.objects.filter(user=self.request.user)
+        return WatchlistItem.objects.filter(user=self.request.user).order_by('-added_at')
 
 
 class MyFavoritesView(generics.ListAPIView):
@@ -203,17 +190,9 @@ class MyFavoritesView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return FavoriteMovie.objects.filter(user=self.request.user)
+        return FavoriteMovie.objects.filter(user=self.request.user).order_by('-added_at')
 
 
-# ─── Хелпер ──────────────────────────────────────────────────────────────────
-
-def _get_movie_defaults(movie_id: int) -> dict:
-    """Отримуємо базові дані фільму для збереження"""
+def _movie_defaults(movie_id: int) -> dict:
     movie = tmdb.get_movie(movie_id)
-    if movie:
-        return {
-            'title': movie.get('title', ''),
-            'poster_path': movie.get('poster_path', ''),
-        }
-    return {'title': '', 'poster_path': ''}
+    return {'title': movie.get('title', '') if movie else '', 'poster_path': movie.get('poster_path', '') if movie else ''}

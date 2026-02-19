@@ -156,20 +156,57 @@ export const karmaAPI = {
 }
 
 export const moviesAPI = {
-  search: (query, page = 1) => api.get('/movies/search/', { params: { q: query, page } }),
-  getById: (id) => api.get(`/movies/${id}/`),
+  // Пошук
+  search: (query, page = 1, mediaType = 'movie') =>
+    api.get('/movies/search/', { params: { q: query, page, media_type: mediaType } }),
 
+  // Деталі фільму (повертає + user_state якщо авторизований)
+  getById: (id, mediaType = 'movie') =>
+    api.get(`/movies/${id}/`, { params: { media_type: mediaType } }),
+
+  // Discover — основний для фільтрів
+  discover: (params = {}, mediaType = 'movie') =>
+    api.get('/movies/discover/', { params: { ...params, media_type: mediaType } }),
+
+  // Trending
+  trending: (mediaType = 'movie', timeWindow = 'week') =>
+    api.get('/movies/trending/', { params: { media_type: mediaType, time_window: timeWindow } }),
+
+  // Зараз в кіно (movie) / На ефірі (tv)
+  nowPlaying: (mediaType = 'movie', page = 1) =>
+    api.get(`/movies/${mediaType === 'movie' ? 'now_playing' : 'on_the_air'}/`, { params: { page } }),
+
+  // Top rated (підтримує обидва типи через media_type)
+  topRated: (mediaType = 'movie', page = 1) =>
+    api.get('/movies/top_rated/', { params: { page, media_type: mediaType } }),
+
+  // Popular
+  popular: (mediaType = 'movie', page = 1) =>
+    api.get('/movies/popular/', { params: { page, media_type: mediaType } }),
+
+  // Жанри
+  genres: (mediaType = 'movie') =>
+    api.get('/movies/genres/', { params: { media_type: mediaType } }),
+
+  // Рекомендації TMDB на основі конкретного фільму
+  recommendations: (movieId, mediaType = 'movie') =>
+    api.get(`/movies/${movieId}/recommendations/`, { params: { media_type: mediaType } }),
+
+  // === Watchlist ===
   toggleWatchlist: (id) => api.post(`/movies/${id}/watchlist/`),
   removeWatchlist: (id) => api.delete(`/movies/${id}/watchlist/`),
-  getMyWatchlist: (params) => api.get('/movies/me/watchlist/', { params }),
+  getMyWatchlist:  (params) => api.get('/movies/me/watchlist/', { params }),
 
+  // === Favorites ===
   toggleFavorite: (id) => api.post(`/movies/${id}/favorite/`),
   removeFavorite: (id) => api.delete(`/movies/${id}/favorite/`),
   getMyFavorites: (params) => api.get('/movies/me/favorites/', { params }),
 
-  rateMovie: (id, rating, review = '') => api.post(`/movies/${id}/rate/`, { rating, review }),
-  updateRating: (id, rating, review = '') => api.put(`/movies/${id}/rate/`, { rating, review }),
-  deleteRating: (id) => api.delete(`/movies/${id}/rate/`),
+  // === Rating ===
+  rateMovie:    (id, rating, review = '') => api.post(`/movies/${id}/rate/`,   { rating, review }),
+  updateRating: (id, rating, review = '') => api.put(`/movies/${id}/rate/`,    { rating, review }),
+  deleteRating: (id)                      => api.delete(`/movies/${id}/rate/`),
 }
+
 
 export default api
