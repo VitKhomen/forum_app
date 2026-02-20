@@ -125,7 +125,7 @@
     </nav>
   </header>
 
-  <!-- ✅ SIDEBAR DRAWER -->
+  <!-- SIDEBAR DRAWER -->
   <Teleport to="body">
     <!-- Backdrop -->
     <Transition name="fade">
@@ -211,6 +211,8 @@
               </div>
             </Transition>
           </div>
+
+
 
           <!-- Авторизація -->
           <div class="pt-3">
@@ -314,6 +316,7 @@ import {
   ArrowLeftOnRectangleIcon,
   UserPlusIcon,
   ChevronDownIcon,
+  VideoCameraIcon  
 } from '@heroicons/vue/24/outline'
 import ThemeToggle from '@/components/ui/ThemeToggle.vue'
 
@@ -334,6 +337,7 @@ const mainLinks = [
   { to: '/posts',          label: 'Всі пости', icon: NewspaperIcon },
   { to: '/posts/popular',  label: 'Популярні', icon: FireIcon },
   { to: '/posts/trending', label: 'В тренді',  icon: ArrowTrendingUpIcon },
+  { to: '/movies', label: 'База фільмів',  icon: VideoCameraIcon },
 ]
 
 const hasActiveFilters = computed(() => searchQuery.value.trim() || selectedCategory.value)

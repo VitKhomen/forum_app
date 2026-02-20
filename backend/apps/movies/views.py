@@ -1,4 +1,3 @@
-# apps/movies/views.py
 from rest_framework import generics, permissions, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -7,7 +6,7 @@ from .models import WatchlistItem, MovieRating, FavoriteMovie
 from .serializers import WatchlistSerializer, MovieRatingSerializer, FavoriteMovieSerializer
 
 
-# ─── TMDB proxy endpoints ─────────────────────────────────────────────────────
+# ─── TMDB proxy ────────────────────────────────────────────────────────────────
 
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
@@ -81,13 +80,28 @@ def movie_discover(request):
     if media_type not in ('movie', 'tv'):
         media_type = 'movie'
 
-    allowed = [
+    qp = request.query_params
+
+    # Прості параметри без крапок
+    allowed_simple = [
         'with_genres', 'primary_release_year', 'first_air_date_year',
-        'vote_average.gte', 'vote_average.lte', 'sort_by', 'page',
-        'with_original_language',
+        'sort_by', 'page', 'with_original_language', 'vote_count_gte',
     ]
-    filters = {k: request.query_params[k]
-               for k in allowed if k in request.query_params}
+    filters = {k: qp[k] for k in allowed_simple if k in qp}
+
+    # Параметри з крапками — фронтенд надсилає їх з підкресленням замість крапки,
+    # тут конвертуємо назад для TMDB API
+    dot_params = {
+        'vote_average_gte':         'vote_average.gte',
+        'vote_average_lte':         'vote_average.lte',
+        'primary_release_date_gte': 'primary_release_date.gte',
+        'primary_release_date_lte': 'primary_release_date.lte',
+        'first_air_date_gte':       'first_air_date.gte',
+        'first_air_date_lte':       'first_air_date.lte',
+    }
+    for frontend_key, tmdb_key in dot_params.items():
+        if frontend_key in qp:
+            filters[tmdb_key] = qp[frontend_key]
 
     data = tmdb.discover(media_type=media_type, **filters)
     if data is None:

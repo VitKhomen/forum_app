@@ -1,13 +1,11 @@
 <template>
   <div class="min-h-screen bg-gray-50 dark:bg-gray-950">
 
-    <!-- ══════════════════════════════════════════════════
-         HERO SECTION — показується коли немає активного пошуку/фільтрів
-    ══════════════════════════════════════════════════ -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <Transition name="hero-slide">
       <section
         v-if="mode === 'home'"
-        class="relative -mx-4 sm:-mx-6 lg:-mx-8 -mt-6 mb-10 h-[460px] overflow-hidden"
+        class="relative -mt-6 mb-10 h-[460px] overflow-hidden rounded-b-3xl"
       >
         <!-- Динамічний backdrop -->
         <Transition name="bg-fade" mode="out-in">
@@ -118,7 +116,7 @@
     <!-- ══════════════════════════════════════════════════
          ПАНЕЛЬ ФІЛЬТРІВ (завжди видима)
     ══════════════════════════════════════════════════ -->
-    <div class="sticky top-0 z-30 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 py-3 bg-white/95 dark:bg-gray-950/95 backdrop-blur-xl border-b border-gray-200 dark:border-gray-800 mb-6 shadow-sm">
+    <div class="sticky top-0 z-30 py-3 bg-white/95 dark:bg-gray-950/95 backdrop-blur-xl border-b border-gray-200 dark:border-gray-800 mb-6 shadow-sm">
       <div class="flex flex-wrap items-center gap-2">
 
         <!-- Тип медіа (компактний, якщо не hero режим) -->
@@ -186,12 +184,10 @@
 
         <!-- Рандом -->
         <button
-          @click="openRandom"
-          :disabled="loadingRandom"
-          class="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white rounded-xl text-xs font-semibold transition-all shadow-md disabled:opacity-50 flex-shrink-0"
+          @click="showRandomModal = true"
+          class="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white rounded-xl text-xs font-semibold transition-all shadow-md flex-shrink-0"
         >
-          <span :class="{ 'inline-block animate-spin': loadingRandom }">🎲</span>
-          Рандом
+          🎲 Рандом
         </button>
 
         <!-- Очистити фільтри -->
@@ -395,9 +391,17 @@
           Скинути фільтри
         </button>
       </div>
-
+      
     </template>
-
+    
+    <!-- Random Modal -->
+    <RandomMovieModal
+    v-model="showRandomModal"
+      :initial-media-type="mediaType"
+      :genres="genres"
+      />
+      
+  </div>
   </div>
 </template>
 
@@ -408,6 +412,7 @@ import { useAuthStore } from '@/stores/auth' // або твій auth store
 import { moviesAPI } from '@/services/api'
 import MovieCard from '@/components/movies/MovieCard.vue'
 import MovieSection from '@/components/movies/MovieSection.vue'
+import RandomMovieModal from '@/components/movies/RandomMovieModal.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -437,8 +442,8 @@ const mode = computed(() => {
 })
 
 const loading = ref(false)
-const sectionsLoading = ref(false)
-const loadingRandom   = ref(false)
+const sectionsLoading  = ref(false)
+const showRandomModal  = ref(false)
 
 const results      = ref([])
 const totalResults = ref(0)
@@ -614,24 +619,6 @@ const browseTrending = () => {
   currentPage.value = 1
   syncURL()
   fetchResults()
-}
-
-const openRandom = async () => {
-  loadingRandom.value = true
-  try {
-    const randomPage = Math.floor(Math.random() * 50) + 1
-    const res = await moviesAPI.discover({ sort_by: 'popularity.desc', page: randomPage }, mediaType.value)
-    const items = res.data?.results || []
-    if (items.length) {
-      const item = items[Math.floor(Math.random() * items.length)]
-      const routeName = mediaType.value === 'movie' ? 'movie-detail' : 'tv-detail'
-      router.push({ name: routeName, params: { id: item.id } })
-    }
-  } catch (e) {
-    console.error(e)
-  } finally {
-    loadingRandom.value = false
-  }
 }
 
 // ─── URL sync ──────────────────────────────────────────────────────────
