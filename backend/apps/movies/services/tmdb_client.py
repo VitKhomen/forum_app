@@ -47,16 +47,38 @@ class TMDBClient:
         cache_key = f"tmdb:search:{media_type}:{query}:{page}"
         return self._cached_get(cache_key, f"/search/{media_type}", {"query": query, "page": page}, 1800)
 
-    # Деталі
+    # Деталі фільму
     def get_movie(self, movie_id: int) -> dict | None:
         cache_key = f"tmdb:movie:{movie_id}"
-        return self._cached_get(cache_key, f"/movie/{movie_id}",
-                                {"append_to_response": "videos,credits,similar,recommendations"}, 86400)
+        return self._cached_get(
+            cache_key,
+            f"/movie/{movie_id}",
+            {
+                # language НЕ передаємо через setdefault — override нижче
+                "language": "uk-UA",
+                "append_to_response": "videos,credits,similar,recommendations,images",
+                # Відео: англійські + без мови (найбільше трейлерів)
+                "include_video_language": "uk,en",
+                # Зображення: українські + англійські + без мовного маркування
+                "include_image_language": "uk,en,null",
+            },
+            86400
+        )
 
+    # Деталі серіалу
     def get_tv(self, tv_id: int) -> dict | None:
         cache_key = f"tmdb:tv:{tv_id}"
-        return self._cached_get(cache_key, f"/tv/{tv_id}",
-                                {"append_to_response": "videos,credits,similar,recommendations"}, 86400)
+        return self._cached_get(
+            cache_key,
+            f"/tv/{tv_id}",
+            {
+                "language": "uk-UA",
+                "append_to_response": "videos,credits,similar,recommendations,images",
+                "include_video_language": "uk,en",
+                "include_image_language": "uk,en,null",
+            },
+            86400
+        )
 
     # Trending
     def get_trending(self, media_type='movie', time_window='week') -> dict | None:
