@@ -6,7 +6,22 @@ from .models import WatchlistItem, MovieRating, FavoriteMovie
 from .serializers import WatchlistSerializer, MovieRatingSerializer, FavoriteMovieSerializer
 
 
-# ─── TMDB proxy ────────────────────────────────────────────────────────────────
+# ─── Хелпер: отримати дані фільму/серіалу з TMDB ─────────────────────────────
+def _fetch_item_data(tmdb_id: int, media_type: str = 'movie') -> dict:
+    if media_type == 'tv':
+        data = tmdb.get_tv(tmdb_id)
+        return {
+            'title': data.get('name', '') if data else '',
+            'poster_path': data.get('poster_path', '') if data else '',
+        }
+    data = tmdb.get_movie(tmdb_id)
+    return {
+        'title': data.get('title', '') if data else '',
+        'poster_path': data.get('poster_path', '') if data else '',
+    }
+
+
+# ─── TMDB proxy ───────────────────────────────────────────────────────────────
 
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
@@ -37,11 +52,11 @@ def movie_detail(request, movie_id):
                   'is_favorite': False, 'user_rating': None}
     if request.user.is_authenticated:
         user_state['in_watchlist'] = WatchlistItem.objects.filter(
-            user=request.user, tmdb_id=movie_id).exists()
+            user=request.user, tmdb_id=movie_id, media_type=media_type).exists()
         user_state['is_favorite'] = FavoriteMovie.objects.filter(
-            user=request.user, tmdb_id=movie_id).exists()
+            user=request.user, tmdb_id=movie_id, media_type=media_type).exists()
         rating = MovieRating.objects.filter(
-            user=request.user, tmdb_id=movie_id).first()
+            user=request.user, tmdb_id=movie_id, media_type=media_type).first()
         if rating:
             user_state['user_rating'] = rating.rating
 
@@ -82,15 +97,12 @@ def movie_discover(request):
 
     qp = request.query_params
 
-    # Прості параметри без крапок
     allowed_simple = [
         'with_genres', 'primary_release_year', 'first_air_date_year',
         'sort_by', 'page', 'with_original_language', 'vote_count_gte',
     ]
     filters = {k: qp[k] for k in allowed_simple if k in qp}
 
-    # Параметри з крапками — фронтенд надсилає їх з підкресленням замість крапки,
-    # тут конвертуємо назад для TMDB API
     dot_params = {
         'vote_average_gte':         'vote_average.gte',
         'vote_average_lte':         'vote_average.lte',
@@ -143,14 +155,19 @@ def movie_list_by_category(request, category):
     return Response(data)
 
 
-# ─── Юзерські endpoints ────────────────────────────────────────────────────────
+# ─── Watchlist ────────────────────────────────────────────────────────────────
 
 @api_view(['POST', 'DELETE'])
 @permission_classes([permissions.IsAuthenticated])
 def toggle_watchlist(request, movie_id):
+    media_type = request.data.get(
+        'media_type', request.query_params.get('media_type', 'movie'))
+
     item, created = WatchlistItem.objects.get_or_create(
-        user=request.user, tmdb_id=movie_id,
-        defaults=_movie_defaults(movie_id)
+        user=request.user,
+        tmdb_id=movie_id,
+        media_type=media_type,
+        defaults=_fetch_item_data(movie_id, media_type)
     )
     if not created:
         item.delete()
@@ -161,9 +178,14 @@ def toggle_watchlist(request, movie_id):
 @api_view(['POST', 'DELETE'])
 @permission_classes([permissions.IsAuthenticated])
 def toggle_favorite(request, movie_id):
+    media_type = request.data.get(
+        'media_type', request.query_params.get('media_type', 'movie'))
+
     item, created = FavoriteMovie.objects.get_or_create(
-        user=request.user, tmdb_id=movie_id,
-        defaults=_movie_defaults(movie_id)
+        user=request.user,
+        tmdb_id=movie_id,
+        media_type=media_type,
+        defaults=_fetch_item_data(movie_id, media_type)
     )
     if not created:
         item.delete()
@@ -174,29 +196,53 @@ def toggle_favorite(request, movie_id):
 @api_view(['POST', 'PUT', 'DELETE'])
 @permission_classes([permissions.IsAuthenticated])
 def movie_rating(request, movie_id):
+    media_type = request.data.get(
+        'media_type', request.query_params.get('media_type', 'movie'))
+
     if request.method == 'DELETE':
         MovieRating.objects.filter(
-            user=request.user, tmdb_id=movie_id).delete()
+            user=request.user, tmdb_id=movie_id, media_type=media_type
+        ).delete()
         return Response({'user_rating': None})
-    serializer = MovieRatingSerializer(
-        data={**request.data, 'tmdb_id': movie_id})
-    serializer.is_valid(raise_exception=True)
+
+    rating = request.data.get('rating')
+    if rating is None:
+        return Response({'error': "Поле 'rating' обов'язкове"}, status=400)
+    try:
+        rating = int(rating)
+        if not 1 <= rating <= 10:
+            raise ValueError
+    except (ValueError, TypeError):
+        return Response({'error': 'Рейтинг має бути числом від 1 до 10'}, status=400)
+
+    item_data = _fetch_item_data(movie_id, media_type)
+
     obj, created = MovieRating.objects.update_or_create(
-        user=request.user, tmdb_id=movie_id,
+        user=request.user,
+        tmdb_id=movie_id,
+        media_type=media_type,
         defaults={
-            'rating': serializer.validated_data['rating'],
-            'review': serializer.validated_data.get('review', ''),
+            'rating': rating,
+            'review': request.data.get('review', ''),
+            'title': item_data['title'],
+            'poster_path': item_data['poster_path'],
         }
     )
     return Response({'user_rating': obj.rating}, status=201 if created else 200)
 
+
+# ─── Списки юзера ─────────────────────────────────────────────────────────────
 
 class MyWatchlistView(generics.ListAPIView):
     serializer_class = WatchlistSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return WatchlistItem.objects.filter(user=self.request.user).order_by('-added_at')
+        qs = WatchlistItem.objects.filter(user=self.request.user)
+        media_type = self.request.query_params.get('media_type')
+        if media_type in ('movie', 'tv'):
+            qs = qs.filter(media_type=media_type)
+        return qs
 
 
 class MyFavoritesView(generics.ListAPIView):
@@ -204,9 +250,20 @@ class MyFavoritesView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return FavoriteMovie.objects.filter(user=self.request.user).order_by('-added_at')
+        qs = FavoriteMovie.objects.filter(user=self.request.user)
+        media_type = self.request.query_params.get('media_type')
+        if media_type in ('movie', 'tv'):
+            qs = qs.filter(media_type=media_type)
+        return qs
 
 
-def _movie_defaults(movie_id: int) -> dict:
-    movie = tmdb.get_movie(movie_id)
-    return {'title': movie.get('title', '') if movie else '', 'poster_path': movie.get('poster_path', '') if movie else ''}
+class MyRatingsView(generics.ListAPIView):
+    serializer_class = MovieRatingSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        qs = MovieRating.objects.filter(user=self.request.user)
+        media_type = self.request.query_params.get('media_type')
+        if media_type in ('movie', 'tv'):
+            qs = qs.filter(media_type=media_type)
+        return qs

@@ -621,11 +621,11 @@ const toggleWatchlist = async () => {
   actionLoading.value.watchlist = true
   try {
     if (userState.value.in_watchlist) {
-      await moviesAPI.removeWatchlist(movieId.value)
+      await moviesAPI.removeWatchlist(movieId.value, mediaType.value)
       userState.value.in_watchlist = false
       toast.success('Видалено зі списку')
     } else {
-      await moviesAPI.toggleWatchlist(movieId.value)
+      await moviesAPI.toggleWatchlist(movieId.value, mediaType.value)
       userState.value.in_watchlist = true
       toast.success('Додано до вотчлиста ✓')
     }
@@ -637,11 +637,11 @@ const toggleFavorite = async () => {
   actionLoading.value.favorite = true
   try {
     if (userState.value.is_favorite) {
-      await moviesAPI.removeFavorite(movieId.value)
+      await moviesAPI.removeFavorite(movieId.value, mediaType.value)
       userState.value.is_favorite = false
       toast.success('Видалено з улюблених')
     } else {
-      await moviesAPI.toggleFavorite(movieId.value)
+      await moviesAPI.toggleFavorite(movieId.value, mediaType.value)
       userState.value.is_favorite = true
       toast.success('Додано до улюблених ❤️')
     }
@@ -652,8 +652,8 @@ const setRating = async (rating) => {
   if (!isAuthenticated.value) return
   actionLoading.value.rating = true
   try {
-    if (userState.value.user_rating) await moviesAPI.updateRating(movieId.value, rating)
-    else await moviesAPI.rateMovie(movieId.value, rating)
+    if (userState.value.user_rating) await moviesAPI.updateRating(movieId.value, rating, mediaType.value)
+    else await moviesAPI.rateMovie(movieId.value, rating, mediaType.value)
     userState.value.user_rating = rating
     toast.success(`Оцінка ${rating}/10 збережена ⭐`)
   } catch { toast.error('Помилка збереження оцінки') } finally { actionLoading.value.rating = false }
@@ -662,7 +662,7 @@ const setRating = async (rating) => {
 const deleteRating = async () => {
   actionLoading.value.rating = true
   try {
-    await moviesAPI.deleteRating(movieId.value)
+    await moviesAPI.deleteRating(movieId.value, mediaType.value)
     userState.value.user_rating = null
     toast.success('Оцінку видалено')
   } catch { toast.error('Помилка') } finally { actionLoading.value.rating = false }
