@@ -141,7 +141,6 @@
             Переглянути все
           </button>
         </div>
-        <KarmaHistory :username="authStore.user.username" :limit="5" />
       </div>
 
       <!-- Кінотека -->
@@ -373,8 +372,8 @@ import {
 import { format } from 'date-fns'
 import { uk } from 'date-fns/locale'
 import { useToast } from 'vue-toastification'
-import AuthorWithKarma from '@/components/ui/KarmaBadge.vue'
 import { ClockIcon } from '@heroicons/vue/24/outline'
+import AuthorWithKarma from '@/components/ui/KarmaBadge.vue'
 import KarmaHistoryModal from '@/components/ui/KarmaHistoryModal.vue'
 import ProfileMoviesSection from '@/components/movies/ProfileMoviesSection.vue'
 

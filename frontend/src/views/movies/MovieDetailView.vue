@@ -621,6 +621,7 @@ const toggleWatchlist = async () => {
   actionLoading.value.watchlist = true
   try {
     if (userState.value.in_watchlist) {
+      // Передаємо media_type як query param бо axios DELETE не завжди шле body
       await moviesAPI.removeWatchlist(movieId.value, mediaType.value)
       userState.value.in_watchlist = false
       toast.success('Видалено зі списку')
