@@ -237,8 +237,8 @@
           <section v-if="cast.length" class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 shadow-sm">
             <h2 class="text-lg font-bold text-gray-900 dark:text-white mb-4">🎭 У головних ролях</h2>
             <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-              <div v-for="actor in cast" :key="actor.id" class="flex items-center gap-3 group">
-                <div class="w-11 h-11 flex-shrink-0 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800 ring-2 ring-gray-100 dark:ring-gray-700">
+              <button v-for="actor in cast" :key="actor.id" @click="openPerson(actor.id)" class="flex items-center gap-3 group text-left hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl p-1.5 -m-1.5 transition-colors w-full">
+                <div class="w-11 h-11 flex-shrink-0 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800 ring-2 ring-gray-100 dark:ring-gray-700 group-hover:ring-amber-400/50 transition-all">
                   <img
                     v-if="actor.profile_path"
                     :src="`https://image.tmdb.org/t/p/w185${actor.profile_path}`"
@@ -249,10 +249,10 @@
                   <div v-else class="w-full h-full flex items-center justify-center text-lg text-gray-400">👤</div>
                 </div>
                 <div class="min-w-0">
-                  <p class="text-sm font-semibold text-gray-900 dark:text-white line-clamp-1">{{ actor.name }}</p>
+                  <p class="text-sm font-semibold text-gray-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors line-clamp-1">{{ actor.name }}</p>
                   <p class="text-xs text-gray-400 line-clamp-1">{{ actor.character }}</p>
                 </div>
-              </div>
+              </button>
             </div>
           </section>
 
@@ -260,8 +260,8 @@
           <section v-if="crew.length" class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-6 shadow-sm">
             <h2 class="text-lg font-bold text-gray-900 dark:text-white mb-4">🎬 Знімальна команда</h2>
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              <div v-for="person in crew" :key="person.credit_id" class="flex items-center gap-3">
-                <div class="w-10 h-10 flex-shrink-0 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800">
+              <button v-for="person in crew" :key="person.credit_id" @click="openPerson(person.id)" class="flex items-center gap-3 group text-left hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl p-1.5 -m-1.5 transition-colors w-full">
+                <div class="w-10 h-10 flex-shrink-0 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800 group-hover:ring-2 group-hover:ring-amber-400/40 transition-all">
                   <img
                     v-if="person.profile_path"
                     :src="`https://image.tmdb.org/t/p/w185${person.profile_path}`"
@@ -271,10 +271,10 @@
                   <div v-else class="w-full h-full flex items-center justify-center text-base text-gray-400">👤</div>
                 </div>
                 <div class="min-w-0">
-                  <p class="text-sm font-semibold text-gray-900 dark:text-white line-clamp-1">{{ person.name }}</p>
+                  <p class="text-sm font-semibold text-gray-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors line-clamp-1">{{ person.name }}</p>
                   <p class="text-xs text-gray-400">{{ person.job }}</p>
                 </div>
-              </div>
+              </button>
             </div>
           </section>
 
@@ -385,8 +385,8 @@
           <!-- Режисер -->
           <div v-if="director" class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 shadow-sm">
             <h3 class="text-base font-bold text-gray-900 dark:text-white mb-4">🎬 Режисер</h3>
-            <div class="flex items-center gap-3">
-              <div class="w-14 h-14 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800 flex-shrink-0 ring-2 ring-amber-400/30">
+            <button @click="openPerson(director.id)" class="flex items-center gap-3 w-full text-left group hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl p-2 -m-2 transition-colors">
+              <div class="w-14 h-14 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800 flex-shrink-0 ring-2 ring-amber-400/30 group-hover:ring-amber-400/70 transition-all">
                 <img
                   v-if="director.profile_path"
                   :src="`https://image.tmdb.org/t/p/w185${director.profile_path}`"
@@ -396,10 +396,10 @@
                 <div v-else class="w-full h-full flex items-center justify-center text-2xl">🎬</div>
               </div>
               <div>
-                <p class="font-semibold text-gray-900 dark:text-white">{{ director.name }}</p>
-                <p class="text-xs text-gray-400">Режисер</p>
+                <p class="font-semibold text-gray-900 dark:text-white group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">{{ director.name }}</p>
+                <p class="text-xs text-gray-400">Режисер ↗</p>
               </div>
-            </div>
+            </button>
           </div>
 
           <!-- Студії -->
@@ -523,6 +523,9 @@
       </Transition>
     </Teleport>
 
+  <!-- PersonModal -->
+  <PersonModal v-model="showPersonModal" :person-id="selectedPersonId" />
+
   </div>
 </template>
 
@@ -532,6 +535,7 @@ import { useRoute, RouterLink } from 'vue-router'
 import { moviesAPI } from '@/services/api'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from 'vue-toastification'
+import PersonModal from '@/components/movies/PersonModal.vue'
 
 // Props від роутера — mediaType передається для /tv/:id
 const props = defineProps({
@@ -553,6 +557,9 @@ const hoverRating = ref(0)
 const activeVideo = ref(null)
 const lightboxEl  = ref(null)
 const lightbox    = ref({ open: false, index: 0 })
+const showPersonModal  = ref(false)
+const selectedPersonId = ref(null)
+const openPerson = (id) => { selectedPersonId.value = id; showPersonModal.value = true }
 
 const userState = ref({ in_watchlist: false, is_favorite: false, user_rating: null })
 const actionLoading = ref({ watchlist: false, favorite: false, rating: false })
@@ -621,12 +628,11 @@ const toggleWatchlist = async () => {
   actionLoading.value.watchlist = true
   try {
     if (userState.value.in_watchlist) {
-      // Передаємо media_type як query param бо axios DELETE не завжди шле body
-      await moviesAPI.removeWatchlist(movieId.value, mediaType.value)
+      await moviesAPI.removeWatchlist(movieId.value)
       userState.value.in_watchlist = false
       toast.success('Видалено зі списку')
     } else {
-      await moviesAPI.toggleWatchlist(movieId.value, mediaType.value)
+      await moviesAPI.toggleWatchlist(movieId.value)
       userState.value.in_watchlist = true
       toast.success('Додано до вотчлиста ✓')
     }
@@ -638,11 +644,11 @@ const toggleFavorite = async () => {
   actionLoading.value.favorite = true
   try {
     if (userState.value.is_favorite) {
-      await moviesAPI.removeFavorite(movieId.value, mediaType.value)
+      await moviesAPI.removeFavorite(movieId.value)
       userState.value.is_favorite = false
       toast.success('Видалено з улюблених')
     } else {
-      await moviesAPI.toggleFavorite(movieId.value, mediaType.value)
+      await moviesAPI.toggleFavorite(movieId.value)
       userState.value.is_favorite = true
       toast.success('Додано до улюблених ❤️')
     }
@@ -653,8 +659,8 @@ const setRating = async (rating) => {
   if (!isAuthenticated.value) return
   actionLoading.value.rating = true
   try {
-    if (userState.value.user_rating) await moviesAPI.updateRating(movieId.value, rating, mediaType.value)
-    else await moviesAPI.rateMovie(movieId.value, rating, mediaType.value)
+    if (userState.value.user_rating) await moviesAPI.updateRating(movieId.value, rating)
+    else await moviesAPI.rateMovie(movieId.value, rating)
     userState.value.user_rating = rating
     toast.success(`Оцінка ${rating}/10 збережена ⭐`)
   } catch { toast.error('Помилка збереження оцінки') } finally { actionLoading.value.rating = false }
@@ -663,7 +669,7 @@ const setRating = async (rating) => {
 const deleteRating = async () => {
   actionLoading.value.rating = true
   try {
-    await moviesAPI.deleteRating(movieId.value, mediaType.value)
+    await moviesAPI.deleteRating(movieId.value)
     userState.value.user_rating = null
     toast.success('Оцінку видалено')
   } catch { toast.error('Помилка') } finally { actionLoading.value.rating = false }

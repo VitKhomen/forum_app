@@ -21,19 +21,23 @@ def _fetch_item_data(tmdb_id: int, media_type: str = 'movie') -> dict:
     }
 
 
-# ─── TMDB proxy ───────────────────────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════════
+# TMDB PROXY — фільми і серіали
+# ═══════════════════════════════════════════════════════════════════════════════
 
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
-def movie_search(request):
+def multi_search(request):
+    """
+    GET /api/v1/movies/search/?q=том+хенкс&page=1
+    Єдиний пошук — повертає фільми, серіали і персони.
+    Кожен елемент має поле media_type: "movie" | "tv" | "person"
+    """
     q = request.query_params.get('q', '').strip()
     page = int(request.query_params.get('page', 1))
-    media_type = request.query_params.get('media_type', 'movie')
-    if media_type not in ('movie', 'tv'):
-        media_type = 'movie'
     if not q:
         return Response({'error': "Параметр 'q' обов'язковий"}, status=400)
-    data = tmdb.search(q, page=page, media_type=media_type)
+    data = tmdb.multi_search(q, page=page)
     if data is None:
         return Response({'error': 'TMDB API недоступний'}, status=503)
     return Response(data)
@@ -155,37 +159,33 @@ def movie_list_by_category(request, category):
     return Response(data)
 
 
-# ─── Watchlist ────────────────────────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════════
+# ПЕРСОНИ (актори, режисери, etc.)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
+def person_detail(request, person_id):
+    """
+    GET /api/v1/movies/persons/<person_id>/
+    Повна інформація про персону: біографія, фото, movie_credits, tv_credits
+    """
+    data = tmdb.get_person(person_id)
+    if data is None:
+        return Response({'error': 'Персону не знайдено'}, status=404)
+    return Response(data)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# WATCHLIST / FAVORITES / RATINGS
+# ═══════════════════════════════════════════════════════════════════════════════
 
 @api_view(['POST', 'DELETE'])
 @permission_classes([permissions.IsAuthenticated])
 def toggle_watchlist(request, movie_id):
-    # Читаємо media_type з усіх можливих місць
-    media_type = (
-        request.data.get('media_type')
-        or request.query_params.get('media_type')
-        or 'movie'
-    )
-    if media_type not in ('movie', 'tv'):
-        media_type = 'movie'
+    media_type = request.data.get(
+        'media_type', request.query_params.get('media_type', 'movie'))
 
-    if request.method == 'DELETE':
-        # При DELETE шукаємо і видаляємо БЕЗ прив'язки до media_type
-        # якщо media_type не прийшов — видаляємо всі записи з цим tmdb_id
-        deleted, _ = WatchlistItem.objects.filter(
-            user=request.user,
-            tmdb_id=movie_id,
-            media_type=media_type,
-        ).delete()
-        if deleted == 0:
-            # Fallback: спробуємо без media_type
-            WatchlistItem.objects.filter(
-                user=request.user,
-                tmdb_id=movie_id,
-            ).delete()
-        return Response({'in_watchlist': False})
-
-    # POST — додаємо
     item, created = WatchlistItem.objects.get_or_create(
         user=request.user,
         tmdb_id=movie_id,
@@ -193,7 +193,6 @@ def toggle_watchlist(request, movie_id):
         defaults=_fetch_item_data(movie_id, media_type)
     )
     if not created:
-        # Вже є — видаляємо (toggle)
         item.delete()
         return Response({'in_watchlist': False})
     return Response({'in_watchlist': True}, status=201)
@@ -202,26 +201,8 @@ def toggle_watchlist(request, movie_id):
 @api_view(['POST', 'DELETE'])
 @permission_classes([permissions.IsAuthenticated])
 def toggle_favorite(request, movie_id):
-    media_type = (
-        request.data.get('media_type')
-        or request.query_params.get('media_type')
-        or 'movie'
-    )
-    if media_type not in ('movie', 'tv'):
-        media_type = 'movie'
-
-    if request.method == 'DELETE':
-        deleted, _ = FavoriteMovie.objects.filter(
-            user=request.user,
-            tmdb_id=movie_id,
-            media_type=media_type,
-        ).delete()
-        if deleted == 0:
-            FavoriteMovie.objects.filter(
-                user=request.user,
-                tmdb_id=movie_id,
-            ).delete()
-        return Response({'is_favorite': False})
+    media_type = request.data.get(
+        'media_type', request.query_params.get('media_type', 'movie'))
 
     item, created = FavoriteMovie.objects.get_or_create(
         user=request.user,
@@ -238,25 +219,13 @@ def toggle_favorite(request, movie_id):
 @api_view(['POST', 'PUT', 'DELETE'])
 @permission_classes([permissions.IsAuthenticated])
 def movie_rating(request, movie_id):
-    media_type = (
-        request.data.get('media_type')
-        or request.query_params.get('media_type')
-        or 'movie'
-    )
-    if media_type not in ('movie', 'tv'):
-        media_type = 'movie'
+    media_type = request.data.get(
+        'media_type', request.query_params.get('media_type', 'movie'))
 
     if request.method == 'DELETE':
-        deleted, _ = MovieRating.objects.filter(
-            user=request.user,
-            tmdb_id=movie_id,
-            media_type=media_type,
+        MovieRating.objects.filter(
+            user=request.user, tmdb_id=movie_id, media_type=media_type
         ).delete()
-        if deleted == 0:
-            MovieRating.objects.filter(
-                user=request.user,
-                tmdb_id=movie_id,
-            ).delete()
         return Response({'user_rating': None})
 
     rating = request.data.get('rating')
@@ -284,8 +253,8 @@ def movie_rating(request, movie_id):
     )
     return Response({'user_rating': obj.rating}, status=201 if created else 200)
 
-# ─── Списки юзера ─────────────────────────────────────────────────────────────
 
+# ─── Списки юзера ─────────────────────────────────────────────────────────────
 
 class MyWatchlistView(generics.ListAPIView):
     serializer_class = WatchlistSerializer

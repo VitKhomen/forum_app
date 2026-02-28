@@ -1,7 +1,9 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-950">
+  <div class="min-h-screen bg-gray-50 dark:bg-gray-950 -mx-4 sm:-mx-6 lg:-mx-8">
 
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <!-- ══════════════════════════════════════════════════
+         HERO SECTION — показується коли немає активного пошуку/фільтрів
+    ══════════════════════════════════════════════════ -->
     <Transition name="hero-slide">
       <section
         v-if="mode === 'home'"
@@ -117,6 +119,7 @@
          ПАНЕЛЬ ФІЛЬТРІВ (завжди видима)
     ══════════════════════════════════════════════════ -->
     <div class="sticky top-0 z-30 py-3 bg-white/95 dark:bg-gray-950/95 backdrop-blur-xl border-b border-gray-200 dark:border-gray-800 mb-6 shadow-sm">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex flex-wrap items-center gap-2">
 
         <!-- Тип медіа (компактний, якщо не hero режим) -->
@@ -166,20 +169,12 @@
           <option value="vote_count.desc">💬 Найбільше оцінок</option>
         </select>
 
-        <!-- Пошук (якщо не hero) -->
-        <div v-if="mode !== 'home'" class="flex-1 min-w-0 max-w-sm relative">
-          <input
-            v-model="searchQuery"
-            @keyup.enter="applySearch"
-            type="search"
-            placeholder="Пошук..."
-            class="w-full px-4 py-2 pr-10 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs focus:outline-none focus:ring-2 focus:ring-amber-400"
+        <!-- Єдиний пошук: фільми + серіали + актори -->
+        <div class="flex-1 min-w-0 max-w-sm">
+          <UniversalSearch
+            placeholder="Фільм, серіал, актор..."
+            @search="onUniversalSearch"
           />
-          <button
-            v-if="searchQuery"
-            @click="clearSearch"
-            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-          >✕</button>
         </div>
 
         <!-- Рандом -->
@@ -232,7 +227,11 @@
           </button>
         </div>
       </div>
+      </div>
     </div>
+
+    <!-- Контентна зона: обмежена шириною і з padding -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
     <!-- ══════════════════════════════════════════════════
          HOME MODE — секції без пошуку
@@ -391,17 +390,18 @@
           Скинути фільтри
         </button>
       </div>
-      
+
     </template>
-    
+
+    </div><!-- /Контентна зона -->
+
     <!-- Random Modal -->
     <RandomMovieModal
-    v-model="showRandomModal"
+      v-model="showRandomModal"
       :initial-media-type="mediaType"
       :genres="genres"
-      />
-      
-  </div>
+    />
+
   </div>
 </template>
 
@@ -413,6 +413,7 @@ import { moviesAPI } from '@/services/api'
 import MovieCard from '@/components/movies/MovieCard.vue'
 import MovieSection from '@/components/movies/MovieSection.vue'
 import RandomMovieModal from '@/components/movies/RandomMovieModal.vue'
+import UniversalSearch from '@/components/movies/UniversalSearch.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -560,6 +561,15 @@ const applySearch = () => {
   activeSearch.value = searchQuery.value.trim()
   currentPage.value  = 1
   syncURL()
+  fetchResults()
+}
+
+// Викликається коли UniversalSearch робить перехід /movies?q=...
+// URL вже змінився, loadFromURL() спрацює через watch на route.query
+const onUniversalSearch = (q) => {
+  searchQuery.value  = q
+  activeSearch.value = q
+  currentPage.value  = 1
   fetchResults()
 }
 
