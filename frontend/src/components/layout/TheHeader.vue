@@ -5,7 +5,6 @@
 
         <!-- Logo + Burger зліва -->
         <div class="flex items-center gap-3">
-          <!-- ✅ Burger кнопка для sidebar -->
           <button
             @click="sidebarOpen = true"
             class="p-2 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
@@ -28,8 +27,8 @@
           </RouterLink>
         </div>
 
-        <!-- Desktop: тільки авторизація + тема + пошук -->
-        <div class="flex items-center gap-2">
+        <!-- Права частина -->
+        <div class="flex items-center gap-1">
           <template v-if="authStore.isAuthenticated">
             <RouterLink
               to="/profile"
@@ -61,22 +60,42 @@
 
           <ThemeToggle />
 
+          <!-- ═══ Кнопка Фільмотеки ═══ -->
+          <RouterLink
+            to="/movies"
+            class="relative p-2 rounded-full transition-all group"
+            :class="isMoviesRoute
+              ? 'text-amber-500 bg-amber-50 dark:bg-amber-900/20'
+              : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'"
+            aria-label="Фільмотека"
+          >
+            <FilmIcon class="w-6 h-6" />
+            <!-- Підказка при hover -->
+            <span class="absolute -bottom-8 left-1/2 -translate-x-1/2 text-xs bg-gray-900 text-white px-2 py-1 rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+              Фільмотека
+            </span>
+          </RouterLink>
+
+          <!-- Пошук -->
           <button
             @click="toggleSearch"
-            class="p-2 rounded-full text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition"
-            :class="{ 'bg-gray-200 dark:bg-gray-700': showSearch }"
+            class="relative p-2 rounded-full transition-all group"
+            :class="showSearch
+              ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
+              : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'"
+            aria-label="Пошук"
           >
             <MagnifyingGlassIcon class="w-6 h-6" />
+            <span class="absolute -bottom-8 left-1/2 -translate-x-1/2 text-xs bg-gray-900 text-white px-2 py-1 rounded-md whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+              Пошук
+            </span>
           </button>
         </div>
       </div>
 
       <!-- Панель пошуку -->
       <Transition name="slide-down">
-        <div
-          v-if="showSearch"
-          class="border-t border-gray-200 dark:border-gray-700 py-5"
-        >
+        <div v-if="showSearch" class="border-t border-gray-200 dark:border-gray-700 py-5">
           <div class="flex flex-col sm:flex-row gap-4 items-center">
             <input
               v-model="searchQuery"
@@ -91,9 +110,7 @@
               class="px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
             >
               <option value="">Всі категорії</option>
-              <option v-for="cat in categories" :key="cat.id" :value="cat.slug">
-                {{ cat.name }}
-              </option>
+              <option v-for="cat in categories" :key="cat.id" :value="cat.slug">{{ cat.name }}</option>
             </select>
             <button
               @click="triggerSearch"
@@ -105,17 +122,11 @@
 
           <div v-if="hasActiveFilters" class="mt-4 flex flex-wrap gap-2">
             <span class="text-sm text-gray-600 dark:text-gray-400">Активні фільтри:</span>
-            <span
-              v-if="searchQuery"
-              class="inline-flex items-center gap-2 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-full text-sm"
-            >
+            <span v-if="searchQuery" class="inline-flex items-center gap-2 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-full text-sm">
               Пошук: "{{ searchQuery }}"
               <button @click="clearSearch"><XMarkIcon class="w-4 h-4" /></button>
             </span>
-            <span
-              v-if="selectedCategory"
-              class="inline-flex items-center gap-2 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-3 py-1 rounded-full text-sm"
-            >
+            <span v-if="selectedCategory" class="inline-flex items-center gap-2 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-3 py-1 rounded-full text-sm">
               Категорія: {{ getCategoryName(selectedCategory) }}
               <button @click="clearCategory"><XMarkIcon class="w-4 h-4" /></button>
             </span>
@@ -125,59 +136,40 @@
     </nav>
   </header>
 
-  <!-- ✅ SIDEBAR DRAWER -->
+  <!-- SIDEBAR DRAWER -->
   <Teleport to="body">
-    <!-- Backdrop -->
     <Transition name="fade">
-      <div
-        v-if="sidebarOpen"
-        class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
-        @click="sidebarOpen = false"
-      />
+      <div v-if="sidebarOpen" class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm" @click="sidebarOpen = false" />
     </Transition>
 
-    <!-- Drawer -->
     <Transition name="slide-left">
-      <div
-        v-if="sidebarOpen"
-        class="fixed top-0 left-0 z-50 h-full w-72 bg-white dark:bg-gray-900 shadow-2xl flex flex-col"
-      >
-        <!-- Drawer header -->
+      <div v-if="sidebarOpen" class="fixed top-0 left-0 z-50 h-full w-72 bg-white dark:bg-gray-900 shadow-2xl flex flex-col">
+        <!-- Header -->
         <div class="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700">
           <RouterLink to="/" @click="sidebarOpen = false" class="flex items-center gap-2">
-            <img
-              src="https://pub-f6a1145b5cea4dd298fe674249772346.r2.dev/logo/logo.png"
-              width="28"
-              height="28"
-              alt="Logo"
-              class="rounded"
-            />
+            <img src="https://pub-f6a1145b5cea4dd298fe674249772346.r2.dev/logo/logo.png" width="28" height="28" alt="Logo" class="rounded" />
             <span class="text-xl font-bold text-gray-900 dark:text-white">JustForum</span>
           </RouterLink>
-          <button
-            @click="sidebarOpen = false"
-            class="p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
-          >
+          <button @click="sidebarOpen = false" class="p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 transition">
             <XMarkIcon class="w-5 h-5" />
           </button>
         </div>
 
-        <!-- Nav links -->
+        <!-- Nav -->
         <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-1">
-          <!-- Головні -->
-          <p class="px-3 py-1 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-            Навігація
-          </p>
+          <p class="px-3 py-1 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Навігація</p>
 
           <RouterLink
             v-for="link in mainLinks"
             :key="link.to"
             :to="link.to"
             @click="sidebarOpen = false"
-            class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-            :class="{ 'bg-blue-50 dark:bg-gray-800 text-blue-600 dark:text-blue-400': $route.path === link.to }"
+            class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors"
+            :class="$route.path === link.to || $route.path.startsWith(link.to + '/')  && link.to !== '/'
+              ? 'bg-blue-50 dark:bg-gray-800 text-blue-600 dark:text-blue-400'
+              : 'text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-blue-400'"
           >
-            <component :is="link.icon" class="w-5 h-5 flex-shrink-0" />
+            <component :is="link.icon" class="w-5 h-5 flex-shrink-0" :class="link.iconClass" />
             {{ link.label }}
           </RouterLink>
 
@@ -191,12 +183,8 @@
                 <TagIcon class="w-5 h-5 flex-shrink-0" />
                 Категорії
               </div>
-              <ChevronDownIcon
-                class="w-4 h-4 transition-transform duration-200"
-                :class="{ 'rotate-180': categoriesExpanded }"
-              />
+              <ChevronDownIcon class="w-4 h-4 transition-transform duration-200" :class="{ 'rotate-180': categoriesExpanded }" />
             </button>
-
             <Transition name="expand">
               <div v-if="categoriesExpanded" class="ml-4 mt-1 space-y-0.5 border-l-2 border-gray-200 dark:border-gray-700 pl-3">
                 <RouterLink
@@ -205,85 +193,53 @@
                   :to="{ name: 'posts', query: { category__slug: cat.slug } }"
                   @click="sidebarOpen = false"
                   class="block px-3 py-2 rounded-lg text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-800 transition-colors"
-                >
-                  {{ cat.name }}
-                </RouterLink>
+                >{{ cat.name }}</RouterLink>
               </div>
             </Transition>
           </div>
 
-          <!-- Авторизація -->
+          <!-- Акаунт -->
           <div class="pt-3">
-            <p class="px-3 py-1 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-              Акаунт
-            </p>
-
+            <p class="px-3 py-1 text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Акаунт</p>
             <template v-if="authStore.isAuthenticated">
-              <RouterLink
-                to="/profile"
-                @click="sidebarOpen = false"
-                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-              >
-                <UserCircleIcon class="w-5 h-5" />
-                Профіль
+              <RouterLink to="/profile" @click="sidebarOpen = false"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                <UserCircleIcon class="w-5 h-5" /> Профіль
               </RouterLink>
-              <RouterLink
-                to="/profile/create-post"
-                @click="sidebarOpen = false"
-                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-green-50 dark:hover:bg-gray-800 hover:text-green-600 dark:hover:text-green-400 transition-colors"
-              >
-                <PencilSquareIcon class="w-5 h-5" />
-                Створити пост
+              <RouterLink to="/profile/create-post" @click="sidebarOpen = false"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-green-50 dark:hover:bg-gray-800 hover:text-green-600 dark:hover:text-green-400 transition-colors">
+                <PencilSquareIcon class="w-5 h-5" /> Створити пост
               </RouterLink>
-              <button
-                @click="handleLogout"
-                class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-gray-800 hover:text-red-600 dark:hover:text-red-400 transition-colors"
-              >
-                <ArrowRightOnRectangleIcon class="w-5 h-5" />
-                Вийти
+              <button @click="handleLogout"
+                class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-gray-800 hover:text-red-600 dark:hover:text-red-400 transition-colors">
+                <ArrowRightOnRectangleIcon class="w-5 h-5" /> Вийти
               </button>
             </template>
-
             <template v-else>
-              <RouterLink
-                to="/login"
-                @click="sidebarOpen = false"
-                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-              >
-                <ArrowLeftOnRectangleIcon class="w-5 h-5" />
-                Вхід
+              <RouterLink to="/login" @click="sidebarOpen = false"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                <ArrowLeftOnRectangleIcon class="w-5 h-5" /> Вхід
               </RouterLink>
-              <RouterLink
-                to="/register"
-                @click="sidebarOpen = false"
-                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-              >
-                <UserPlusIcon class="w-5 h-5" />
-                Реєстрація
+              <RouterLink to="/register" @click="sidebarOpen = false"
+                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+                <UserPlusIcon class="w-5 h-5" /> Реєстрація
               </RouterLink>
             </template>
           </div>
         </nav>
 
-        <!-- Drawer footer — karma badge якщо авторизований -->
-        <div
-          v-if="authStore.isAuthenticated && authStore.user"
-          class="px-5 py-4 border-t border-gray-200 dark:border-gray-700"
-        >
+        <!-- Footer -->
+        <div v-if="authStore.isAuthenticated && authStore.user" class="px-5 py-4 border-t border-gray-200 dark:border-gray-700">
           <div class="flex items-center gap-3">
             <div class="w-9 h-9 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 flex-shrink-0">
-              <img
-                v-if="authStore.user.avatar"
-                :src="authStore.user.avatar"
-                class="w-full h-full object-cover"
-              />
+              <img v-if="authStore.user.avatar" :src="authStore.user.avatar" class="w-full h-full object-cover" />
               <UserCircleIcon v-else class="w-full h-full text-gray-400" />
             </div>
             <div class="flex-1 min-w-0">
               <p class="text-sm font-medium text-gray-900 dark:text-white truncate">
                 {{ authStore.user.full_name || authStore.user.username }}
               </p>
-              <p class="text-xs text-gray-500 dark:text-gray-400 truncate">
+              <p class="text-xs text-gray-500 dark:text-gray-400">
                 {{ authStore.user.karma_points || 0 }} карми • рівень {{ authStore.user.karma_level || 1 }}
               </p>
             </div>
@@ -314,34 +270,38 @@ import {
   ArrowLeftOnRectangleIcon,
   UserPlusIcon,
   ChevronDownIcon,
+  FilmIcon,
 } from '@heroicons/vue/24/outline'
 import ThemeToggle from '@/components/ui/ThemeToggle.vue'
 
-const router = useRouter()
-const route = useRoute()
-const authStore = useAuthStore()
+const router     = useRouter()
+const route      = useRoute()
+const authStore  = useAuthStore()
 
-const sidebarOpen = ref(false)
+const sidebarOpen        = ref(false)
 const categoriesExpanded = ref(false)
-const showSearch = ref(false)
-const searchQuery = ref('')
-const selectedCategory = ref('')
-const categories = ref([])
+const showSearch         = ref(false)
+const searchQuery        = ref('')
+const selectedCategory   = ref('')
+const categories         = ref([])
 
-// Основні посилання для sidebar
+// Підсвічування активного маршруту фільмотеки
+const isMoviesRoute = computed(() =>
+  route.path.startsWith('/movies') || route.path.startsWith('/tv')
+)
+
+// Посилання сайдбару
 const mainLinks = [
-  { to: '/',               label: 'Головна',   icon: HomeIcon },
-  { to: '/posts',          label: 'Всі пости', icon: NewspaperIcon },
-  { to: '/posts/popular',  label: 'Популярні', icon: FireIcon },
-  { to: '/posts/trending', label: 'В тренді',  icon: ArrowTrendingUpIcon },
+  { to: '/',               label: 'Головна',      icon: HomeIcon },
+  { to: '/posts',          label: 'Всі пости',    icon: NewspaperIcon },
+  { to: '/posts/popular',  label: 'Популярні',    icon: FireIcon },
+  { to: '/posts/trending', label: 'В тренді',     icon: ArrowTrendingUpIcon },
+  { to: '/movies',         label: 'Фільмотека',   icon: FilmIcon },
 ]
 
 const hasActiveFilters = computed(() => searchQuery.value.trim() || selectedCategory.value)
 
-const getCategoryName = (slug) => {
-  const cat = categories.value.find(c => c.slug === slug)
-  return cat ? cat.name : slug
-}
+const getCategoryName = (slug) => categories.value.find(c => c.slug === slug)?.name || slug
 
 const toggleSearch = () => {
   showSearch.value = !showSearch.value
@@ -349,19 +309,19 @@ const toggleSearch = () => {
 }
 
 const syncFromRoute = () => {
-  if (route.query.search) searchQuery.value = route.query.search
-  if (route.query.category__slug) selectedCategory.value = route.query.category__slug
+  if (route.query.search)          searchQuery.value    = route.query.search
+  if (route.query.category__slug)  selectedCategory.value = route.query.category__slug
 }
 
 const triggerSearch = () => {
   const query = {}
   if (searchQuery.value.trim()) query.search = searchQuery.value.trim()
-  if (selectedCategory.value) query.category__slug = selectedCategory.value
+  if (selectedCategory.value)   query.category__slug = selectedCategory.value
   showSearch.value = false
   router.push({ name: 'posts', query })
 }
 
-const clearSearch = () => { searchQuery.value = ''; triggerSearch() }
+const clearSearch   = () => { searchQuery.value = '';    triggerSearch() }
 const clearCategory = () => { selectedCategory.value = ''; triggerSearch() }
 
 const handleLogout = async () => {
@@ -374,61 +334,36 @@ const fetchCategories = async () => {
   try {
     const { data } = await categoriesAPI.getAll()
     categories.value = data.results || data
-  } catch (error) {
-    console.error('Помилка завантаження категорій:', error)
-  }
+  } catch {}
 }
 
 watch(() => route.query, () => {
   if (route.name === 'posts') syncFromRoute()
 }, { immediate: true })
 
-// Закривати sidebar при переході
-watch(() => route.path, () => {
-  sidebarOpen.value = false
-})
+watch(() => route.path, () => { sidebarOpen.value = false })
 
-onMounted(() => {
-  fetchCategories()
-})
+onMounted(fetchCategories)
 </script>
 
 <style scoped>
-/* Пошук */
-.slide-down-enter-active,
-.slide-down-leave-active {
+.slide-down-enter-active, .slide-down-leave-active {
   transition: all 0.3s ease;
   max-height: 500px;
   overflow: hidden;
 }
-.slide-down-enter-from,
-.slide-down-leave-to {
-  max-height: 0;
-  opacity: 0;
-}
+.slide-down-enter-from, .slide-down-leave-to { max-height: 0; opacity: 0; }
 
-/* Backdrop */
-.fade-enter-active,
-.fade-leave-active { transition: opacity 0.25s ease }
-.fade-enter-from,
-.fade-leave-to { opacity: 0 }
+.fade-enter-active, .fade-leave-active { transition: opacity 0.25s ease }
+.fade-enter-from, .fade-leave-to { opacity: 0 }
 
-/* Drawer slide from left */
-.slide-left-enter-active,
-.slide-left-leave-active { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) }
-.slide-left-enter-from,
-.slide-left-leave-to { transform: translateX(-100%) }
+.slide-left-enter-active, .slide-left-leave-active { transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) }
+.slide-left-enter-from, .slide-left-leave-to { transform: translateX(-100%) }
 
-/* Категорії expand */
-.expand-enter-active,
-.expand-leave-active {
+.expand-enter-active, .expand-leave-active {
   transition: all 0.2s ease;
   overflow: hidden;
   max-height: 500px;
 }
-.expand-enter-from,
-.expand-leave-to {
-  max-height: 0;
-  opacity: 0;
-}
+.expand-enter-from, .expand-leave-to { max-height: 0; opacity: 0; }
 </style>

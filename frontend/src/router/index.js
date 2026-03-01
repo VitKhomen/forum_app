@@ -124,6 +124,26 @@ const router = createRouter({
       component: () => import('@/views/LeaderboardView.vue'),
       meta: { requiresAuth: false }
     },
+    {
+      path: '/movies',
+      name: 'movies',
+      component: () => import('@/views/movies/MoviesView.vue'),
+      meta: { title: 'Кінотека' }
+    },
+    {
+      path: '/movies/:id',
+      name: 'movie-detail',
+      component: () => import('@/views/movies/MovieDetailView.vue'),
+      props: true,
+      meta: { title: 'Фільм' }
+    },
+    {
+      path: '/tv/:id',
+      name: 'tv-detail',
+      component: () => import('@/views/movies/MovieDetailView.vue'),
+      props: (route) => ({ id: route.params.id, mediaType: 'tv' }),
+      meta: { title: 'Серіал' }
+    },
   ]
 })
 

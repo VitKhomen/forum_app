@@ -38,6 +38,7 @@ LOCAL_APPS = [
     'apps.feedback',
     'apps.likes',
     'apps.karma',
+    'apps.movies',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -79,10 +80,10 @@ DATABASES = {
     "default": dj_database_url.config(
         default=config(
             "DATABASE_URL",
-            default="postgres://newsuser:password@localhost:5432/newssite"
+            default='sqlite:///db.sqlite3'
         ),
-        conn_max_age=600,  # держит соединение открытым
-        ssl_require=False   # можно True, если на сервере нужен SSL
+        conn_max_age=600,
+        ssl_require=False
     )
 }
 
@@ -296,3 +297,13 @@ EMAIL_USE_TLS = True
 EMAIL_PORT = 587
 EMAIL_HOST_USER = config('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
+
+# апі для фільмів
+TMDB_API_KEY = config('TMDB_API_KEY', default='')
+# Кеш — Redis
+# CACHES = {
+#     "default": {
+#         "BACKEND": "django.core.cache.backends.redis.RedisCache",
+#         "LOCATION": config("REDIS_URL", default="redis://localhost:6379/1"),
+#     }
+# }

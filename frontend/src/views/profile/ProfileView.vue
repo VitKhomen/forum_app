@@ -141,7 +141,14 @@
             Переглянути все
           </button>
         </div>
-        <KarmaHistory :username="authStore.user.username" :limit="5" />
+      </div>
+
+      <!-- Кінотека -->
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
+        <h2 class="text-xl font-bold text-gray-900 dark:text-white mb-5 flex items-center gap-2">
+          🎬 Моя кінотека
+        </h2>
+        <ProfileMoviesSection />
       </div>
 
     <!-- Edit Profile Modal -->
@@ -365,9 +372,10 @@ import {
 import { format } from 'date-fns'
 import { uk } from 'date-fns/locale'
 import { useToast } from 'vue-toastification'
-import AuthorWithKarma from '@/components/ui/KarmaBadge.vue'
 import { ClockIcon } from '@heroicons/vue/24/outline'
+import AuthorWithKarma from '@/components/ui/KarmaBadge.vue'
 import KarmaHistoryModal from '@/components/ui/KarmaHistoryModal.vue'
+import ProfileMoviesSection from '@/components/movies/ProfileMoviesSection.vue'
 
 const authStore = useAuthStore()
 const toast = useToast()

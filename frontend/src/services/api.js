@@ -155,4 +155,77 @@ export const karmaAPI = {
   getLeaderboard: (params) => api.get('/karma/leaderboard/', { params }),
 }
 
+export const moviesAPI = {
+  // ── Пошук ──────────────────────────────────────────────────────────────────
+  // Єдиний multi-search: повертає { results: [...] } де кожен елемент має
+  // media_type: "movie" | "tv" | "person"
+  search: (query, page = 1) =>
+    api.get('/movies/search/', { params: { q: query, page } }),
+
+  // ── Деталі ─────────────────────────────────────────────────────────────────
+  getById: (id, mediaType = 'movie') =>
+    api.get(`/movies/${id}/`, { params: { media_type: mediaType } }),
+
+  // ── Персони ────────────────────────────────────────────────────────────────
+  getPersonById: (personId) =>
+    api.get(`/movies/persons/${personId}/`),
+
+  // ── Discover ───────────────────────────────────────────────────────────────
+  discover: (params = {}, mediaType = 'movie') =>
+    api.get('/movies/discover/', { params: { ...params, media_type: mediaType } }),
+
+  // ── Trending / Списки ──────────────────────────────────────────────────────
+  trending: (mediaType = 'movie', timeWindow = 'week') =>
+    api.get('/movies/trending/', { params: { media_type: mediaType, time_window: timeWindow } }),
+
+  nowPlaying: (mediaType = 'movie', page = 1) =>
+    api.get(`/movies/${mediaType === 'movie' ? 'now_playing' : 'on_the_air'}/`, { params: { page } }),
+
+  topRated: (mediaType = 'movie', page = 1) =>
+    api.get('/movies/top_rated/', { params: { page, media_type: mediaType } }),
+
+  popular: (mediaType = 'movie', page = 1) =>
+    api.get('/movies/popular/', { params: { page, media_type: mediaType } }),
+
+  // ── Жанри / Рекомендації ───────────────────────────────────────────────────
+  genres: (mediaType = 'movie') =>
+    api.get('/movies/genres/', { params: { media_type: mediaType } }),
+
+  recommendations: (movieId, mediaType = 'movie') =>
+    api.get(`/movies/${movieId}/recommendations/`, { params: { media_type: mediaType } }),
+
+  // ── Watchlist ──────────────────────────────────────────────────────────────
+  toggleWatchlist: (id, mediaType = 'movie') =>
+    api.post(`/movies/${id}/watchlist/`, { media_type: mediaType }),
+
+  removeWatchlist: (id, mediaType = 'movie') =>
+    api.delete(`/movies/${id}/watchlist/`, { params: { media_type: mediaType } }),
+
+  getMyWatchlist: (params) =>
+    api.get('/movies/me/watchlist/', { params }),
+
+  // ── Favorites ──────────────────────────────────────────────────────────────
+  toggleFavorite: (id, mediaType = 'movie') =>
+    api.post(`/movies/${id}/favorite/`, { media_type: mediaType }),
+
+  removeFavorite: (id, mediaType = 'movie') =>
+    api.delete(`/movies/${id}/favorite/`, { params: { media_type: mediaType } }),
+
+  getMyFavorites: (params) =>
+    api.get('/movies/me/favorites/', { params }),
+
+  // ── Ratings ────────────────────────────────────────────────────────────────
+  rateMovie: (id, rating, mediaType = 'movie') =>
+    api.post(`/movies/${id}/rate/`, { rating, media_type: mediaType }),
+
+  updateRating: (id, rating, mediaType = 'movie') =>
+    api.put(`/movies/${id}/rate/`, { rating, media_type: mediaType }),
+
+  deleteRating: (id, mediaType = 'movie') =>
+    api.delete(`/movies/${id}/rate/`, { params: { media_type: mediaType } }),
+
+  getMyRatings: (params) =>
+    api.get('/movies/me/ratings/', { params }),
+}
+
 export default api

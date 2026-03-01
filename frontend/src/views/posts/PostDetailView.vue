@@ -298,7 +298,6 @@ const lightboxOpen = ref(false)
 const galleryImages = ref([])
 const currentImageIndex = ref(0)
 
-// ✅ ДОДАНО: Локальна змінна для відстеження кількості коментарів
 const commentsCount = ref(0)
 
 // Перевірка чи користувач є автором
@@ -327,11 +326,9 @@ const deletePost = async (slug) => {
   }
 }
 
-// ✅ ДОДАНО: Функція для оновлення лічильника коментарів
 const updateCommentsCount = (count) => {
   commentsCount.value = count
   
-  // ✅ ДОДАНО: Публікуємо зміни глобально для PostCard
   if (post.value?.id) {
     syncCommentsCount(post.value.id, count)
   }
@@ -385,7 +382,6 @@ const fetchPost = async () => {
     loading.value = true
     const { data } = await postsAPI.getBySlug(route.params.slug)
     post.value = data
-    // ✅ ДОДАНО: Ініціалізуємо локальний лічильник з даних поста
     commentsCount.value = data.comments_count || 0
   } catch (error) {
     console.error('Error fetching post:', error)
