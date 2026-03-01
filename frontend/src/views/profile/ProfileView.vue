@@ -25,7 +25,7 @@
         <!-- Info -->
         <div class="flex-1">
           <h2 class="text-2xl font-semibold text-gray-900 dark:text-white">
-            {{ authStore.user?.full_name || authStore.user?.username }}
+            {{ authStore.user?.full_name || ''}}
           </h2>
           <div class="mt-2">
             <AuthorWithKarma
@@ -35,8 +35,6 @@
                   :level="authStore.user?.karma_level || 1"
                 />
           </div>
-          
-          <p class="text-gray-600 dark:text-gray-400 mt-2">{{ authStore.user?.email }}</p>
           
           <p v-if="authStore.user?.bio" class="mt-4 text-gray-700 dark:text-gray-300">
             {{ authStore.user.bio }}

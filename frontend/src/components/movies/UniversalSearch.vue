@@ -45,14 +45,8 @@
         style="max-height: 520px; overflow-y: auto;"
       >
 
-        <!-- Порожній запит — підказка -->
-        <div v-if="!query" class="p-4 text-center text-gray-400 text-sm py-8">
-          <p class="text-2xl mb-2">🎬</p>
-          Введіть назву фільму, серіалу або ім'я актора
-        </div>
-
         <!-- Є результати -->
-        <template v-else-if="hasResults">
+        <template v-if="hasResults">
 
           <!-- ПЕРСОНИ -->
           <section v-if="persons.length" class="border-b border-gray-100 dark:border-gray-800">
@@ -160,7 +154,7 @@
         </template>
 
         <!-- Нічого не знайдено -->
-        <div v-else-if="!loading && query" class="flex flex-col items-center py-12 text-gray-400">
+        <div v-else-if="!loading" class="flex flex-col items-center py-12 text-gray-400">
           <p class="text-3xl mb-3">🔍</p>
           <p class="text-sm font-medium">Нічого не знайдено</p>
           <p class="text-xs mt-1 text-gray-300 dark:text-gray-600">Спробуй іншу назву або ім'я</p>
@@ -221,14 +215,14 @@ const hasResults = computed(() =>
   persons.value.length || movies.value.length || tvShows.value.length
 )
 
-const showDropdown = computed(() => focused.value && query.value.trim().length >= 1)
+const showDropdown = computed(() => focused.value && query.value.trim().length >= 2)
 
 // ─── Debounce пошуку ───────────────────────────────────────────
 let debounceTimer = null
 const onInput = () => {
   clearTimeout(debounceTimer)
   if (!query.value.trim()) { results.value = []; return }
-  debounceTimer = setTimeout(fetchResults, 300)
+  debounceTimer = setTimeout(fetchResults, 250)
 }
 
 // ─── Методи ────────────────────────────────────────────────────

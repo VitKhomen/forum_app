@@ -351,34 +351,151 @@
           <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5 shadow-sm">
             <h3 class="text-base font-bold text-gray-900 dark:text-white mb-4">📋 Деталі</h3>
             <dl class="space-y-2.5">
-              <div v-if="movie.release_date" class="flex justify-between gap-3 text-sm">
+
+              <!-- Жанри -->
+              <div v-if="movie.genres?.length" class="flex justify-between gap-3 text-sm">
+                <dt class="text-gray-400 flex-shrink-0">Жанр</dt>
+                <dd class="text-right">
+                  <div class="flex flex-wrap gap-1 justify-end">
+                    <span
+                      v-for="g in movie.genres"
+                      :key="g.id"
+                      class="text-gray-900 dark:text-white font-medium text-right"
+                    >{{ g.name }}</span>
+                  </div>
+                </dd>
+              </div>
+
+              <!-- Дата виходу -->
+              <div v-if="movie.release_date || movie.first_air_date" class="flex justify-between gap-3 text-sm">
                 <dt class="text-gray-400 flex-shrink-0">Дата виходу</dt>
-                <dd class="text-gray-900 dark:text-white font-medium text-right">{{ formatDate(movie.release_date) }}</dd>
+                <dd class="text-gray-900 dark:text-white font-medium text-right">{{ formatDate(movie.release_date || movie.first_air_date) }}</dd>
               </div>
-              <div v-if="movie.runtime" class="flex justify-between gap-3 text-sm">
+
+              <!-- Остання серія (тільки TV) -->
+              <div v-if="movie.last_air_date" class="flex justify-between gap-3 text-sm">
+                <dt class="text-gray-400 flex-shrink-0">Остання серія</dt>
+                <dd class="text-gray-900 dark:text-white font-medium text-right">{{ formatDate(movie.last_air_date) }}</dd>
+              </div>
+
+              <!-- Сезони/серії (тільки TV) -->
+              <div v-if="movie.number_of_seasons" class="flex justify-between gap-3 text-sm">
+                <dt class="text-gray-400 flex-shrink-0">Сезони</dt>
+                <dd class="text-gray-900 dark:text-white font-medium">
+                  {{ movie.number_of_seasons }} сезон{{ movie.number_of_seasons > 1 ? 'и' : '' }}
+                  <span v-if="movie.number_of_episodes" class="text-gray-400"> · {{ movie.number_of_episodes }} серій</span>
+                </dd>
+              </div>
+
+              <!-- Тривалість -->
+              <div v-if="movie.runtime || movie.episode_run_time?.length" class="flex justify-between gap-3 text-sm">
                 <dt class="text-gray-400 flex-shrink-0">Тривалість</dt>
-                <dd class="text-gray-900 dark:text-white font-medium">{{ formatRuntime(movie.runtime) }}</dd>
+                <dd class="text-gray-900 dark:text-white font-medium">
+                  {{ movie.runtime ? formatRuntime(movie.runtime) : formatRuntime(movie.episode_run_time[0]) + ' / серія' }}
+                </dd>
               </div>
-              <div v-if="movie.budget" class="flex justify-between gap-3 text-sm">
+
+              <!-- Рейтинг TMDB -->
+              <div v-if="movie.vote_average" class="flex justify-between gap-3 text-sm">
+                <dt class="text-gray-400 flex-shrink-0">Рейтинг TMDB</dt>
+                <dd class="flex items-center gap-1.5">
+                  <div class="flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                    <span class="font-bold text-gray-900 dark:text-white">{{ movie.vote_average.toFixed(1) }}</span>
+                  </div>
+                  <span v-if="movie.vote_count" class="text-xs text-gray-400">({{ movie.vote_count.toLocaleString() }})</span>
+                </dd>
+              </div>
+
+              <!-- Популярність -->
+              <div v-if="movie.popularity" class="flex justify-between gap-3 text-sm">
+                <dt class="text-gray-400 flex-shrink-0">Популярність</dt>
+                <dd class="text-gray-900 dark:text-white font-medium">{{ Math.round(movie.popularity).toLocaleString() }}</dd>
+              </div>
+
+              <!-- Бюджет -->
+              <div v-if="movie.budget && movie.budget > 0" class="flex justify-between gap-3 text-sm">
                 <dt class="text-gray-400 flex-shrink-0">Бюджет</dt>
                 <dd class="text-gray-900 dark:text-white font-medium">${{ formatMoney(movie.budget) }}</dd>
               </div>
-              <div v-if="movie.revenue" class="flex justify-between gap-3 text-sm">
-                <dt class="text-gray-400 flex-shrink-0">Збори</dt>
-                <dd class="text-green-600 dark:text-green-400 font-medium">${{ formatMoney(movie.revenue) }}</dd>
+
+              <!-- Збори + ROI -->
+              <div v-if="movie.revenue && movie.revenue > 0" class="flex justify-between gap-3 text-sm">
+                <dt class="text-gray-400 flex-shrink-0">Касові збори</dt>
+                <dd class="flex flex-col items-end">
+                  <span
+                    class="font-bold"
+                    :class="movie.budget && movie.revenue > movie.budget ? 'text-green-600 dark:text-green-400' : 'text-gray-900 dark:text-white'"
+                  >${{ formatMoney(movie.revenue) }}</span>
+                  <span v-if="movie.budget && movie.budget > 0" class="text-xs text-gray-400">
+                    {{ movie.revenue > movie.budget ? '+' : '' }}{{ Math.round((movie.revenue - movie.budget) / movie.budget * 100) }}% ROI
+                  </span>
+                </dd>
               </div>
+
+              <!-- Країна -->
               <div v-if="movie.production_countries?.length" class="flex justify-between gap-3 text-sm">
                 <dt class="text-gray-400 flex-shrink-0">Країна</dt>
                 <dd class="text-gray-900 dark:text-white font-medium text-right">{{ movie.production_countries.map(c => c.name).join(', ') }}</dd>
               </div>
-              <div v-if="movie.spoken_languages?.length" class="flex justify-between gap-3 text-sm">
-                <dt class="text-gray-400 flex-shrink-0">Мова</dt>
-                <dd class="text-gray-900 dark:text-white font-medium text-right">{{ movie.spoken_languages.map(l => l.name).join(', ') }}</dd>
-              </div>
+
+              <!-- Мова оригіналу -->
               <div v-if="movie.original_language" class="flex justify-between gap-3 text-sm">
-                <dt class="text-gray-400 flex-shrink-0">Оригінал</dt>
+                <dt class="text-gray-400 flex-shrink-0">Мова оригіналу</dt>
                 <dd class="text-gray-900 dark:text-white font-medium uppercase">{{ movie.original_language }}</dd>
               </div>
+
+              <!-- Всі мови -->
+              <div v-if="movie.spoken_languages?.length > 1" class="flex justify-between gap-3 text-sm">
+                <dt class="text-gray-400 flex-shrink-0">Мови</dt>
+                <dd class="text-gray-900 dark:text-white font-medium text-right text-xs">{{ movie.spoken_languages.map(l => l.name).join(', ') }}</dd>
+              </div>
+
+              <!-- Статус виробництва -->
+              <div v-if="movie.status" class="flex justify-between gap-3 text-sm">
+                <dt class="text-gray-400 flex-shrink-0">Статус</dt>
+                <dd>
+                  <span
+                    class="px-2 py-0.5 rounded-full text-xs font-semibold"
+                    :class="{
+                      'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800': movie.status === 'Released' || movie.status === 'Ended',
+                      'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-200 dark:border-blue-800': movie.status === 'In Production' || movie.status === 'Returning Series',
+                      'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 border border-orange-200 dark:border-orange-800': movie.status === 'Post Production',
+                      'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700': !['Released','Ended','In Production','Returning Series','Post Production'].includes(movie.status),
+                    }"
+                  >{{ statusLabel }}</span>
+                </dd>
+              </div>
+
+              <!-- IMDb посилання -->
+              <div v-if="movie.imdb_id" class="flex justify-between gap-3 text-sm">
+                <dt class="text-gray-400 flex-shrink-0">IMDb</dt>
+                <dd>
+                  <a
+                    :href="`https://www.imdb.com/title/${movie.imdb_id}`"
+                    target="_blank"
+                    rel="noopener"
+                    class="flex items-center gap-1 px-2 py-0.5 rounded bg-amber-400 hover:bg-amber-300 text-gray-900 text-xs font-bold transition-colors"
+                  >
+                    <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M14.31 9.588v.005c-.077-.048-1.045-.054-1.045.936v2.968c0 .986.981.98 1.039.932v.005l.046.003c.08.006.34.012.34-.003.48 0 .638-.143.755-.296.072-.096.115-.225.115-.428V10.52c0-.22-.055-.4-.166-.516-.143-.15-.368-.433-1.084-.416zM12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm-3.07 15.257H7.383V8.743H8.93v6.514zm5.94 0h-1.371v-.39c-.418.344-.783.444-1.29.444-.567 0-.977-.177-1.226-.533-.187-.27-.282-.633-.282-1.26v-2.84c0-.584.09-.96.29-1.22.25-.33.64-.503 1.17-.503.504 0 .876.104 1.34.44v-.39h1.37v5.252zm3.57 0h-2.055l-1.33-6.514h1.55l.807 4.307.807-4.307H18.44l-1.33 6.514z"/></svg>
+                    IMDb ↗
+                  </a>
+                </dd>
+              </div>
+
+              <!-- Сайт -->
+              <div v-if="movie.homepage" class="flex justify-between gap-3 text-sm">
+                <dt class="text-gray-400 flex-shrink-0">Сайт</dt>
+                <dd>
+                  <a
+                    :href="movie.homepage"
+                    target="_blank"
+                    rel="noopener"
+                    class="text-blue-500 hover:text-blue-400 text-xs hover:underline truncate max-w-32 block"
+                  >{{ movie.homepage.replace(/^https?:\/\/(www\.)?/, '').split('/')[0] }} ↗</a>
+                </dd>
+              </div>
+
             </dl>
           </div>
 
@@ -598,7 +715,17 @@ const crew = computed(() => {
 const director    = computed(() => (movie.value?.credits?.crew || []).find(p => p.job === 'Director') || null)
 const similar     = computed(() => (movie.value?.similar?.results || []).slice(0, 12))
 const statusLabel = computed(() => {
-  const map = { Released: 'Вийшов', 'In Production': 'У виробництві', 'Post Production': 'Пост-продакшн', 'Planned': 'Анонсовано' }
+  const map = {
+    Released: 'Вийшов',
+    'In Production': 'У виробництві',
+    'Post Production': 'Пост-продакшн',
+    Planned: 'Анонсовано',
+    Rumored: 'Чутки',
+    Canceled: 'Скасовано',
+    Ended: 'Завершено',
+    'Returning Series': 'Виходить',
+    Pilot: 'Пілот',
+  }
   return map[movie.value?.status] || movie.value?.status
 })
 

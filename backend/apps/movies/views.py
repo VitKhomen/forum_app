@@ -8,17 +8,21 @@ from .serializers import WatchlistSerializer, MovieRatingSerializer, FavoriteMov
 
 # ─── Хелпер: отримати дані фільму/серіалу з TMDB ─────────────────────────────
 def _fetch_item_data(tmdb_id: int, media_type: str = 'movie') -> dict:
-    if media_type == 'tv':
-        data = tmdb.get_tv(tmdb_id)
+    """Отримує title і poster_path з TMDB. Гарантує що poster_path ніколи не None."""
+    try:
+        if media_type == 'tv':
+            data = tmdb.get_tv(tmdb_id)
+            return {
+                'title': (data.get('name') or '') if data else '',
+                'poster_path': (data.get('poster_path') or '') if data else '',
+            }
+        data = tmdb.get_movie(tmdb_id)
         return {
-            'title': data.get('name', '') if data else '',
-            'poster_path': data.get('poster_path', '') if data else '',
+            'title': (data.get('title') or '') if data else '',
+            'poster_path': (data.get('poster_path') or '') if data else '',
         }
-    data = tmdb.get_movie(tmdb_id)
-    return {
-        'title': data.get('title', '') if data else '',
-        'poster_path': data.get('poster_path', '') if data else '',
-    }
+    except Exception:
+        return {'title': '', 'poster_path': ''}
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

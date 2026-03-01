@@ -7,7 +7,7 @@
     <Transition name="hero-slide">
       <section
         v-if="mode === 'home'"
-        class="relative -mt-6 mb-10 h-[460px] overflow-hidden rounded-b-3xl"
+        class="relative -mt-6 mb-10 h-[480px] sm:h-[520px] overflow-hidden rounded-b-3xl"
       >
         <!-- Динамічний backdrop -->
         <Transition name="bg-fade" mode="out-in">
@@ -53,32 +53,37 @@
             <!-- Заголовок з поточним топ-фільмом -->
             <Transition name="text-slide" mode="out-in">
               <div :key="heroIndex">
-                <p class="text-amber-400 text-sm font-semibold uppercase tracking-widest mb-2">
-                  🔥 Топ тижня
-                </p>
-                <h2 class="text-3xl sm:text-4xl font-black text-white mb-3 leading-tight">
+                <div class="flex items-center gap-2 mb-2">
+                  <span class="text-amber-400 text-xs font-bold uppercase tracking-widest">🔥 Топ тижня</span>
+                  <span v-if="heroItem?.vote_average" class="flex items-center gap-1 px-2 py-0.5 bg-amber-400/20 border border-amber-400/30 rounded-full text-amber-300 text-xs font-bold">
+                    ⭐ {{ heroItem.vote_average.toFixed(1) }}
+                  </span>
+                  <span v-if="heroItem?.release_date || heroItem?.first_air_date" class="text-white/40 text-xs">
+                    {{ (heroItem.release_date || heroItem.first_air_date)?.slice(0, 4) }}
+                  </span>
+                </div>
+                <h2 class="text-3xl sm:text-4xl font-black text-white mb-3 leading-tight drop-shadow-lg">
                   {{ heroTitle }}
                 </h2>
-                <p v-if="heroItem?.overview" class="text-white/60 text-sm leading-relaxed line-clamp-2 mb-5">
+                <p v-if="heroItem?.overview" class="text-white/65 text-sm leading-relaxed line-clamp-3 mb-5">
                   {{ heroItem.overview }}
                 </p>
               </div>
             </Transition>
 
-            <!-- Пошук в hero -->
-            <div class="relative max-w-lg">
-              <input
-                v-model="searchQuery"
-                @keyup.enter="applySearch"
-                type="search"
-                :placeholder="mediaType === 'movie' ? 'Знайти фільм...' : 'Знайти серіал...'"
-                class="w-full px-5 py-3.5 pr-14 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/20 text-white placeholder-white/40 focus:outline-none focus:bg-white/15 focus:border-amber-400/50 transition-all text-sm"
-              />
-              <button
-                @click="applySearch"
-                class="absolute right-2 top-2 bottom-2 px-4 bg-amber-400 hover:bg-amber-300 text-gray-900 rounded-xl font-bold text-sm transition-colors"
+            <!-- CTA кнопка на поточний фільм -->
+            <div v-if="heroItem" class="flex gap-3 mb-5">
+              <RouterLink
+                :to="mediaType === 'movie' ? `/movies/${heroItem.id}` : `/tv/${heroItem.id}`"
+                class="inline-flex items-center gap-2 px-5 py-2.5 bg-amber-400 hover:bg-amber-300 text-gray-900 font-bold text-sm rounded-xl transition-all shadow-lg shadow-amber-400/30"
               >
-                →
+                ▶ Детальніше
+              </RouterLink>
+              <button
+                @click="heroIndex = (heroIndex + 1) % Math.min(trendingItems.length, 5)"
+                class="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white text-sm font-medium rounded-xl backdrop-blur-sm border border-white/20 transition-all"
+              >
+                Наступний →
               </button>
             </div>
 
@@ -491,8 +496,13 @@ const fetchResults = async () => {
   try {
     let data
     if (activeSearch.value) {
-      const res = await moviesAPI.search(activeSearch.value, currentPage.value, mediaType.value)
-      data = res.data
+      // multi_search повертає всі типи, фільтруємо по mediaType
+      const res = await moviesAPI.search(activeSearch.value, currentPage.value)
+      const allResults = res.data?.results || []
+      data = {
+        ...res.data,
+        results: allResults.filter(r => r.media_type === mediaType.value || !r.media_type),
+      }
     } else {
       const params = {
         sort_by: sortBy.value,
@@ -596,6 +606,7 @@ const clearAllFilters = () => {
   selectedYear.value  = ''
   sortBy.value        = 'popularity.desc'
   currentPage.value   = 1
+  results.value       = []
   router.replace({ query: {} })
 }
 
