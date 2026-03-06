@@ -1,7 +1,7 @@
 <template>
   <div class="space-y-6">
 
-    <!-- Таби: Вотчліст / Улюблені / Оцінки -->
+    <!-- Таби -->
     <div class="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-2xl p-1">
       <button
         v-for="tab in tabs"
@@ -44,7 +44,6 @@
         >📺 Серіали</button>
       </div>
 
-      <!-- Сортування (тільки для оцінок) -->
       <select
         v-if="activeTab === 'ratings'"
         v-model="ratingSort"
@@ -61,14 +60,13 @@
       <div v-for="i in 12" :key="i" class="aspect-[2/3] rounded-xl bg-gray-100 dark:bg-gray-800 animate-pulse" />
     </div>
 
-    <!-- Контент таба -->
     <template v-else>
-
       <!-- Порожньо -->
       <div v-if="!filteredItems.length" class="text-center py-16">
         <p class="text-4xl mb-3">{{ currentTab.emptyIcon }}</p>
         <p class="text-gray-500 dark:text-gray-400 font-medium">{{ currentTab.emptyText }}</p>
         <RouterLink
+          v-if="!readonly"
           to="/movies"
           class="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-amber-400 hover:bg-amber-300 text-gray-900 rounded-xl text-sm font-semibold transition-colors"
         >
@@ -87,7 +85,6 @@
             :to="item.media_type === 'tv' ? `/tv/${item.tmdb_id}` : `/movies/${item.tmdb_id}`"
             class="block"
           >
-            <!-- Постер -->
             <div class="aspect-[2/3] rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 shadow-sm group-hover:shadow-lg transition-all relative">
               <img
                 v-if="item.poster_url || item.poster_path"
@@ -100,7 +97,7 @@
                 {{ item.media_type === 'tv' ? '📺' : '🎬' }}
               </div>
 
-              <!-- Оцінка бейдж (для вкладки ratings) -->
+              <!-- Оцінка бейдж -->
               <div
                 v-if="activeTab === 'ratings' && item.rating"
                 class="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center text-xs font-black shadow-lg"
@@ -109,8 +106,11 @@
                 {{ item.rating }}
               </div>
 
-              <!-- Hover overlay з кнопкою видалення -->
-              <div class="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+              <!-- Кнопка видалення — тільки свій профіль -->
+              <div
+                v-if="!readonly"
+                class="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100"
+              >
                 <button
                   @click.prevent="removeItem(item)"
                   class="w-8 h-8 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center shadow-lg transition-colors"
@@ -123,50 +123,56 @@
               </div>
             </div>
 
-            <!-- Назва -->
             <p class="text-xs font-medium text-gray-800 dark:text-gray-200 mt-1.5 line-clamp-2 leading-snug group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
               {{ item.title }}
             </p>
-
-            <!-- Дата додавання -->
             <p class="text-xs text-gray-400 mt-0.5">{{ formatDate(item.added_at) }}</p>
           </RouterLink>
         </div>
       </div>
-
     </template>
 
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { moviesAPI } from '@/services/api'
 import { useToast } from 'vue-toastification'
+import api from '@/services/api'
+
+const props = defineProps({
+  username: {
+    type: String,
+    required: true,
+  },
+  // true = чужий профіль (без кнопки видалення, публічні ендпоінти)
+  readonly: {
+    type: Boolean,
+    default: false,
+  },
+})
 
 const toast = useToast()
 
-// ─── Стан ──────────────────────────────────────────────────────
-const activeTab  = ref('watchlist')
-const mediaFilter = ref('all')
-const ratingSort  = ref('newest')
-const loading     = ref(false)
+const activeTab    = ref('watchlist')
+const mediaFilter  = ref('all')
+const ratingSort   = ref('newest')
+const loading      = ref(false)
 
-const watchlist  = ref([])
-const favorites  = ref([])
-const ratings    = ref([])
+const watchlist = ref([])
+const favorites = ref([])
+const ratings   = ref([])
 
-// ─── Tabs config ───────────────────────────────────────────────
 const tabs = [
   { key: 'watchlist', label: 'Хочу дивитись', icon: '🔖', emptyIcon: '🔖', emptyText: 'Список перегляду порожній' },
   { key: 'favorites', label: 'Улюблені',       icon: '❤️', emptyIcon: '❤️', emptyText: 'Улюблених поки немає' },
-  { key: 'ratings',   label: 'Мої оцінки',     icon: '⭐', emptyIcon: '⭐', emptyText: 'Ви ще не оцінили жодного фільму' },
+  { key: 'ratings',   label: 'Оцінки',         icon: '⭐', emptyIcon: '⭐', emptyText: 'Жодного фільму не оцінено' },
 ]
 
 const currentTab = computed(() => tabs.find(t => t.key === activeTab.value))
 
-// ─── Поточний список ───────────────────────────────────────────
 const currentList = computed(() => {
   if (activeTab.value === 'watchlist') return watchlist.value
   if (activeTab.value === 'favorites') return favorites.value
@@ -175,13 +181,9 @@ const currentList = computed(() => {
 
 const filteredItems = computed(() => {
   let items = currentList.value
-
-  // Фільтр по типу медіа
   if (mediaFilter.value !== 'all') {
     items = items.filter(i => i.media_type === mediaFilter.value)
   }
-
-  // Сортування оцінок
   if (activeTab.value === 'ratings') {
     items = [...items].sort((a, b) => {
       if (ratingSort.value === 'highest') return b.rating - a.rating
@@ -189,7 +191,6 @@ const filteredItems = computed(() => {
       return new Date(b.added_at) - new Date(a.added_at)
     })
   }
-
   return items
 })
 
@@ -199,18 +200,30 @@ const counts = computed(() => ({
   ratings:   ratings.value.length,
 }))
 
-// ─── Методи ────────────────────────────────────────────────────
 const fetchAll = async () => {
   loading.value = true
   try {
-    const [wl, fav, rat] = await Promise.allSettled([
-      moviesAPI.getMyWatchlist(),
-      moviesAPI.getMyFavorites(),
-      moviesAPI.getMyRatings(),
-    ])
-    watchlist.value = wl.value?.data?.results || wl.value?.data || []
-    favorites.value = fav.value?.data?.results || fav.value?.data || []
-    ratings.value   = rat.value?.data?.results || rat.value?.data || []
+    if (props.readonly) {
+      // Чужий профіль — публічні ендпоінти по username, доступні всім
+      const [wl, fav, rat] = await Promise.allSettled([
+        api.get(`/movies/users/${props.username}/watchlist/`),
+        api.get(`/movies/users/${props.username}/favorites/`),
+        api.get(`/movies/users/${props.username}/ratings/`),
+      ])
+      watchlist.value = wl.value?.data?.results ?? wl.value?.data ?? []
+      favorites.value = fav.value?.data?.results ?? fav.value?.data ?? []
+      ratings.value   = rat.value?.data?.results ?? rat.value?.data ?? []
+    } else {
+      // Свій профіль — /me/ ендпоінти (вимагають авторизацію)
+      const [wl, fav, rat] = await Promise.allSettled([
+        moviesAPI.getMyWatchlist(),
+        moviesAPI.getMyFavorites(),
+        moviesAPI.getMyRatings(),
+      ])
+      watchlist.value = wl.value?.data?.results ?? wl.value?.data ?? []
+      favorites.value = fav.value?.data?.results ?? fav.value?.data ?? []
+      ratings.value   = rat.value?.data?.results ?? rat.value?.data ?? []
+    }
   } catch (e) {
     console.error('fetchAll movies:', e)
   } finally {
@@ -219,18 +232,25 @@ const fetchAll = async () => {
 }
 
 const removeItem = async (item) => {
+  if (props.readonly) return
   try {
     if (activeTab.value === 'watchlist') {
-      await moviesAPI.removeWatchlist(item.tmdb_id)
-      watchlist.value = watchlist.value.filter(i => !(i.tmdb_id === item.tmdb_id && i.media_type === item.media_type))
+      await moviesAPI.removeWatchlist(item.tmdb_id, item.media_type)
+      watchlist.value = watchlist.value.filter(
+        i => !(i.tmdb_id === item.tmdb_id && i.media_type === item.media_type)
+      )
       toast.success('Видалено зі списку')
     } else if (activeTab.value === 'favorites') {
-      await moviesAPI.removeFavorite(item.tmdb_id)
-      favorites.value = favorites.value.filter(i => !(i.tmdb_id === item.tmdb_id && i.media_type === item.media_type))
+      await moviesAPI.removeFavorite(item.tmdb_id, item.media_type)
+      favorites.value = favorites.value.filter(
+        i => !(i.tmdb_id === item.tmdb_id && i.media_type === item.media_type)
+      )
       toast.success('Видалено з улюблених')
     } else if (activeTab.value === 'ratings') {
-      await moviesAPI.deleteRating(item.tmdb_id)
-      ratings.value = ratings.value.filter(i => !(i.tmdb_id === item.tmdb_id && i.media_type === item.media_type))
+      await moviesAPI.deleteRating(item.tmdb_id, item.media_type)
+      ratings.value = ratings.value.filter(
+        i => !(i.tmdb_id === item.tmdb_id && i.media_type === item.media_type)
+      )
       toast.success('Оцінку видалено')
     }
   } catch {
@@ -251,4 +271,5 @@ const formatDate = (str) => {
 }
 
 onMounted(fetchAll)
+watch(() => props.username, fetchAll)
 </script>

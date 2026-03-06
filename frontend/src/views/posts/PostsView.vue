@@ -4,7 +4,7 @@
     <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
       <div>
         <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
-          Всі пости
+          {{ authorUsername ? `Пости @${authorUsername}` : 'Всі пости' }}
         </h1>
         <!-- Показуємо активні фільтри -->
         <div v-if="activeFiltersText" class="mt-2 text-sm text-gray-600 dark:text-gray-400">
@@ -84,7 +84,6 @@
 
     <!-- Pagination -->
     <div v-if="readyToRenderPages && totalPages > 1 && !loading" class="flex flex-wrap justify-center gap-2 mt-8">
-      <!-- Попередня -->
       <button
         :disabled="currentPage === 1"
         @click="changePage(currentPage - 1)"
@@ -93,7 +92,6 @@
         Попередня
       </button>
 
-      <!-- Сторінки -->
       <button
         v-for="page in displayedPages"
         :key="page"
@@ -108,7 +106,6 @@
         {{ page }}
       </button>
 
-      <!-- Наступна -->
       <button
         :disabled="currentPage === totalPages"
         @click="changePage(currentPage + 1)"
@@ -135,6 +132,7 @@ const loading = ref(true)
 const searchQuery = ref('')
 const selectedCategory = ref('')
 const selectedTag = ref('')
+const authorUsername = ref('')   // ✅ НОВИЙ — фільтр по автору
 const currentPage = ref(1)
 const totalPages = ref(1)
 const pageSize = 9
@@ -144,41 +142,29 @@ const isUpdatingFromUrl = ref(false)
 const fetchPosts = async () => {
   loading.value = true
   readyToRenderPages.value = false
-  
-  try {
-    console.log('Fetching posts with:', {
-      page: currentPage.value,
-      search: searchQuery.value,
-      category: selectedCategory.value,
-      tag: selectedTag.value
-    })
 
+  try {
     // Якщо є тег, використовуємо спеціальний ендпоінт
     if (selectedTag.value) {
       const { data } = await postsAPI.getByTag(selectedTag.value, {
         page: currentPage.value,
         page_size: pageSize
       })
-      
-      console.log('Response from getByTag:', data)
-      
       posts.value = data.results || data
       totalPages.value = data.count ? Math.ceil(data.count / pageSize) : 1
     } else {
-      // Інакше звичайний запит
       const params = {
         page: currentPage.value,
         page_size: pageSize
       }
 
-      if (searchQuery.value.trim()) params.search = searchQuery.value.trim()
-      if (selectedCategory.value) params.category__slug = selectedCategory.value
+      if (searchQuery.value.trim())  params.search          = searchQuery.value.trim()
+      if (selectedCategory.value)    params.category__slug  = selectedCategory.value
+      // ✅ Передаємо author_username на бекенд
+      if (authorUsername.value)      params.author_username = authorUsername.value
 
       const { data } = await postsAPI.getAll(params)
-      
-      console.log('Response from getAll:', data)
-      
-      posts.value = data.results || []
+      posts.value   = data.results || []
       totalPages.value = data.count ? Math.ceil(data.count / pageSize) : 1
     }
 
@@ -206,21 +192,23 @@ const applyFilters = () => {
 }
 
 const clearFilters = () => {
-  searchQuery.value = ''
+  searchQuery.value    = ''
   selectedCategory.value = ''
-  selectedTag.value = ''
-  currentPage.value = 1
+  selectedTag.value    = ''
+  authorUsername.value = ''
+  currentPage.value    = 1
   router.push({ path: '/posts' })
 }
 
 const clearTagFilter = () => {
   selectedTag.value = ''
   currentPage.value = 1
-  
+
   const query = {}
-  if (searchQuery.value) query.search = searchQuery.value
-  if (selectedCategory.value) query.category__slug = selectedCategory.value
-  
+  if (searchQuery.value)      query.search          = searchQuery.value
+  if (selectedCategory.value) query.category__slug  = selectedCategory.value
+  if (authorUsername.value)   query.author_username = authorUsername.value
+
   router.push({ path: '/posts', query })
 }
 
@@ -231,72 +219,58 @@ const changePage = (page) => {
 
 const updateURL = () => {
   const query = {}
-  if (currentPage.value > 1) query.page = currentPage.value.toString()
-  if (searchQuery.value) query.search = searchQuery.value
-  if (selectedCategory.value) query.category__slug = selectedCategory.value
-  if (selectedTag.value) query.tag = selectedTag.value
+  if (currentPage.value > 1)      query.page            = currentPage.value.toString()
+  if (searchQuery.value)          query.search          = searchQuery.value
+  if (selectedCategory.value)     query.category__slug  = selectedCategory.value
+  if (selectedTag.value)          query.tag             = selectedTag.value
+  if (authorUsername.value)       query.author_username = authorUsername.value
 
   router.push({ query })
 }
 
-// Текст активних фільтрів
 const activeFiltersText = computed(() => {
   const filters = []
-  if (searchQuery.value) filters.push(`Пошук: "${searchQuery.value}"`)
+  if (searchQuery.value)      filters.push(`Пошук: "${searchQuery.value}"`)
   if (selectedCategory.value) {
     const cat = categories.value.find(c => c.slug === selectedCategory.value)
     if (cat) filters.push(`Категорія: ${cat.name}`)
   }
-  if (selectedTag.value) filters.push(`Тег: #${selectedTag.value}`)
+  if (selectedTag.value)      filters.push(`Тег: #${selectedTag.value}`)
+  if (authorUsername.value)   filters.push(`Автор: @${authorUsername.value}`)
   return filters.length ? filters.join(' · ') : ''
 })
 
-// Чи є активні фільтри
 const hasActiveFilters = computed(() => {
-  return searchQuery.value || selectedCategory.value || selectedTag.value
+  return searchQuery.value || selectedCategory.value || selectedTag.value || authorUsername.value
 })
 
-// Розумна генерація номерів сторінок
 const displayedPages = computed(() => {
   const pages = []
   const maxVisible = 7
   let start = Math.max(1, currentPage.value - Math.floor(maxVisible / 2))
-  let end = Math.min(totalPages.value, start + maxVisible - 1)
-
-  if (end - start + 1 < maxVisible) {
-    start = Math.max(1, end - maxVisible + 1)
-  }
-
-  for (let i = start; i <= end; i++) {
-    pages.push(i)
-  }
-
+  let end   = Math.min(totalPages.value, start + maxVisible - 1)
+  if (end - start + 1 < maxVisible) start = Math.max(1, end - maxVisible + 1)
+  for (let i = start; i <= end; i++) pages.push(i)
   return pages
 })
 
-// Синхронізація з URL при першому завантаженні та зміні query
+// ✅ Зчитуємо author_username з URL разом з іншими фільтрами
 watch(() => route.query, (newQuery) => {
-  console.log('Route query changed:', newQuery)
-  
   isUpdatingFromUrl.value = true
-  
-  currentPage.value = Number(newQuery.page) || 1
-  searchQuery.value = newQuery.search || ''
-  selectedCategory.value = newQuery.category__slug || ''
-  selectedTag.value = newQuery.tag || ''
-  
+
+  currentPage.value      = Number(newQuery.page) || 1
+  searchQuery.value      = newQuery.search          || ''
+  selectedCategory.value = newQuery.category__slug  || ''
+  selectedTag.value      = newQuery.tag             || ''
+  authorUsername.value   = newQuery.author_username || ''  // ✅
+
   fetchPosts()
-  
-  // Даємо трохи часу, щоб watch(currentPage) не спрацював зайвий раз
-  setTimeout(() => {
-    isUpdatingFromUrl.value = false
-  }, 50)
+
+  setTimeout(() => { isUpdatingFromUrl.value = false }, 50)
 }, { immediate: true })
 
 watch(currentPage, (newPage, oldPage) => {
-  if (newPage !== oldPage && !isUpdatingFromUrl.value) {
-    updateURL()
-  }
+  if (newPage !== oldPage && !isUpdatingFromUrl.value) updateURL()
 })
 
 onMounted(() => {

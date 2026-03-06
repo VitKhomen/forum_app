@@ -19,6 +19,12 @@ urlpatterns = [
          views.MyFavoritesView.as_view(), name='my-favorites'),
     path('me/ratings/',
          views.MyRatingsView.as_view(),   name='my-ratings'),
+    path('users/<str:username>/watchlist/',
+         views.user_watchlist, name='user-watchlist'),
+    path('users/<str:username>/favorites/',
+         views.user_favorites, name='user-favorites'),
+    path('users/<str:username>/ratings/',
+         views.user_ratings,   name='user-ratings'),
 
     # ── TMDB proxy ─────────────────────────────────────────────────────────────
     path('trending/',                 views.movie_trending,

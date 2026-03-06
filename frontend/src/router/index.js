@@ -71,15 +71,6 @@ const router = createRouter({
       }
     },
     {
-      path: '/profile',
-      name: 'profile',
-      component: () => import('@/views/profile/ProfileView.vue'),
-      meta: { 
-        title: 'Профіль',
-        requiresAuth: true 
-      }
-    },
-    {
       path: '/profile/posts',
       name: 'my-posts',
       component: () => import('@/views/profile/MyPostsView.vue'),
@@ -143,6 +134,25 @@ const router = createRouter({
       component: () => import('@/views/movies/MovieDetailView.vue'),
       props: (route) => ({ id: route.params.id, mediaType: 'tv' }),
       meta: { title: 'Серіал' }
+    },
+    {
+      path: '/profile',
+      name: 'profile',
+      component: () => import('@/views/profile/ProfileView.vue'),
+      meta: {
+        title: 'Профіль',
+        requiresAuth: true
+      }
+    },
+
+    // Публічний профіль будь-якого користувача (той самий компонент!)
+    {
+      path: '/users/:username',
+      name: 'public-profile',
+      component: () => import('@/views/profile/ProfileView.vue'),
+      meta: {
+        title: 'Профіль користувача'
+      }
     },
   ]
 })

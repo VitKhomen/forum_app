@@ -130,6 +130,35 @@ class UserProfileSerializer(serializers.ModelSerializer):
             return 0
 
 
+class PublicUserSerializer(serializers.ModelSerializer):
+    """Публічний профіль — без email та приватних даних"""
+    full_name = serializers.ReadOnlyField()
+    posts_count = serializers.SerializerMethodField()
+    comments_count = serializers.SerializerMethodField()
+    date_joined = serializers.DateTimeField(read_only=True)
+
+    class Meta:
+        model = User
+        fields = (
+            'id', 'username', 'full_name', 'first_name', 'last_name',
+            'avatar', 'bio', 'date_joined',
+            'karma_points', 'karma_level',
+            'posts_count', 'comments_count',
+        )
+
+    def get_posts_count(self, obj):
+        try:
+            return obj.posts.filter(status='published').count()
+        except AttributeError:
+            return 0
+
+    def get_comments_count(self, obj):
+        try:
+            return obj.comments.count()
+        except AttributeError:
+            return 0
+
+
 class UserUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:

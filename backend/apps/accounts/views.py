@@ -8,7 +8,7 @@ from django.contrib.auth import login
 from .models import User
 from .serializers import (UserRegistrationSerializer, UserLoginSerializer,
                           UserProfileSerializer, UserUpdateSerializer,
-                          ChangePasswordSerializer)
+                          ChangePasswordSerializer, PublicUserSerializer)
 
 
 class RegistrationView(generics.CreateAPIView):
@@ -64,6 +64,14 @@ class ProfileView(generics.RetrieveUpdateAPIView):
         if self.request.method in ['PUT', 'PATCH']:
             return UserUpdateSerializer
         return UserProfileSerializer
+
+
+class PublicProfileView(generics.RetrieveAPIView):
+    """GET /api/v1/auth/users/<username>/ — публічний профіль (без авторизації)"""
+    serializer_class = PublicUserSerializer
+    permission_classes = [permissions.AllowAny]
+    lookup_field = 'username'
+    queryset = User.objects.filter(is_active=True)
 
 
 class ChangePasswordView(generics.UpdateAPIView):

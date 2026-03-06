@@ -1,9 +1,13 @@
-from rest_framework import generics, permissions, status
+from rest_framework import generics, permissions
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
+from django.contrib.auth import get_user_model
+
 from .services.tmdb_client import tmdb
 from .models import WatchlistItem, MovieRating, FavoriteMovie
 from .serializers import WatchlistSerializer, MovieRatingSerializer, FavoriteMovieSerializer
+
+User = get_user_model()
 
 
 # ─── Хелпер: отримати дані фільму/серіалу з TMDB ─────────────────────────────
@@ -256,6 +260,79 @@ def movie_rating(request, movie_id):
         }
     )
     return Response({'user_rating': obj.rating}, status=201 if created else 200)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
+def user_watchlist(request, username):
+    """GET /api/v1/movies/users/<username>/watchlist/"""
+    try:
+        user = User.objects.get(username=username, is_active=True)
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=404)
+
+    items = WatchlistItem.objects.filter(user=user).order_by('-added_at')
+    data = [
+        {
+            'tmdb_id':    i.tmdb_id,
+            'title':      i.title,
+            'poster_path': i.poster_path,
+            'poster_url': f'https://image.tmdb.org/t/p/w342{i.poster_path}' if i.poster_path else None,
+            'media_type': i.media_type,
+            'added_at':   i.added_at,
+        }
+        for i in items
+    ]
+    return Response(data)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
+def user_favorites(request, username):
+    """GET /api/v1/movies/users/<username>/favorites/"""
+    try:
+        user = User.objects.get(username=username, is_active=True)
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=404)
+
+    items = FavoriteMovie.objects.filter(user=user).order_by('-added_at')
+    data = [
+        {
+            'tmdb_id':    i.tmdb_id,
+            'title':      i.title,
+            'poster_path': i.poster_path,
+            'poster_url': f'https://image.tmdb.org/t/p/w342{i.poster_path}' if i.poster_path else None,
+            'media_type': i.media_type,
+            'added_at':   i.added_at,
+        }
+        for i in items
+    ]
+    return Response(data)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
+def user_ratings(request, username):
+    """GET /api/v1/movies/users/<username>/ratings/"""
+    try:
+        user = User.objects.get(username=username, is_active=True)
+    except User.DoesNotExist:
+        return Response({'error': 'User not found'}, status=404)
+
+    items = MovieRating.objects.filter(user=user).order_by('-added_at')
+    data = [
+        {
+            'tmdb_id':    i.tmdb_id,
+            'title':      i.title,
+            'poster_path': i.poster_path,
+            'poster_url': f'https://image.tmdb.org/t/p/w342{i.poster_path}' if i.poster_path else None,
+            'media_type': i.media_type,
+            'rating':     i.rating,
+            'added_at':   i.added_at,
+        }
+        for i in items
+    ]
+    return Response(data)
 
 
 # ─── Списки юзера ─────────────────────────────────────────────────────────────
