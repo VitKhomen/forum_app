@@ -245,7 +245,7 @@ const error   = ref('')
 const defaultParams = () => ({
   mediaType: props.initialMediaType,
   genres:    [],
-  yearFrom:  1990,
+  yearFrom:  1950,
   yearTo:    currentYear,
   minRating: 0,
 })
@@ -281,6 +281,7 @@ const yearPresets = [
 ]
 const ratingOptions = [
   { label: 'Будь-який', value: 0 },
+  { label: '5+', value: 5 },
   { label: '6+', value: 6 },
   { label: '7+', value: 7 },
   { label: '8+', value: 8 },

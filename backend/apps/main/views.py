@@ -346,7 +346,7 @@ def trending_posts(request):
     from django.utils import timezone
     from datetime import timedelta
 
-    days = int(request.query_params.get('days', 30))
+    days = int(request.query_params.get('days', 180))
     limit = int(request.query_params.get('limit', 30))
     date_from = timezone.now() - timedelta(days=days)
 

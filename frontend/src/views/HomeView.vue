@@ -74,7 +74,7 @@ const loadingRecent = ref(true)
 
 const fetchTrending = async () => {
   try {
-    const { data } = await postsAPI.getTrending({ limit: 12, days: 30 })
+    const { data } = await postsAPI.getTrending({ limit: 12, days: 180 })
     trendingPosts.value = data
   } catch (error) {
     if (error.response?.status === 401) {
