@@ -1,84 +1,43 @@
 <template>
   <div class="space-y-6">
-    <!-- Заголовок -->
     <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
-      Коментарі ({{ totalComments }})
+      Коментарі ({{ totalCount }})
     </h2>
 
-    <!-- Форма коментаря -->
+    <!-- Головна форма -->
     <CommentForm
-      :key="`main-form-${formKey}`"
+      :key="`main-${formKey}`"
       :post-id="postId"
       :is-authenticated="isAuthenticated"
       :loading="submitting"
-      :reply-to="replyingTo"
       :edit-comment="editingComment"
       @submit="handleSubmit"
-      @cancel="handleCancel"
+      @cancel="editingComment = null"
     />
 
-    <!-- Список коментарів -->
     <div v-if="loading" class="text-center py-12">
       <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-gray-300 border-t-blue-600"></div>
       <p class="mt-4 text-gray-600 dark:text-gray-400">Завантаження...</p>
     </div>
 
-    <div v-else-if="!comments.length" class="text-center py-12 bg-gray-50 dark:bg-gray-900 rounded-lg">
+    <div v-else-if="!tree.length" class="text-center py-12 bg-gray-50 dark:bg-gray-900 rounded-lg">
       <p class="text-gray-600 dark:text-gray-400 text-lg mb-2">Коментарів поки немає</p>
       <p class="text-gray-500 dark:text-gray-500 text-sm">Будьте першим!</p>
     </div>
 
-    <div v-else class="space-y-4 mt-6">
-      <div v-for="comment in comments" :key="`comment-${comment.id}-${comment.updated_at}`">
-        <CommentItem
-          :comment="comment"
-          :current-user-id="currentUserId"
-          :show-replies="showRepliesFor === comment.id"
-          @reply="handleReply"
-          @edit="handleEdit"
-          @delete="handleDelete"
-          @toggle-replies="toggleReplies(comment.id)"
-        />
-
-        <!-- Розгорнуті відповіді -->
-        <Transition name="slide-fade">
-          <div v-if="showRepliesFor === comment.id" class="ml-12 mt-4 space-y-4">
-            <!-- Форма відповіді -->
-            <CommentForm
-              v-if="replyingTo?.id === comment.id"
-              :key="`reply-form-${comment.id}-${formKey}`"
-              :post-id="postId"
-              :reply-to="replyingTo"
-              :is-authenticated="isAuthenticated"
-              :loading="submitting"
-              @submit="handleSubmit"
-              @cancel="cancelReply"
-            />
-
-            <!-- Завантаження -->
-            <div v-if="loadingReplies[comment.id]" class="text-center py-4">
-              <div class="inline-block animate-spin rounded-full h-8 w-8 border-4 border-gray-300 border-t-blue-600"></div>
-            </div>
-
-            <!-- Список відповідей -->
-            <div v-else-if="replies[comment.id]?.length" class="space-y-3">
-              <CommentItem
-                v-for="reply in replies[comment.id]"
-                :key="`reply-${reply.id}-${reply.updated_at}`"
-                :comment="reply"
-                :current-user-id="currentUserId"
-                :is-reply="true"
-                @edit="handleEdit"
-                @delete="handleDelete"
-              />
-            </div>
-
-            <div v-else class="text-center py-4 text-gray-500 dark:text-gray-400 text-sm">
-              Поки немає відповідей
-            </div>
-          </div>
-        </Transition>
-      </div>
+    <div v-else class="space-y-4">
+      <CommentItem
+        v-for="comment in tree"
+        :key="`root-${comment.id}`"
+        :comment="comment"
+        :post-id="postId"
+        :current-user-id="currentUserId"
+        :is-authenticated="isAuthenticated"
+        :depth="0"
+        @edit="handleEdit"
+        @delete="handleDelete"
+        @new-reply="handleNewReply"
+      />
     </div>
   </div>
 </template>
@@ -92,185 +51,123 @@ import CommentItem from './CommentItem.vue'
 import CommentForm from './CommentForm.vue'
 
 const props = defineProps({
-  postId: { type: Number, required: true },
-  postSlug: { type: String, required: true }
+  postId:   { type: Number, required: true },
+  postSlug: { type: String, required: true },
 })
-
 const emit = defineEmits(['update-comments-count'])
 
 const authStore = useAuthStore()
 const toast = useToast()
 
-const comments = ref([])
-const replies = ref({})
-const loading = ref(false)
-const submitting = ref(false)
-const loadingReplies = ref({})
-const replyingTo = ref(null)
+const flat        = ref([])   // плоский список всіх коментарів
+const loading     = ref(false)
+const submitting  = ref(false)
 const editingComment = ref(null)
-const showRepliesFor = ref(null)
-const formKey = ref(0)
+const formKey     = ref(0)
 
 const isAuthenticated = computed(() => authStore.isAuthenticated)
-const currentUserId = computed(() => authStore.user?.id)
+const currentUserId   = computed(() => authStore.user?.id)
 
-// Рекурсивний підрахунок (з урахуванням вже завантажених відповідей)
-const totalComments = computed(() => {
-  if (!Array.isArray(comments.value)) return 0
+// ── Дерево з плоского списку ─────────────────────────────────
+const tree = computed(() => {
+  const map = {}
+  const roots = []
 
-  const countWithDescendants = (comment) => {
-    let count = 1 + (comment.replies_count || 0)
+  flat.value.forEach(c => { map[c.id] = { ...c, children: [] } })
 
-    if (showRepliesFor.value === comment.id && Array.isArray(replies.value[comment.id])) {
-      count = 1
-      replies.value[comment.id].forEach(reply => {
-        count += countWithDescendants(reply)
-      })
+  flat.value.forEach(c => {
+    if (c.parent && map[c.parent]) {
+      map[c.parent].children.push(map[c.id])
+    } else if (!c.parent) {
+      roots.push(map[c.id])
+    } else {
+      // parent існує в БД але не завантажений — показуємо як root
+      roots.push(map[c.id])
     }
+  })
 
-    return count
-  }
-
-  return comments.value.reduce((sum, c) => sum + countWithDescendants(c), 0)
+  return roots
 })
 
-watch(totalComments, newCount => emit('update-comments-count', newCount), { immediate: true })
+const totalCount = computed(() => flat.value.length)
+watch(totalCount, n => emit('update-comments-count', n), { immediate: true })
 
-// Завантаження головних коментарів
+// ── Завантаження ─────────────────────────────────────────────
 const fetchComments = async () => {
   loading.value = true
   try {
     const { data } = await commentsAPI.getByPost(props.postId)
-    comments.value = data?.results?.comments || data?.comments || data || []
+    // post_comments тепер повертає плоский список всіх коментарів
+    flat.value = data?.comments || data?.results || []
   } catch (error) {
-    console.error('Помилка завантаження коментарів:', error)
+    console.error(error)
     toast.error('Не вдалося завантажити коментарі')
   } finally {
     loading.value = false
   }
 }
 
-// Завантаження відповідей
-const loadReplies = async (commentId) => {
-  const id = Number(commentId)
-  if (replies.value[id]) return
-
-  loadingReplies.value[id] = true
-  try {
-    const { data } = await commentsAPI.getReplies(id)
-    replies.value[id] = data?.results?.replies || data?.replies || []
-  } catch (error) {
-    console.error('Помилка завантаження відповідей:', error)
-    replies.value[id] = []
-  } finally {
-    loadingReplies.value[id] = false
-  }
-}
-
-const toggleReplies = (commentId) => {
-  if (showRepliesFor.value === commentId) {
-    showRepliesFor.value = null
-    replyingTo.value = null
-  } else {
-    showRepliesFor.value = commentId
-    loadReplies(commentId)
-  }
-}
-
-const handleReply = (comment) => {
-  replyingTo.value = comment
-  editingComment.value = null
-  if (showRepliesFor.value !== comment.id) toggleReplies(comment.id)
-}
-
-const cancelReply = () => replyingTo.value = null
-
-const handleEdit = (comment) => {
-  editingComment.value = comment
-  replyingTo.value = null
-}
-
-const handleCancel = () => {
-  replyingTo.value = null
-  editingComment.value = null
-}
-
+// ── Новий root-коментар ───────────────────────────────────────
 const handleSubmit = async (payload) => {
   if (!isAuthenticated.value) return toast.error('Увійдіть, щоб коментувати')
-
   submitting.value = true
   try {
     if (payload.id) {
-      // Редагування
       const { data: updated } = await commentsAPI.update(payload.id, payload.data)
-
-      // Оновлюємо локально
-      const updateLocal = (arr) => {
-        const idx = arr.findIndex(c => c.id === payload.id)
-        if (idx !== -1) arr[idx] = { ...arr[idx], ...updated }
-      }
-
-      updateLocal(comments.value)
-      Object.values(replies.value).forEach(updateLocal)
-
+      const idx = flat.value.findIndex(c => c.id === payload.id)
+      if (idx !== -1) flat.value[idx] = { ...flat.value[idx], ...updated }
       toast.success('Коментар оновлено')
       editingComment.value = null
     } else {
-      // Створення
       const { data: newComment } = await commentsAPI.create({
-        post: props.postId,
+        post:    props.postId,
         content: payload.content,
-        parent: replyingTo.value?.id || null
+        parent:  null,
       })
-
-      if (replyingTo.value) {
-        const pid = replyingTo.value.id
-        replies.value[pid] = replies.value[pid] || []
-        replies.value[pid].push(newComment)
-        const parent = comments.value.find(c => c.id === pid)
-        if (parent) parent.replies_count = (parent.replies_count || 0) + 1
-        toast.success('Відповідь додано')
-        replyingTo.value = null
-      } else {
-        comments.value.unshift(newComment)
-        toast.success('Коментар додано')
-      }
-
+      newComment.children = []
+      flat.value.unshift(newComment)
+      toast.success('Коментар додано')
       formKey.value++
     }
   } catch (error) {
-    toast.error('Помилка при збереженні коментаря')
+    toast.error('Помилка при збереженні')
     console.error(error)
   } finally {
     submitting.value = false
   }
 }
 
-const handleDelete = async (commentId) => {
-  if (!confirm('Видалити коментар?')) return
+// ── Нова відповідь (з CommentItem) ───────────────────────────
+const handleNewReply = ({ reply }) => {
+  // Просто додаємо в плоский список — дерево перебудується само
+  flat.value.push(reply)
+}
 
+// ── Редагування ───────────────────────────────────────────────
+const handleEdit = (comment) => {
+  editingComment.value = comment
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+// ── Видалення з усіма нащадками ───────────────────────────────
+const handleDelete = async (commentId) => {
+  if (!confirm('Видалити коментар і всі відповіді?')) return
   try {
     await commentsAPI.delete(commentId)
     toast.success('Коментар видалено')
-
-    // Видаляємо з головних
-    const mIdx = comments.value.findIndex(c => c.id === commentId)
-    if (mIdx !== -1) {
-      comments.value.splice(mIdx, 1)
-      delete replies.value[commentId]
-      return
+    // Збираємо id коментаря + всіх нащадків
+    const toRemove = new Set([commentId])
+    let changed = true
+    while (changed) {
+      changed = false
+      flat.value.forEach(c => {
+        if (c.parent && toRemove.has(c.parent) && !toRemove.has(c.id)) {
+          toRemove.add(c.id)
+          changed = true
+        }
+      })
     }
-
-    // Видаляємо з відповідей
-    Object.keys(replies.value).forEach(pid => {
-      const rIdx = replies.value[pid].findIndex(r => r.id === commentId)
-      if (rIdx !== -1) {
-        replies.value[pid].splice(rIdx, 1)
-        const parent = comments.value.find(c => c.id === Number(pid))
-        if (parent && parent.replies_count > 0) parent.replies_count--
-        if (replies.value[commentId]) delete replies.value[commentId]
-      }
-    })
+    flat.value = flat.value.filter(c => !toRemove.has(c.id))
   } catch (error) {
     toast.error('Помилка видалення')
     console.error(error)
@@ -279,8 +176,3 @@ const handleDelete = async (commentId) => {
 
 onMounted(fetchComments)
 </script>
-
-<style scoped>
-.slide-fade-enter-active, .slide-fade-leave-active { transition: all 0.3s ease; }
-.slide-fade-enter-from, .slide-fade-leave-to { opacity: 0; transform: translateY(-10px); }
-</style>

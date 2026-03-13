@@ -122,44 +122,39 @@ class MyCommentsView(generics.ListAPIView):
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
 def post_comments(request, post_id):
+    """
+    Повертає ВСІ коментарі поста плоским списком.
+    Фронт сам будує дерево через parent id.
+    """
     post = get_object_or_404(Post, id=post_id, status='published')
+
     comments = Comment.objects.filter(
-        post=post, parent=None, is_active=True
-    ).select_related('author').prefetch_related(
-        Prefetch(
-            'replies',
-            queryset=Comment.objects.filter(
-                is_active=True).select_related('author')
-        )
-    ).order_by('-created_at')
+        post=post,
+        is_active=True
+        # від старіших — дерево будується правильно
+    ).select_related('author').order_by('created_at')
 
-    # Додаємо пагінацію
-    paginator = CommentPagination()
-    page = paginator.paginate_queryset(comments, request)
+    serializer = CommentSerializer(
+        comments, many=True, context={'request': request})
 
-    serializer = CommentDetailSerializer(
-        page, many=True, context={'request': request})
-    return paginator.get_paginated_response({
+    return Response({
         'post': {'id': post.id, 'title': post.title, 'slug': post.slug},
         'comments': serializer.data,
-        'total_comments': post.comments.filter(is_active=True).count()
+        'total_comments': comments.count(),
     })
 
 
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
 def comment_replies(request, comment_id):
+    """Залишаємо для сумісності, але post_comments тепер повертає все"""
     parent_comment = get_object_or_404(Comment, id=comment_id, is_active=True)
     replies = Comment.objects.filter(
         parent=parent_comment, is_active=True
     ).select_related('author').order_by('created_at')
-    paginator = PageNumberPagination()
-    paginator.page_size = 30
-    page = paginator.paginate_queryset(replies, request)
     serializer = CommentSerializer(
         replies, many=True, context={'request': request})
-
-    return paginator.get_paginated_response({
+    return Response({
         'parent_comment': CommentSerializer(parent_comment, context={'request': request}).data,
         'replies': serializer.data,
         'total_replies': replies.count(),
