@@ -2,14 +2,25 @@
   <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-4">
     <form @submit.prevent="handleSubmit">
       <div class="mb-3">
-        <label
-          v-if="replyTo"
-          class="block text-sm text-gray-600 dark:text-gray-400 mb-2"
-        >
-          Відповідь на коментар від {{ replyTo.author_info?.username }}
+        <label v-if="replyTo" class="block text-sm text-gray-600 dark:text-gray-400 mb-2">
+          Відповідь {{ quote ? 'з цитатою' : '' }} → <span class="font-medium">{{ replyTo.author_info?.username }}</span>
         </label>
 
-        <!-- Обгортка textarea з кнопкою emoji -->
+        <!-- Превʼю цитати -->
+        <div
+          v-if="quote"
+          class="mb-2 flex items-start gap-2 px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700"
+        >
+          <span class="text-amber-500 text-lg leading-none mt-0.5 flex-shrink-0">❝</span>
+          <p class="text-xs text-gray-600 dark:text-gray-400 italic line-clamp-2 flex-1">{{ quote }}</p>
+          <button
+            type="button"
+            @click="clearQuote"
+            class="text-gray-400 hover:text-red-500 transition text-xs flex-shrink-0"
+            title="Прибрати цитату"
+          >✕</button>
+        </div>
+
         <div class="relative">
           <textarea
             ref="textareaRef"
@@ -21,7 +32,6 @@
             @keydown="handleTextareaKeydown"
           ></textarea>
 
-          <!-- Кнопка відкрити emoji picker -->
           <button
             ref="emojiTriggerRef"
             type="button"
@@ -40,9 +50,7 @@
 
       <div class="flex items-center justify-between">
         <span v-if="!isAuthenticated" class="text-sm text-gray-600 dark:text-gray-400">
-          <RouterLink to="/login" class="text-blue-600 hover:underline">
-            Увійдіть
-          </RouterLink>
+          <RouterLink to="/login" class="text-blue-600 hover:underline">Увійдіть</RouterLink>
           , щоб залишити коментар
         </span>
 
@@ -53,9 +61,7 @@
             @click="handleCancel"
             class="px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 transition"
             :disabled="loading"
-          >
-            Скасувати
-          </button>
+          >Скасувати</button>
 
           <button
             type="submit"
@@ -68,7 +74,6 @@
       </div>
     </form>
 
-    <!-- Emoji Picker -->
     <EmojiPicker
       v-model="pickerOpen"
       :anchor-el="emojiTriggerRef"
@@ -78,24 +83,26 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { RouterLink } from 'vue-router'
 import EmojiPicker from '@/components/comments/EmojiPicker.vue'
 
 const props = defineProps({
-  postId:      { type: Number, required: true },
-  replyTo:     { type: Object, default: null },
-  editComment: { type: Object, default: null },
+  postId:          { type: Number,  required: true },
+  replyTo:         { type: Object,  default: null },
+  editComment:     { type: Object,  default: null },
   isAuthenticated: { type: Boolean, default: false },
-  loading:     { type: Boolean, default: false },
+  loading:         { type: Boolean, default: false },
+  quote:           { type: String,  default: '' },   // ← новий проп
 })
 
 const emit = defineEmits(['submit', 'cancel'])
 
-const content        = ref('')
-const textareaRef    = ref(null)
+const content         = ref('')
+const activeQuote     = ref('')   // локальна копія (можна прибрати кнопкою ✕)
+const textareaRef     = ref(null)
 const emojiTriggerRef = ref(null)
-const pickerOpen     = ref(false)
+const pickerOpen      = ref(false)
 
 const isEditing = computed(() => !!props.editComment)
 
@@ -108,34 +115,33 @@ const canSubmit = computed(() =>
   props.isAuthenticated && content.value.trim().length > 0 && !props.loading
 )
 
-// ── Emoji ──────────────────────────────────────────────────────
-const togglePicker = () => {
-  pickerOpen.value = !pickerOpen.value
-}
+// Коли приходить нова цитата — зберігаємо локально і фокусуємо textarea
+watch(() => props.quote, async (val) => {
+  activeQuote.value = val || ''
+  if (val) {
+    await nextTick()
+    textareaRef.value?.focus()
+  }
+}, { immediate: true })
+
+const clearQuote = () => { activeQuote.value = '' }
+
+// ── Emoji ─────────────────────────────────────────────────────
+const togglePicker = () => { pickerOpen.value = !pickerOpen.value }
 
 const insertEmoji = (emoji) => {
   const el = textareaRef.value
-  if (!el) {
-    content.value += emoji
-    return
-  }
-
+  if (!el) { content.value += emoji; return }
   const start = el.selectionStart ?? content.value.length
   const end   = el.selectionEnd   ?? content.value.length
-
   content.value = content.value.slice(0, start) + emoji + content.value.slice(end)
-
-  // Повертаємо фокус і ставимо курсор після emoji
   requestAnimationFrame(() => {
     el.focus()
     const pos = start + emoji.length
     el.setSelectionRange(pos, pos)
   })
-
-  // Не закриваємо picker — як у Telegram
 }
 
-// Закриваємо picker при Escape у textarea
 const handleTextareaKeydown = (e) => {
   if (e.key === 'Escape' && pickerOpen.value) {
     pickerOpen.value = false
@@ -143,17 +149,22 @@ const handleTextareaKeydown = (e) => {
   }
 }
 
-// ── Submit / Cancel ───────────────────────────────────────────
+// ── Submit ────────────────────────────────────────────────────
 const handleSubmit = () => {
   if (!canSubmit.value) return
-
   pickerOpen.value = false
 
-  const data = {
-    content: content.value.trim(),
-    post: props.postId,
+  // Якщо є цитата — додаємо перед текстом у форматі markdown >
+  let finalContent = content.value.trim()
+  if (activeQuote.value) {
+    const quotedLines = activeQuote.value
+      .split('\n')
+      .map(l => `> ${l}`)
+      .join('\n')
+    finalContent = `${quotedLines}\n${finalContent}`
   }
 
+  const data = { content: finalContent, post: props.postId }
   if (props.replyTo) data.parent = props.replyTo.id
 
   if (isEditing.value) {
@@ -165,12 +176,12 @@ const handleSubmit = () => {
 
 const handleCancel = () => {
   content.value = ''
+  activeQuote.value = ''
   pickerOpen.value = false
   emit('cancel')
 }
 
-watch(() => props.editComment, (newVal) => {
-  if (newVal) content.value = newVal.content
-  else        content.value = ''
+watch(() => props.editComment, (val) => {
+  content.value = val ? val.content : ''
 }, { immediate: true })
 </script>

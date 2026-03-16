@@ -34,24 +34,47 @@
         </div>
       </div>
 
-      <!-- Контент -->
-      <p class="mb-3 text-gray-800 dark:text-gray-200 whitespace-pre-wrap text-sm leading-relaxed">
-        <span v-if="comment.reply_to_username" class="text-blue-500 font-semibold">
-          @{{ comment.reply_to_username }}&nbsp;
-        </span>{{ comment.content }}
-      </p>
+      <!-- Контент з рендером цитат -->
+      <div class="mb-3 text-sm leading-relaxed">
+        <template v-for="(block, i) in parsedContent" :key="i">
+          <!-- Блок цитати -->
+          <blockquote
+            v-if="block.type === 'quote'"
+            class="border-l-4 border-blue-400 dark:border-blue-500 bg-blue-50 dark:bg-blue-900/20 pl-3 py-1 my-2 rounded-r text-gray-600 dark:text-gray-400 italic text-xs"
+          >
+            {{ block.text }}
+          </blockquote>
+          <!-- Звичайний текст -->
+          <p v-else class="text-gray-800 dark:text-gray-200 whitespace-pre-wrap">
+            <span v-if="block.mention" class="text-blue-500 font-semibold">@{{ block.mention }}&nbsp;</span>{{ block.text }}
+          </p>
+        </template>
+      </div>
 
       <!-- Дії -->
       <div class="flex items-center gap-4 text-sm">
         <button
           v-if="isAuthenticated"
-          @click="toggleReplyForm"
+          @click="startReply(false)"
           class="flex items-center gap-1 transition"
-          :class="showReplyForm
+          :class="showReplyForm && !withQuote
             ? 'text-blue-600 dark:text-blue-400'
             : 'text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400'"
         >
           💬 Відповісти
+        </button>
+
+        <!-- Кнопка цитування -->
+        <button
+          v-if="isAuthenticated"
+          @click="startReply(true)"
+          class="flex items-center gap-1 transition"
+          :class="showReplyForm && withQuote
+            ? 'text-amber-600 dark:text-amber-400'
+            : 'text-gray-500 dark:text-gray-400 hover:text-amber-600 dark:hover:text-amber-400'"
+          title="Відповісти з цитатою"
+        >
+          ❝ Цитувати
         </button>
 
         <LikeButton
@@ -62,13 +85,12 @@
           class="!px-2 !py-1 text-xs"
         />
 
-        <!-- Згорнути/розгорнути гілку -->
         <button
           v-if="comment.children && comment.children.length"
           @click="collapsed = !collapsed"
-          class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition text-xs"
+          class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition text-xs ml-auto"
         >
-          {{ collapsed ? `▶ показати ${countDescendants(comment)} відповідей` : '▲ згорнути' }}
+          {{ collapsed ? `▶ ${countDescendants(comment)} відп.` : '▲ згорнути' }}
         </button>
       </div>
     </div>
@@ -79,6 +101,7 @@
         <CommentForm
           :post-id="postId"
           :reply-to="comment"
+          :quote="withQuote ? quoteText : ''"
           :is-authenticated="isAuthenticated"
           :loading="submitting"
           @submit="handleReplySubmit"
@@ -87,14 +110,12 @@
       </div>
     </Transition>
 
-    <!-- Дочірні коментарі (рекурсія) -->
+    <!-- Дочірні коментарі -->
     <Transition name="collapse">
       <div
         v-if="!collapsed && comment.children && comment.children.length"
         class="mt-2 space-y-2"
-        :style="indentStyle"
       >
-        <!-- Вертикальна лінія для візуальної вкладеності -->
         <div class="relative pl-4 border-l-2" :class="borderColor">
           <div class="space-y-2">
             <CommentItem
@@ -124,7 +145,6 @@ import CommentForm from './CommentForm.vue'
 import { commentsAPI } from '@/services/api'
 import { useToast } from 'vue-toastification'
 
-// Після цього рівня відступ більше не збільшується (як Reddit)
 const MAX_VISUAL_DEPTH = 5
 
 const props = defineProps({
@@ -139,6 +159,7 @@ const emit = defineEmits(['edit', 'delete', 'new-reply'])
 
 const toast = useToast()
 const showReplyForm = ref(false)
+const withQuote     = ref(false)
 const submitting    = ref(false)
 const collapsed     = ref(false)
 
@@ -148,13 +169,60 @@ const isOwner = computed(() => {
   return props.currentUserId && aid === props.currentUserId
 })
 
-// Відступ зменшується після MAX_VISUAL_DEPTH
-const indentStyle = computed(() => {
-  if (props.depth >= MAX_VISUAL_DEPTH) return {}
-  return {}  // відступ робиться через border-l + pl у батьківському div
+// Текст для цитати — перші 120 символів без рядків цитат
+const quoteText = computed(() => {
+  const raw = props.comment.content || ''
+  // Прибираємо вже існуючі цитати (рядки що починаються з >)
+  const withoutQuotes = raw.split('\n').filter(l => !l.startsWith('>')).join('\n').trim()
+  const preview = withoutQuotes.slice(0, 120)
+  return preview + (withoutQuotes.length > 120 ? '…' : '')
 })
 
-// Кольори лінії по глибині (циклічно)
+// Парсимо контент: рядки що починаються з > — blockquote, решта — текст
+const parsedContent = computed(() => {
+  const lines = (props.comment.content || '').split('\n')
+  const blocks = []
+  let currentText = []
+  let currentQuote = []
+
+  const flushText = () => {
+    if (currentText.length) {
+      const text = currentText.join('\n').trim()
+      if (text) {
+        // Перевіряємо чи є @mention на початку
+        const mentionMatch = text.match(/^@(\S+)\s?(.*)$/s)
+        if (mentionMatch) {
+          blocks.push({ type: 'text', mention: mentionMatch[1], text: mentionMatch[2] })
+        } else {
+          blocks.push({ type: 'text', text })
+        }
+      }
+      currentText = []
+    }
+  }
+  const flushQuote = () => {
+    if (currentQuote.length) {
+      blocks.push({ type: 'quote', text: currentQuote.join('\n') })
+      currentQuote = []
+    }
+  }
+
+  lines.forEach(line => {
+    if (line.startsWith('>')) {
+      flushText()
+      currentQuote.push(line.slice(1).trim())
+    } else {
+      flushQuote()
+      currentText.push(line)
+    }
+  })
+
+  flushText()
+  flushQuote()
+
+  return blocks
+})
+
 const BORDER_COLORS = [
   'border-blue-200 dark:border-blue-800',
   'border-purple-200 dark:border-purple-800',
@@ -164,13 +232,19 @@ const BORDER_COLORS = [
 ]
 const borderColor = computed(() => BORDER_COLORS[props.depth % BORDER_COLORS.length])
 
-// Рахуємо всіх нащадків для кнопки "згорнути"
 function countDescendants(comment) {
   if (!comment.children?.length) return 0
   return comment.children.reduce((sum, c) => sum + 1 + countDescendants(c), 0)
 }
 
-const toggleReplyForm = () => { showReplyForm.value = !showReplyForm.value }
+const startReply = (quote) => {
+  if (showReplyForm.value && withQuote.value === quote) {
+    showReplyForm.value = false
+    return
+  }
+  withQuote.value = quote
+  showReplyForm.value = true
+}
 
 const handleReplySubmit = async (payload) => {
   submitting.value = true
@@ -178,10 +252,9 @@ const handleReplySubmit = async (payload) => {
     const { data: newComment } = await commentsAPI.create({
       post:    props.postId,
       content: payload.content,
-      parent:  props.comment.id,  // ← вказуємо на ЦЕЙ коментар, не root
+      parent:  props.comment.id,
     })
 
-    newComment.reply_to_username = props.comment.author_info?.username
     newComment.children = []
 
     emit('new-reply', {
@@ -192,7 +265,7 @@ const handleReplySubmit = async (payload) => {
     showReplyForm.value = false
     toast.success('Відповідь додано')
   } catch (e) {
-    toast.error('Помилка при відправці відповіді')
+    toast.error('Помилка при відправці')
     console.error(e)
   } finally {
     submitting.value = false
@@ -203,16 +276,14 @@ const formatDate = (dateString) => {
   if (!dateString) return ''
   const date = new Date(dateString)
   const now = new Date()
-  const diffMs = now - date
+  const diffMs    = now - date
   const diffMins  = Math.floor(diffMs / 60000)
   const diffHours = Math.floor(diffMs / 3600000)
   const diffDays  = Math.floor(diffMs / 86400000)
-
-  if (diffMins < 1)  return 'щойно'
-  if (diffMins < 60) return `${diffMins} хв тому`
+  if (diffMins < 1)   return 'щойно'
+  if (diffMins < 60)  return `${diffMins} хв тому`
   if (diffHours < 24) return `${diffHours} год тому`
-  if (diffDays < 7)  return `${diffDays} дн тому`
-
+  if (diffDays < 7)   return `${diffDays} дн тому`
   return date.toLocaleDateString('uk-UA', {
     day: 'numeric', month: 'short',
     year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
@@ -223,7 +294,6 @@ const formatDate = (dateString) => {
 <style scoped>
 .reply-slide-enter-active, .reply-slide-leave-active { transition: all 0.2s ease; }
 .reply-slide-enter-from, .reply-slide-leave-to { opacity: 0; transform: translateY(-6px); }
-
 .collapse-enter-active, .collapse-leave-active { transition: all 0.25s ease; }
 .collapse-enter-from, .collapse-leave-to { opacity: 0; transform: translateY(-4px); }
 </style>
