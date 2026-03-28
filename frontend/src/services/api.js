@@ -226,6 +226,15 @@ export const moviesAPI = {
 
   getMyRatings: (params) =>
     api.get('/movies/me/ratings/', { params }),
+
+}
+
+// ── Bookmarks ───────────────────────────────────────────────────────────────
+
+export const bookmarksAPI = {
+  getAll: (params) => api.get('/bookmarks/', { params }),
+  toggle: (postId) => api.post(`/bookmarks/${postId}/toggle/`),
+  check: (postId) => api.get(`/bookmarks/${postId}/check/`),
 }
 
 export default api

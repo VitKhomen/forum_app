@@ -154,6 +154,15 @@ const router = createRouter({
         title: 'Профіль користувача'
       }
     },
+    {
+      path: '/profile/bookmarks',
+      name: 'bookmarks',
+      component: () => import('@/views/profile/BookmarksView.vue'),
+      meta: {
+        title: 'Закладки',
+        requiresAuth: true
+      }
+    },
   ]
 })
 

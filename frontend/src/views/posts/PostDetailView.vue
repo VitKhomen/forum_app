@@ -164,6 +164,11 @@
                 :initial-is-liked="post.is_liked || false"
               />
             </div>
+            <BookmarkButton
+              :post-id="post.id"
+              :initial-bookmarked="post.is_bookmarked || false"
+              size="md"
+            />
           </div>
         </div>
       </div>
@@ -188,7 +193,6 @@
   </article>
       
       <!-- Comments Section -->
-      <!-- ✅ ДОДАНО: Обробник @update-comments-count -->
       <CommentsSection 
         :post-id="post.id" 
         :post-slug="post.slug"
@@ -278,6 +282,7 @@ import CommentsSection from '@/components/comments/CommentsSection.vue'
 import LikeButton from '@/components/ui/LikeButton.vue'
 import { useCommentsSync } from '@/composables/useCommentsSync'
 import AuthorWithKarma from '@/components/ui/KarmaBadge.vue'
+import BookmarkButton from '@/components/ui/BookmarkButton.vue'
 
 const route = useRoute()
 const router = useRouter()

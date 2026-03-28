@@ -72,6 +72,12 @@
             :initial-likes-count="post.likes_count || 0"
             :initial-is-liked="post.is_liked || false"
           />
+          <BookmarkButton
+            :post-id="post.id"
+            :initial-bookmarked="post.is_bookmarked || false"
+            icon-only
+            size="sm"
+          />
         </div>
       </div>
     </div>
@@ -100,6 +106,7 @@ import { uk } from 'date-fns/locale'
 import LikeButton from '@/components/ui/LikeButton.vue'
 import { useCommentsSync } from '@/composables/useCommentsSync'
 import AuthorWithKarma from '@/components/ui/KarmaBadge.vue'
+import BookmarkButton from '@/components/ui/BookmarkButton.vue'
 
 const props = defineProps({
   post: {

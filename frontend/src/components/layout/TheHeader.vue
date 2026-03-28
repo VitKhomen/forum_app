@@ -271,6 +271,7 @@ import {
   UserPlusIcon,
   ChevronDownIcon,
   FilmIcon,
+  BookmarkIcon,
 } from '@heroicons/vue/24/outline'
 import ThemeToggle from '@/components/ui/ThemeToggle.vue'
 
@@ -297,6 +298,7 @@ const mainLinks = [
   { to: '/posts/popular',  label: 'Популярні',    icon: FireIcon },
   { to: '/posts/trending', label: 'В тренді',     icon: ArrowTrendingUpIcon },
   { to: '/movies',         label: 'Фільмотека',   icon: FilmIcon },
+  { to: '/profile/bookmarks', label: 'Закладки', icon: BookmarkIcon }
 ]
 
 const hasActiveFilters = computed(() => searchQuery.value.trim() || selectedCategory.value)

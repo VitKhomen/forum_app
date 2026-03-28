@@ -12,6 +12,7 @@ urlpatterns = [
     path('api/v1/likes/', include('apps.likes.urls')),
     path('api/v1/karma/', include('apps.karma.urls')),
     path('api/v1/movies/', include('apps.movies.urls')),
+    path('api/v1/bookmarks/', include('apps.bookmarks.urls')),
 ]
 
 if settings.DEBUG:

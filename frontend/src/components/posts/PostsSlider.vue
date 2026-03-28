@@ -82,12 +82,18 @@
               </div>
               <!-- кнопка лайка -->
               <LikeButton
-                  content-type="post"
-                  :object-id="post.id"
-                  :initial-likes-count="post.likes_count || 0"
-                  :initial-is-liked="post.is_liked || false"
-                  readonly
-                />
+                content-type="post"
+                :object-id="post.id"
+                :initial-likes-count="post.likes_count || 0"
+                :initial-is-liked="post.is_liked || false"
+                readonly
+              />
+              <BookmarkButton
+                :post-id="post.id"
+                :initial-bookmarked="post.is_bookmarked || false"
+                icon-only
+                size="sm"
+              />
             </div>
             
             <!-- Button -->
@@ -140,6 +146,7 @@ import 'swiper/css'
 import 'swiper/css/navigation'
 import 'swiper/css/pagination'
 import AuthorWithKarma from '@/components/ui/KarmaBadge.vue'
+import BookmarkButton from '@/components/ui/BookmarkButton.vue'
 
 
 const props = defineProps({
