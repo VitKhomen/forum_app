@@ -67,6 +67,12 @@
               Мої пости
             </RouterLink>
             <RouterLink
+              to="/profile/bookmarks"
+              class="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition"
+            >
+              Закладки
+            </RouterLink>
+            <RouterLink
               to="/profile/create-post"
               class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
             >
