@@ -1,4 +1,3 @@
-// src/composables/useInfiniteScroll.js
 import { ref, watchEffect, onUnmounted } from 'vue'
 
 export function useInfiniteScroll(fetchFn) {
@@ -6,20 +5,27 @@ export function useInfiniteScroll(fetchFn) {
   const loading     = ref(false)
   const hasMore     = ref(true)
   const currentPage = ref(1)
-  const triggerEl   = ref(null)
+  const totalCount  = ref(0)
   const error       = ref(null)
+  const triggerEl   = ref(null)
 
   let observer = null
 
   const loadMore = async () => {
     if (loading.value || !hasMore.value) return
     loading.value = true
-    error.value = null
+    error.value   = null
 
     try {
       const { data } = await fetchFn({ page: currentPage.value })
       const newItems = data.results || []
+
       items.value.push(...newItems)
+
+      // Зберігаємо загальну кількість з першої сторінки
+      if (currentPage.value === 1) {
+        totalCount.value = data.count || 0
+      }
 
       hasMore.value = !!data.next
       if (hasMore.value) currentPage.value++
@@ -31,21 +37,24 @@ export function useInfiniteScroll(fetchFn) {
     }
   }
 
-  const reset = async () => {
+  const reset = () => {
     items.value       = []
     currentPage.value = 1
     hasMore.value     = true
+    totalCount.value  = 0
     error.value       = null
-    await loadMore() // одразу завантажуємо першу сторінку після ресету
+    loadMore()
   }
 
-  // watchEffect стежить за triggerEl — запускається як тільки елемент з'явився в DOM
+  // watchEffect реагує як тільки triggerEl з'являється в DOM
   const stopWatch = watchEffect(() => {
     if (!triggerEl.value) return
 
     observer?.disconnect()
     observer = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) loadMore() },
+      ([entry]) => {
+        if (entry.isIntersecting) loadMore()
+      },
       { rootMargin: '200px' }
     )
     observer.observe(triggerEl.value)
@@ -56,5 +65,14 @@ export function useInfiniteScroll(fetchFn) {
     stopWatch()
   })
 
-  return { items, loading, hasMore, error, triggerEl, loadMore, reset }
+  return {
+    items,
+    loading,
+    hasMore,
+    error,
+    totalCount,
+    triggerEl,
+    loadMore,
+    reset,
+  }
 }

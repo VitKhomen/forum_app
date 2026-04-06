@@ -122,26 +122,31 @@ class MyCommentsView(generics.ListAPIView):
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
 def post_comments(request, post_id):
-    """
-    Повертає ВСІ коментарі поста плоским списком.
-    Фронт сам будує дерево через parent id.
-    """
     post = get_object_or_404(Post, id=post_id, status='published')
 
     comments = Comment.objects.filter(
         post=post,
         is_active=True
-        # від старіших — дерево будується правильно
     ).select_related('author').order_by('created_at')
 
-    serializer = CommentSerializer(
-        comments, many=True, context={'request': request})
+    # Пагінація
+    paginator = PageNumberPagination()
+    paginator.page_size = 20
+    paginator.page_size_query_param = 'page_size'
+    paginator.max_page_size = 100
 
-    return Response({
-        'post': {'id': post.id, 'title': post.title, 'slug': post.slug},
-        'comments': serializer.data,
-        'total_comments': comments.count(),
-    })
+    page = paginator.paginate_queryset(comments, request)
+    serializer = CommentSerializer(
+        page, many=True, context={'request': request})
+
+    response = paginator.get_paginated_response(serializer.data)
+    # Додаємо мета-інфо про пост
+    response.data['post'] = {
+        'id': post.id,
+        'title': post.title,
+        'slug': post.slug
+    }
+    return response
 
 
 @api_view(['GET'])
