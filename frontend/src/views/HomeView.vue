@@ -90,7 +90,7 @@ const fetchTrending = async () => {
 
 const fetchRecent = async () => {
   try {
-    const { data } = await postsAPI.getAll({ page_size: 6 })
+    const { data } = await postsAPI.getAll({ limit: 6 })
     recentPosts.value = data.results || data
   } catch (error) {
     console.error('Error fetching recent posts:', error)

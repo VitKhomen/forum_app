@@ -1,7 +1,7 @@
 from rest_framework import generics, permissions, filters
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from rest_framework.pagination import PageNumberPagination
+from rest_framework.pagination import LimitOffsetPagination
 from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
 from django.db.models import Prefetch
@@ -13,10 +13,9 @@ from .permissions import IsAuthorOrReadOnly
 from apps.main.models import Post
 
 
-class CommentPagination(PageNumberPagination):
-    page_size = 20
-    page_size_query_param = 'page_size'
-    max_page_size = 100
+class CommentPagination(LimitOffsetPagination):
+    default_limit = 20
+    max_limit = 100
 
 
 class CommentListCreateView(generics.ListCreateAPIView):
@@ -130,10 +129,11 @@ def post_comments(request, post_id):
     ).select_related('author').order_by('created_at')
 
     # Пагінація
-    paginator = PageNumberPagination()
-    paginator.page_size = 20
-    paginator.page_size_query_param = 'page_size'
-    paginator.max_page_size = 100
+    paginator = LimitOffsetPagination()
+    paginator.default_limit = 20
+    paginator.limit_query_param = 'limit'
+    paginator.offset_query_param = 'offset'
+    paginator.max_limit = 100
 
     page = paginator.paginate_queryset(comments, request)
     serializer = CommentSerializer(

@@ -92,9 +92,9 @@ const authorUsername  = ref('')
 // Функція що передається в composable — завжди бере актуальні фільтри
 const fetchPage = (params) => {
   if (selectedTag.value) {
-    return postsAPI.getByTag(selectedTag.value, { ...params, page_size: 9 })
+    return postsAPI.getByTag(selectedTag.value, { ...params, limit: 9 })
   }
-  const query = { ...params, page_size: 9 }
+  const query = { ...params, limit: 9 }
   if (searchQuery.value.trim())  query.search          = searchQuery.value.trim()
   if (selectedCategory.value)    query.category__slug  = selectedCategory.value
   if (authorUsername.value)      query.author_username = authorUsername.value

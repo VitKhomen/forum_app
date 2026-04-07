@@ -9,7 +9,7 @@ from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticate
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
 from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
-from rest_framework.pagination import PageNumberPagination
+from rest_framework.pagination import LimitOffsetPagination
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
 
@@ -38,10 +38,9 @@ class CategoryViewSet(viewsets.ModelViewSet):
     ordering_fields = ['name', 'created_at']
 
 
-class PopularPagination(PageNumberPagination):
-    page_size = 20
-    page_size_query_param = 'page_size'
-    max_page_size = 100
+class PopularPagination(LimitOffsetPagination):
+    default_limit = 20
+    max_limit = 100
 
 
 # ========================
@@ -56,7 +55,6 @@ class PostViewSet(viewsets.ModelViewSet):
     lookup_field = 'slug'
     filter_backends = [DjangoFilterBackend,
                        filters.SearchFilter, filters.OrderingFilter]
-    # ✅ Додано author__username для фільтрації по username з URL
     filterset_fields = ['category__slug', 'status', 'author']
     search_fields = ['title', 'content', 'tags__name']
     ordering_fields = ['created_at', 'updated_at',
@@ -75,7 +73,6 @@ class PostViewSet(viewsets.ModelViewSet):
                     author=self.request.user, status='draft')
             )
 
-        # ✅ ?author_username=vasya — тільки published пости автора
         author_username = (
             self.request.query_params.get('author_username') or
             self.request.query_params.get('author__username')
@@ -265,7 +262,7 @@ class PostImagesViewSet(BasePostMediaViewSet):
     queryset = PostImages.objects.all().order_by('order')
     serializer_class = PostImageSerializer
     file_field_name = 'image'
-    max_items = 10
+    max_items = 20
 
 
 class PostVideosViewSet(BasePostMediaViewSet):
@@ -322,17 +319,16 @@ def popular_posts(request):
         queryset = queryset.filter(
             category__slug=request.query_params['category__slug'])
 
-    if 'limit' in request.query_params:
-        limit = min(int(request.query_params['limit']), 20)
-        posts = queryset[:limit]
-        serializer = PostListSerializer(
-            posts, many=True, context={'request': request})
-        return Response(serializer.data)
+    # if 'limit' in request.query_params:
+    #     limit = min(int(request.query_params['limit']), 20)
+    #     posts = queryset[:limit]
+    #     serializer = PostListSerializer(
+    #         posts, many=True, context={'request': request})
+    #     return Response(serializer.data)
 
-    paginator = PageNumberPagination()
-    paginator.page_size = 20
-    paginator.page_size_query_param = 'page_size'
-    paginator.max_page_size = 100
+    paginator = LimitOffsetPagination()
+    paginator.default_limit = 20
+    paginator.max_limit = 100
 
     page = paginator.paginate_queryset(queryset, request)
     serializer = PostListSerializer(
