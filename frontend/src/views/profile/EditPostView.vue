@@ -43,12 +43,10 @@
         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           Контент *
         </label>
-        <textarea
+        <RichTextEditor
           v-model="form.content"
-          rows="12"
-          class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="Введіть текст поста..."
-        ></textarea>
+          placeholder="Напишіть текст посту..."
+        />
       </div>
 
       <!-- Main Image -->
@@ -242,6 +240,7 @@ import { useRouter, useRoute, RouterLink } from 'vue-router'
 import { postsAPI, categoriesAPI } from '@/services/api'
 import { useToast } from 'vue-toastification'
 import { XMarkIcon } from '@heroicons/vue/24/outline'
+import RichTextEditor from '@/components/ui/RichTextEditor.vue'
 
 const router = useRouter()
 const route = useRoute()

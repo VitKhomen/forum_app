@@ -2,6 +2,8 @@ from rest_framework import serializers
 from taggit.serializers import TagListSerializerField, TaggitSerializer
 from django.utils.text import Truncator
 
+import bleach
+
 from .models import Category, Post, PostImages, PostVideo
 
 
@@ -144,6 +146,18 @@ class PostDetailSerializer(serializers.ModelSerializer):
         return False
 
 
+ALLOWED_TAGS = [
+    'p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3',
+    'ul', 'ol', 'li', 'blockquote', 'code', 'pre',
+    'a', 'hr', 'mark', 'span',
+]
+
+ALLOWED_ATTRIBUTES = {
+    'a': ['href', 'target', 'rel'],
+    '*': ['class', 'style'],
+}
+
+
 class PostCreateUpdateSerializer(TaggitSerializer, serializers.ModelSerializer):
     """
     Використовується для створення та оновлення постів.
@@ -192,3 +206,13 @@ class PostCreateUpdateSerializer(TaggitSerializer, serializers.ModelSerializer):
             instance.tags.set(tags_data)
 
         return instance
+
+    def validate_content(self, value):
+        if not value:
+            return value
+        return bleach.clean(
+            value,
+            tags=ALLOWED_TAGS,
+            attributes=ALLOWED_ATTRIBUTES,
+            strip=True,
+        )

@@ -37,7 +37,7 @@
           </h1>
 
           <!-- Author -->
-          <div class="flex items-center justify-between pb-6 mb-6 border-b border-gray-200 dark:border-gray-700">
+          <div class="flex items-center justify-between pb-6 mb-6">
             <div class="flex items-start gap-3">
               <!-- Avatar -->
               <div class="w-20 h-20 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden flex-shrink-0">
@@ -68,7 +68,7 @@
             
             <div class="prose dark:prose-invert max-w-none mb-8">
               <div 
-                v-html="post.content" 
+                v-html="sanitize(post.content)" 
                 class="whitespace-pre-wrap break-words overflow-wrap-anywhere"
                 style="word-break: break-word; overflow-wrap: anywhere;"
               ></div>
@@ -283,6 +283,7 @@ import LikeButton from '@/components/ui/LikeButton.vue'
 import { useCommentsSync } from '@/composables/useCommentsSync'
 import AuthorWithKarma from '@/components/ui/KarmaBadge.vue'
 import BookmarkButton from '@/components/ui/BookmarkButton.vue'
+import { sanitize } from '@/utils/sanitize'
 
 const route = useRoute()
 const router = useRouter()
