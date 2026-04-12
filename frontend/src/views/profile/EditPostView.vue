@@ -169,14 +169,14 @@
           </div>
 
           <input
-            v-if="totalImagesCount < 10"
+            v-if="totalImagesCount < 20"
             type="file"
             accept="image/*"
             multiple
             @change="handleAdditionalImagesChange"
             class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
-          <p class="text-xs text-gray-500 mt-1">{{ totalImagesCount }}/10 зображень</p>
+          <p class="text-xs text-gray-500 mt-1">{{ totalImagesCount }}/20 зображень</p>
         </div>
 
         <!-- Videos -->
@@ -436,7 +436,7 @@ const removeMainImage = () => {
 
 const handleAdditionalImagesChange = (event) => {
   const files = Array.from(event.target.files)
-  const slots  = 10 - totalImagesCount.value
+  const slots  = 20 - totalImagesCount.value
   if (files.length > slots) {
     toast.warning(`Можна додати тільки ${slots} зображень`)
     files.splice(slots)
