@@ -15,10 +15,13 @@
       @cancel="editingComment = null"
     />
 
-    <!-- Початкове завантаження -->
-    <div v-if="loading && !items.length" class="text-center py-12">
-      <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-gray-300 border-t-blue-600" />
-      <p class="mt-4 text-gray-600 dark:text-gray-400">Завантаження...</p>
+    <!-- Скелетон коментарів при початковому завантаженні -->
+    <div v-if="loading && !items.length" class="space-y-4">
+      <SkeletonLoader 
+        v-for="i in 5" 
+        :key="`comment-skeleton-${i}`" 
+        type="comment" 
+      />
     </div>
 
     <!-- Порожній стан -->
@@ -70,6 +73,7 @@ import { useToast } from 'vue-toastification'
 import { useInfiniteScroll } from '@/composables/useInfiniteScroll'
 import CommentItem from './CommentItem.vue'
 import CommentForm from './CommentForm.vue'
+import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
 
 const props = defineProps({
   postId:   { type: Number, required: true },

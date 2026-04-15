@@ -258,8 +258,8 @@
   </div>
 
   <!-- Loading -->
-  <div v-else-if="loading" class="text-center py-12">
-    <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-gray-300 border-t-blue-600"></div>
+  <div v-else-if="loading" class="max-w-7xl mx-auto">
+    <SkeletonLoader type="post-detail" />
   </div>
 
   <!-- Not Found -->
@@ -284,6 +284,7 @@ import { useCommentsSync } from '@/composables/useCommentsSync'
 import AuthorWithKarma from '@/components/ui/KarmaBadge.vue'
 import BookmarkButton from '@/components/ui/BookmarkButton.vue'
 import { sanitize } from '@/utils/sanitize'
+import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
 
 const route = useRoute()
 const router = useRouter()
