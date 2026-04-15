@@ -59,10 +59,28 @@
       <p>Нічого не знайдено</p>
     </div>
 
-    <!-- Тригер для IntersectionObserver + спінер -->
-    <div ref="triggerEl" class="py-8 flex justify-center">
-      <div v-if="loading" class="animate-spin rounded-full h-10 w-10 border-4 border-gray-300 border-t-blue-600" />
-      <p v-else-if="!hasMore && items.length" class="text-sm text-gray-400 dark:text-gray-500">
+    <!-- Тригер для IntersectionObserver + скелетони -->
+    <div ref="triggerEl" class="py-8">
+      <!-- Показуємо скелетони тільки коли завантажуємо наступну сторінку -->
+      <div v-if="loading && items.length > 0" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <SkeletonLoader 
+          v-for="i in 6" 
+          :key="`skeleton-more-${i}`" 
+          type="post-card" 
+        />
+      </div>
+
+      <!-- Початкове завантаження (коли items ще порожній) -->
+      <div v-else-if="loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <SkeletonLoader 
+          v-for="i in 9" 
+          :key="`skeleton-initial-${i}`" 
+          type="post-card" 
+        />
+      </div>
+
+      <!-- Кінець списку -->
+      <p v-else-if="!hasMore && items.length" class="text-sm text-gray-400 dark:text-gray-500 text-center">
         Це всі пости 🎉
       </p>
     </div>
@@ -76,6 +94,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { postsAPI, categoriesAPI } from '@/services/api'
 import PostCard from '@/components/posts/PostCard.vue'
 import { useInfiniteScroll } from '@/composables/useInfiniteScroll'
+import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
 
 const route = useRoute()
 const router = useRouter()

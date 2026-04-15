@@ -257,10 +257,65 @@
     </Teleport>
   </div>
 
-  <!-- Loading -->
-  <div v-else-if="loading" class="max-w-7xl mx-auto">
-    <SkeletonLoader type="post-detail" />
+  <!-- Loading Skeleton з правильною сіткою -->
+<div v-else-if="loading" class="max-w-7xl mx-auto">
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    
+    <!-- Основний контент (2/3) – покращений post-detail -->
+    <div class="lg:col-span-2 space-y-8">
+      <!-- Велике зображення -->
+      <div class="w-full h-72 md:h-96 bg-gray-200 dark:bg-gray-700 rounded-xl animate-pulse" />
+
+      <!-- Контент статті -->
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 md:p-8 space-y-8">
+        <!-- Category + Date -->
+        <div class="flex gap-3">
+          <div class="h-4 w-28 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+          <div class="h-4 w-36 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+        </div>
+
+        <!-- Title -->
+        <div class="space-y-4">
+          <div class="h-9 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+          <div class="h-9 w-4/5 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+        </div>
+
+        <!-- Author -->
+        <div class="flex items-center gap-4 pb-6 border-b border-gray-200 dark:border-gray-700">
+          <div class="w-16 h-16 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse flex-shrink-0" />
+          <div class="space-y-3 flex-1">
+            <div class="h-5 w-52 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+            <div class="h-4 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+          </div>
+        </div>
+
+        <!-- Контент (рядки тексту) -->
+        <div class="space-y-3">
+          <div v-for="i in 10" :key="i" 
+               class="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"
+               :style="{ width: [100, 95, 100, 60, 100, 85, 100, 70, 100, 55][i-1] + '%' }">
+          </div>
+        </div>
+      </div>
+
+      <!-- Скелетон для коментарів (нижче статті) -->
+      <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6">
+        <div class="h-8 w-48 bg-gray-200 dark:bg-gray-700 rounded mb-6 animate-pulse" />
+        <div class="space-y-6">
+          <SkeletonLoader v-for="i in 3" :key="i" type="comment" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Сайдбар (1/3) -->
+    <aside class="lg:col-span-1">
+      <div class="sticky top-20 space-y-6">
+        <!-- Скелетон сайдбару (теги + популярні пости) -->
+        <SkeletonLoader type="sidebar" />
+      </div>
+    </aside>
   </div>
+</div>
 
   <!-- Not Found -->
   <div v-else class="text-center py-12">

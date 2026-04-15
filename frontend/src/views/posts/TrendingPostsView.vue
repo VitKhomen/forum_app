@@ -43,9 +43,25 @@
       <p class="text-gray-600 dark:text-gray-400">Трендові новини не знайдено</p>
     </div>
 
-    <!-- Loading -->
-    <div v-if="loading" class="text-center py-12">
-      <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-gray-300 border-t-blue-600"></div>
+    <!-- Loading Skeleton -->
+    <div v-if="loading" class="space-y-8">
+      <!-- Скелетони для постів (показуємо 6 штук, як у сітці) -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <SkeletonLoader 
+          v-for="i in 6" 
+          :key="`trending-skeleton-${i}`" 
+          type="post-card" 
+        />
+      </div>
+
+      <!-- Скелетон для пагінації (коли завантажується) -->
+      <div v-if="totalPages > 1" class="flex justify-center gap-2 flex-wrap">
+        <div 
+          v-for="i in Math.min(5, totalPages)" 
+          :key="i"
+          class="h-10 w-10 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse"
+        />
+      </div>
     </div>
 
     <!-- Pagination -->
@@ -72,6 +88,7 @@ import { ref, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { postsAPI, categoriesAPI } from '@/services/api'
 import PostCard from '@/components/posts/PostCard.vue'
+import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
 
 const route = useRoute()
 
