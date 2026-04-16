@@ -1,5 +1,5 @@
 <template>
-  <div v-if="!loading && post" class="grid grid-cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
+  <div v-if="!isPageLoading && post" class="grid cols-1 lg:grid-cols-3 gap-8 max-w-7xl mx-auto">
     <!-- Основний контент (2/3 на lg+) -->
     <div class="lg:col-span-2">
       <article class="bg-white dark:bg-gray-800 rounded-lg shadow-lg overflow-hidden">
@@ -257,65 +257,57 @@
     </Teleport>
   </div>
 
-  <!-- Loading Skeleton з правильною сіткою -->
-<div v-else-if="loading" class="max-w-7xl mx-auto">
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-    
-    <!-- Основний контент (2/3) – покращений post-detail -->
-    <div class="lg:col-span-2 space-y-8">
-      <!-- Велике зображення -->
-      <div class="w-full h-72 md:h-96 bg-gray-200 dark:bg-gray-700 rounded-xl animate-pulse" />
+  <!-- Loading Skeleton -->
+  <div v-else-if="isPageLoading" class="max-w-7xl mx-auto">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <!-- Основний контент (2/3) -->
+      <div class="lg:col-span-2 space-y-8">
+        <div class="w-full h-72 md:h-96 bg-gray-200 dark:bg-gray-700 rounded-xl animate-pulse" />
 
-      <!-- Контент статті -->
-      <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 md:p-8 space-y-8">
-        <!-- Category + Date -->
-        <div class="flex gap-3">
-          <div class="h-4 w-28 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-          <div class="h-4 w-36 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-        </div>
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 md:p-8 space-y-8">
+          <div class="flex gap-3">
+            <div class="h-4 w-28 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+            <div class="h-4 w-36 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+          </div>
 
-        <!-- Title -->
-        <div class="space-y-4">
-          <div class="h-9 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-          <div class="h-9 w-4/5 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-        </div>
+          <div class="space-y-4">
+            <div class="h-9 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+            <div class="h-9 w-4/5 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+          </div>
 
-        <!-- Author -->
-        <div class="flex items-center gap-4 pb-6 border-b border-gray-200 dark:border-gray-700">
-          <div class="w-16 h-16 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse flex-shrink-0" />
-          <div class="space-y-3 flex-1">
-            <div class="h-5 w-52 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-            <div class="h-4 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+          <div class="flex items-center gap-4 pb-6 border-b border-gray-200 dark:border-gray-700">
+            <div class="w-16 h-16 rounded-full bg-gray-200 dark:bg-gray-700 animate-pulse" />
+            <div class="space-y-3 flex-1">
+              <div class="h-5 w-52 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+              <div class="h-4 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+            </div>
+          </div>
+
+          <div class="space-y-3">
+            <div v-for="i in 10" :key="i" 
+                class="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"
+                :style="{ width: [100, 95, 100, 60, 100, 85, 100, 70, 100, 55][i-1] + '%' }">
+            </div>
           </div>
         </div>
 
-        <!-- Контент (рядки тексту) -->
-        <div class="space-y-3">
-          <div v-for="i in 10" :key="i" 
-               class="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"
-               :style="{ width: [100, 95, 100, 60, 100, 85, 100, 70, 100, 55][i-1] + '%' }">
+        <!-- Скелетон коментарів -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6">
+          <div class="h-8 w-48 bg-gray-200 dark:bg-gray-700 rounded mb-6 animate-pulse" />
+          <div class="space-y-6">
+            <SkeletonLoader v-for="i in 3" :key="i" type="comment" />
           </div>
         </div>
       </div>
 
-      <!-- Скелетон для коментарів (нижче статті) -->
-      <div class="bg-white dark:bg-gray-800 rounded-xl shadow p-6">
-        <div class="h-8 w-48 bg-gray-200 dark:bg-gray-700 rounded mb-6 animate-pulse" />
-        <div class="space-y-6">
-          <SkeletonLoader v-for="i in 3" :key="i" type="comment" />
+      <!-- Сайдбар -->
+      <aside class="lg:col-span-1">
+        <div class="sticky top-20 space-y-6">
+          <SkeletonLoader type="sidebar" />
         </div>
-      </div>
+      </aside>
     </div>
-
-    <!-- Сайдбар (1/3) -->
-    <aside class="lg:col-span-1">
-      <div class="sticky top-20 space-y-6">
-        <!-- Скелетон сайдбару (теги + популярні пости) -->
-        <SkeletonLoader type="sidebar" />
-      </div>
-    </aside>
   </div>
-</div>
 
   <!-- Not Found -->
   <div v-else class="text-center py-12">
@@ -344,11 +336,11 @@ import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
 const route = useRoute()
 const router = useRouter()
 const post = ref(null)
-const loading = ref(true)
 const toast = useToast()
 const popularPosts = ref([])
 const popularTags = ref([])
 
+const loadingPost = ref(true)
 const loadingPopular = ref(true)
 const loadingTags = ref(true)
 
@@ -439,54 +431,108 @@ const formatDate = (dateString) => {
   }
 }
 
+const isPageLoading = computed(() => 
+  loadingPost.value || loadingPopular.value || loadingTags.value
+)
+
 const fetchPost = async () => {
   try {
-    loading.value = true
+    loadingPost.value = true
     const { data } = await postsAPI.getBySlug(route.params.slug)
     post.value = data
     commentsCount.value = data.comments_count || 0
   } catch (error) {
     console.error('Error fetching post:', error)
   } finally {
-    loading.value = false
+    loadingPost.value = false
   }
 }
 
-const fetchPopular = async () => {
+const CACHE_DURATION = 1000 * 60 * 30 // 30 хвилин
+
+const getCachedData = (key) => {
+  const cached = sessionStorage.getItem(key)
+  if (!cached) return null
+
   try {
-    const { data } = await postsAPI.getPopular({ limit: 5 })
-    popularPosts.value = data.results || data
-  } catch (error) {
-    if (error.response?.status === 401) {
-      console.log('Popular posts require authentication')
-    } else {
-      console.error('Error fetching popular posts:', error)
+    const parsed = JSON.parse(cached)
+    // Перевіряємо, чи не застарів кеш
+    if (parsed.timestamp && Date.now() - parsed.timestamp < CACHE_DURATION) {
+      return parsed.data
     }
+    // Якщо застарів — видаляємо
+    sessionStorage.removeItem(key)
+    return null
+  } catch {
+    sessionStorage.removeItem(key)
+    return null
+  }
+}
+
+const setCache = (key, data) => {
+  const cacheObject = {
+    data: data,
+    timestamp: Date.now()
+  }
+  sessionStorage.setItem(key, JSON.stringify(cacheObject))
+}
+
+// ──────────────────────────────────────
+
+const fetchPopular = async () => {
+  const cached = getCachedData('popular_posts')
+  if (cached) {
+    popularPosts.value = cached
+    loadingPopular.value = false
+    return
+  }
+
+  try {
+    loadingPopular.value = true
+    const { data } = await postsAPI.getPopular({ limit: 5 })
+    popularPosts.value = data.results || data || []
+
+    // Зберігаємо в кеш
+    setCache('popular_posts', popularPosts.value)
+  } catch (error) {
+    console.error('Error fetching popular posts:', error)
+    popularPosts.value = []
   } finally {
     loadingPopular.value = false
   }
 }
 
 const fetchPopularTags = async () => {
+  const cached = getCachedData('popular_tags')
+  if (cached) {
+    popularTags.value = cached
+    loadingTags.value = false
+    return
+  }
+
   try {
+    loadingTags.value = true
     const { data } = await postsAPI.getAll({ page_size: 50 })
-    const posts = data.results || data
-    
+    const posts = data.results || data || []
+
     const tagsMap = {}
-    posts.forEach(post => {
-      if (post.tags && Array.isArray(post.tags)) {
-        post.tags.forEach(tag => {
+    posts.forEach(p => {
+      if (p.tags && Array.isArray(p.tags)) {
+        p.tags.forEach(tag => {
           tagsMap[tag] = (tagsMap[tag] || 0) + 1
         })
       }
     })
-    
+
     popularTags.value = Object.entries(tagsMap)
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 10)
+
+    setCache('popular_tags', popularTags.value)
   } catch (error) {
     console.error('Error fetching popular tags:', error)
+    popularTags.value = []
   } finally {
     loadingTags.value = false
   }
