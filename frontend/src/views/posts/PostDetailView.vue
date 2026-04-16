@@ -455,7 +455,7 @@ const fetchPost = async () => {
 const fetchPopular = async () => {
   try {
     const { data } = await postsAPI.getPopular({ limit: 5 })
-    popularPosts.value = data
+    popularPosts.value = data.results || data
   } catch (error) {
     if (error.response?.status === 401) {
       console.log('Popular posts require authentication')
