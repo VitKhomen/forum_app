@@ -11,14 +11,18 @@
           Закладки
         </h1>
         <p class="text-gray-500 dark:text-gray-400 mt-1 text-sm">
-          {{ totalCount }} збережених постів
+          {{ loading ? '...' : `${totalCount} збережених постів` }}
         </p>
       </div>
     </div>
 
-    <!-- Loading -->
-    <div v-if="loading" class="flex justify-center py-20">
-      <div class="animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-amber-500"></div>
+    <!-- Скелетон -->
+    <div v-if="loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div v-for="i in 6" :key="i" class="space-y-2">
+        <SkeletonLoader type="post-card" />
+        <!-- Дата збереження скелетон -->
+        <div class="h-3 w-28 bg-gray-200 dark:bg-gray-700 rounded animate-pulse ml-auto" />
+      </div>
     </div>
 
     <!-- Empty -->
@@ -45,13 +49,14 @@
         :key="bookmark.id"
         class="relative group"
       >
-        <!-- Картка поста -->
         <PostCard :post="bookmark.post_detail" />
 
-        <!-- Кнопка видалити із закладок (появляється при hover) -->
+        <!-- Кнопка видалити -->
         <button
           @click="removeBookmark(bookmark)"
-          class="absolute top-3 right-3 p-1.5 rounded-lg bg-white/90 dark:bg-gray-800/90 text-amber-500 shadow-md opacity-0 group-hover:opacity-100 transition-all hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-500"
+          class="absolute top-3 right-3 p-1.5 rounded-lg bg-white/90 dark:bg-gray-800/90
+                 text-amber-500 shadow-md opacity-0 group-hover:opacity-100 transition-all
+                 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-500"
           title="Видалити із закладок"
         >
           <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
@@ -59,7 +64,6 @@
           </svg>
         </button>
 
-        <!-- Дата збереження -->
         <p class="text-xs text-gray-400 dark:text-gray-500 mt-2 text-right px-1">
           Збережено {{ formatDate(bookmark.created_at) }}
         </p>
@@ -71,7 +75,8 @@
       <button
         :disabled="currentPage === 1"
         @click="goToPage(currentPage - 1)"
-        class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-40 transition"
+        class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300
+               rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-40 transition"
       >
         ← Попередня
       </button>
@@ -91,7 +96,8 @@
       <button
         :disabled="currentPage === totalPages"
         @click="goToPage(currentPage + 1)"
-        class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-40 transition"
+        class="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300
+               rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-40 transition"
       >
         Наступна →
       </button>
@@ -108,14 +114,15 @@ import { useToast } from 'vue-toastification'
 import { formatDistanceToNow } from 'date-fns'
 import { uk } from 'date-fns/locale'
 import PostCard from '@/components/posts/PostCard.vue'
+import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
 
 const toast = useToast()
 
-const bookmarks = ref([])
-const loading = ref(false)
-const currentPage = ref(1)
-const totalCount = ref(0)
-const pageSize = 12
+const bookmarks    = ref([])
+const loading      = ref(false)
+const currentPage  = ref(1)
+const totalCount   = ref(0)
+const pageSize     = 12
 
 const totalPages = computed(() => Math.ceil(totalCount.value / pageSize))
 
@@ -125,8 +132,7 @@ const fetchBookmarks = async () => {
     const { data } = await bookmarksAPI.getAll({ page: currentPage.value })
     bookmarks.value = data.results || []
     totalCount.value = data.count || 0
-  } catch (error) {
-    console.error(error)
+  } catch {
     toast.error('Помилка завантаження закладок')
   } finally {
     loading.value = false

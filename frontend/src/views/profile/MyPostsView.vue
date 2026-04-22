@@ -10,25 +10,55 @@
       </RouterLink>
     </div>
 
-    <!-- Posts List -->
-    <div v-if="!loading && posts.length" class="space-y-4">
+    <!-- Скелетон -->
+    <div v-if="loading" class="space-y-4">
+      <div
+        v-for="i in 5"
+        :key="i"
+        class="bg-white dark:bg-gray-800 rounded-lg shadow p-6"
+      >
+        <div class="flex gap-4 items-start">
+          <!-- Зображення скелетон -->
+          <div class="w-24 h-24 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse flex-shrink-0" />
+          <!-- Контент скелетон -->
+          <div class="flex-1 space-y-3">
+            <div class="h-6 w-3/4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+            <div class="h-4 w-full bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+            <div class="h-4 w-2/3 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+            <div class="flex gap-4 mt-2">
+              <div class="h-4 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+              <div class="h-4 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+              <div class="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+            </div>
+          </div>
+          <!-- Кнопки скелетон -->
+          <div class="flex flex-col gap-2 flex-shrink-0">
+            <div class="h-7 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+            <div class="h-7 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Список постів -->
+    <div v-else-if="posts.length" class="space-y-4">
       <div
         v-for="post in posts"
         :key="post.id"
         class="bg-white dark:bg-gray-800 rounded-lg shadow p-6"
       >
         <div class="flex gap-4 items-start">
-          <!-- Зображення (маленьке) -->
+          <!-- Зображення -->
           <RouterLink :to="`/posts/${post.slug}`" class="flex-shrink-0">
             <img
               v-if="post.image"
               :src="post.image"
               :alt="post.title"
-              class="w-30 h-30 object-cover rounded-lg hover:scale-105 transition-transform duration-300"
+              class="w-24 h-24 object-cover rounded-lg hover:scale-105 transition-transform duration-300"
             />
             <div
               v-else
-              class="w-24 h-24 bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm"
+              class="w-24 h-24 bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center text-gray-500 dark:text-gray-400 text-xs text-center p-2"
             >
               Без зображення
             </div>
@@ -42,14 +72,19 @@
             >
               {{ post.title }}
             </RouterLink>
-            <p class="text-gray-600 dark:text-gray-400 text-sm mt-2 line-clamp-2 break-words overflow-hidden">
+            <p class="text-gray-600 dark:text-gray-400 text-sm mt-2 line-clamp-2 break-words">
               {{ post.excerpt }}
             </p>
-            <div class="flex items-center gap-4 mt-3 text-sm text-gray-500">
+            <div class="flex flex-wrap items-center gap-4 mt-3 text-sm text-gray-500 dark:text-gray-400">
               <span>👁️ {{ post.views_count }} переглядів</span>
               <span>💬 {{ post.comments_count }} коментарів</span>
-              <span :class="post.status === 'published' ? 'text-green-600' : 'text-yellow-600'">
-                {{ post.status === 'published' ? 'Опубліковано' : 'Чернетка' }}
+              <span
+                class="font-medium"
+                :class="post.status === 'published'
+                  ? 'text-green-600 dark:text-green-400'
+                  : 'text-yellow-600 dark:text-yellow-400'"
+              >
+                {{ post.status === 'published' ? '✓ Опубліковано' : '✎ Чернетка' }}
               </span>
             </div>
           </div>
@@ -58,7 +93,7 @@
           <div class="flex flex-col gap-2 flex-shrink-0">
             <RouterLink
               :to="`/profile/edit-post/${post.slug}`"
-              class="px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 text-sm whitespace-nowrap"
+              class="px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700 text-sm whitespace-nowrap text-center"
             >
               Редагувати
             </RouterLink>
@@ -73,8 +108,8 @@
       </div>
     </div>
 
-    <!-- Empty State -->
-    <div v-else-if="!loading && !posts.length" class="text-center py-12">
+    <!-- Empty -->
+    <div v-else class="text-center py-12">
       <p class="text-gray-600 dark:text-gray-400 mb-4">У вас ще немає постів</p>
       <RouterLink
         to="/profile/create-post"
@@ -82,11 +117,6 @@
       >
         Створити перший пост
       </RouterLink>
-    </div>
-
-    <!-- Loading -->
-    <div v-if="loading" class="text-center py-12">
-      <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-gray-300 border-t-blue-600"></div>
     </div>
   </div>
 </template>
@@ -97,8 +127,8 @@ import { RouterLink } from 'vue-router'
 import { postsAPI } from '@/services/api'
 import { useToast } from 'vue-toastification'
 
-const toast = useToast()
-const posts = ref([])
+const toast   = useToast()
+const posts   = ref([])
 const loading = ref(true)
 
 const fetchMyPosts = async () => {
@@ -106,8 +136,7 @@ const fetchMyPosts = async () => {
     loading.value = true
     const { data } = await postsAPI.getMy()
     posts.value = data.results || data
-  } catch (error) {
-    console.error('Error fetching posts:', error)
+  } catch {
     toast.error('Помилка завантаження постів')
   } finally {
     loading.value = false
@@ -116,18 +145,14 @@ const fetchMyPosts = async () => {
 
 const deletePost = async (slug) => {
   if (!confirm('Ви впевнені, що хочете видалити цей пост?')) return
-  
   try {
     await postsAPI.delete(slug)
     toast.success('Пост видалено')
-    fetchMyPosts()
-  } catch (error) {
-    console.error('Error deleting post:', error)
+    posts.value = posts.value.filter(p => p.slug !== slug)
+  } catch {
     toast.error('Помилка видалення')
   }
 }
 
-onMounted(() => {
-  fetchMyPosts()
-})
+onMounted(fetchMyPosts)
 </script>
