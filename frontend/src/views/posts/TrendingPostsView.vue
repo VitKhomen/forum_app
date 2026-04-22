@@ -1,198 +1,117 @@
 <template>
-  <div class="space-y-8">
-    <!-- Page Title + Filters -->
-    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-      <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
-        В тренді
-      </h1>
+  <div class="space-y-6">
 
-      <div class="flex flex-wrap gap-4 w-full md:w-auto">
-        <input
-          v-model="searchQuery"
-          type="search"
-          placeholder="Пошук..."
-          class="flex-1 min-w-[200px] px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-        />
+    <!-- Заголовок + категорія -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <h1 class="text-3xl font-bold text-gray-900 dark:text-white">В тренді</h1>
 
+      <div class="flex items-center gap-3">
         <select
           v-model="selectedCategory"
-          class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+          @change="applyFilters"
+          class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg
+                 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm
+                 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value="">Всі категорії</option>
           <option v-for="cat in categories" :key="cat.id" :value="cat.slug">
             {{ cat.name }}
           </option>
         </select>
-
-        <button
-          @click="fetchPosts"
-          class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition whitespace-nowrap"
-        >
-          Застосувати
-        </button>
       </div>
     </div>
 
-    <!-- Posts Grid -->
-    <div v-if="!loading && posts.length" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <!-- Бейдж пошуку з хедера -->
+    <div v-if="searchQuery" class="flex items-center gap-2">
+      <span class="text-sm text-gray-500 dark:text-gray-400">Пошук:</span>
+      <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-100 dark:bg-blue-900/30
+                   text-blue-800 dark:text-blue-300 rounded-full text-sm">
+        🔍 "{{ searchQuery }}"
+        <button @click="clearSearch" class="hover:text-blue-600 ml-1">✕</button>
+      </span>
+    </div>
+
+    <!-- Скелетон — на місці постів -->
+    <div v-if="loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <SkeletonLoader v-for="i in 9" :key="`skeleton-${i}`" type="post-card" />
+    </div>
+
+    <!-- Сітка постів -->
+    <div v-else-if="posts.length" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       <PostCard v-for="post in posts" :key="post.id" :post="post" />
     </div>
 
-    <!-- Empty State -->
-    <div v-else-if="!loading && !posts.length" class="text-center py-12">
-      <p class="text-gray-600 dark:text-gray-400">Трендові новини не знайдено</p>
+    <!-- Empty -->
+    <div v-else class="text-center py-12 text-gray-600 dark:text-gray-400">
+      <p class="text-5xl mb-3">🔥</p>
+      <p>Трендових постів не знайдено</p>
     </div>
 
-    <!-- Loading Skeleton -->
-    <div v-if="loading" class="space-y-8">
-      <!-- Скелетони для постів (показуємо 6 штук, як у сітці) -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <SkeletonLoader 
-          v-for="i in 6" 
-          :key="`trending-skeleton-${i}`" 
-          type="post-card" 
-        />
-      </div>
-
-      <!-- Скелетон для пагінації (коли завантажується) -->
-      <div v-if="totalPages > 1" class="flex justify-center gap-2 flex-wrap">
-        <div 
-          v-for="i in Math.min(5, totalPages)" 
-          :key="i"
-          class="h-10 w-10 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse"
-        />
-      </div>
-    </div>
-
-    <!-- Pagination -->
-    <div v-if="totalPages > 1" class="flex justify-center gap-2 flex-wrap">
-      <button
-        v-for="page in totalPages"
-        :key="page"
-        @click="changePage(page)"
-        :class="[
-          'px-4 py-2 rounded-lg transition',
-          currentPage === page
-            ? 'bg-blue-600 text-white'
-            : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
-        ]"
-      >
-        {{ page }}
-      </button>
-    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, watch, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { postsAPI, categoriesAPI } from '@/services/api'
 import PostCard from '@/components/posts/PostCard.vue'
 import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
 
-const route = useRoute()
+const route  = useRoute()
+const router = useRouter()
 
-const posts = ref([])
-const categories = ref([])
-const loading = ref(true)
-const searchQuery = ref('')
+const categories       = ref([])
+const posts            = ref([])
+const loading          = ref(false)
+const searchQuery      = ref('')
 const selectedCategory = ref('')
-const currentPage = ref(1)
-const totalPages = ref(1)
-const totalCount = ref(0)
 
 const fetchPosts = async () => {
+  loading.value = true
   try {
-    loading.value = true
-    const params = {
-      page: currentPage.value,
-      days: 14
-    }
-    
+    const params = { days: 180, limit: 30 }
+    if (searchQuery.value.trim())  params.search         = searchQuery.value.trim()
+    if (selectedCategory.value)    params.category__slug = selectedCategory.value
+
     const { data } = await postsAPI.getTrending(params)
-    
-    // Якщо бекенд повертає пагіновані дані
-    if (data.results) {
-      let filteredPosts = data.results
-      
-      // Фільтруємо по пошуку
-      if (searchQuery.value.trim()) {
-        const query = searchQuery.value.toLowerCase()
-        filteredPosts = filteredPosts.filter(post => 
-          post.title?.toLowerCase().includes(query) ||
-          post.excerpt?.toLowerCase().includes(query)
-        )
-      }
-      
-      // Фільтруємо по категорії
-      if (selectedCategory.value) {
-        filteredPosts = filteredPosts.filter(post => 
-          post.category?.slug === selectedCategory.value
-        )
-      }
-      
-      posts.value = filteredPosts
-      totalCount.value = data.count
-      
-      // Якщо є фільтри, перераховуємо кількість сторінок
-      if (searchQuery.value.trim() || selectedCategory.value) {
-        totalPages.value = Math.ceil(filteredPosts.length / (data.results.length || 1))
-      } else {
-        totalPages.value = Math.ceil(data.count / (data.results.length || 20))
-      }
-    } else {
-      // Якщо бекенд повертає простий масив
-      posts.value = data
-      totalPages.value = 1
-    }
-  } catch (error) {
-    console.error('Error fetching trending posts:', error)
+    posts.value = Array.isArray(data) ? data : (data.results || [])
+  } catch (e) {
+    console.error(e)
     posts.value = []
   } finally {
     loading.value = false
   }
 }
 
-const fetchCategories = async () => {
-  try {
-    const { data } = await categoriesAPI.getAll()
-    categories.value = data.results || data
-  } catch (error) {
-    console.error('Error fetching categories:', error)
-  }
-}
-
 const applyFilters = () => {
-  currentPage.value = 1
+  updateURL()
   fetchPosts()
 }
 
-const changePage = (page) => {
-  currentPage.value = page
-  window.scrollTo({ top: 0, behavior: 'smooth' })
+const clearSearch = () => {
+  searchQuery.value = ''
+  updateURL()
+  fetchPosts()
 }
 
-// Читаємо параметри з URL при завантаженні
-const syncFromRoute = () => {
-  searchQuery.value = route.query.search || ''
-  selectedCategory.value = route.query.category__slug || ''
+const updateURL = () => {
+  router.replace({
+    query: {
+      search:         searchQuery.value      || undefined,
+      category__slug: selectedCategory.value || undefined,
+    }
+  })
 }
 
-// Оновлюємо пости при зміні сторінки
-watch(currentPage, () => {
+watch(() => route.query, (q) => {
+  searchQuery.value      = q.search         || ''
+  selectedCategory.value = q.category__slug || ''
   fetchPosts()
-})
-
-// Оновлюємо пости при зміні query параметрів в URL
-watch(() => route.query, () => {
-  syncFromRoute()
-  currentPage.value = 1
-  fetchPosts()
-}, { deep: true })
+}, { immediate: true })
 
 onMounted(() => {
-  syncFromRoute()
-  fetchCategories()
-  fetchPosts()
+  categoriesAPI.getAll().then(({ data }) => {
+    categories.value = data.results || data
+  })
 })
 </script>
