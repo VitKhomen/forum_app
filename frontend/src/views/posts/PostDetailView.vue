@@ -448,33 +448,30 @@ const fetchPost = async () => {
   }
 }
 
-const CACHE_DURATION = 1000 * 60 * 30 // 30 хвилин
+const CACHE_TTL = 5 * 60 * 1000 // 5 хвилин
 
 const getCachedData = (key) => {
-  const cached = sessionStorage.getItem(key)
-  if (!cached) return null
-
   try {
-    const parsed = JSON.parse(cached)
-    // Перевіряємо, чи не застарів кеш
-    if (parsed.timestamp && Date.now() - parsed.timestamp < CACHE_DURATION) {
-      return parsed.data
+    const item = sessionStorage.getItem(key)
+    if (!item) return null
+    const { data, timestamp } = JSON.parse(item)
+    if (Date.now() - timestamp > CACHE_TTL) {
+      sessionStorage.removeItem(key)
+      return null
     }
-    // Якщо застарів — видаляємо
-    sessionStorage.removeItem(key)
-    return null
+    return data
   } catch {
-    sessionStorage.removeItem(key)
     return null
   }
 }
 
 const setCache = (key, data) => {
-  const cacheObject = {
-    data: data,
-    timestamp: Date.now()
-  }
-  sessionStorage.setItem(key, JSON.stringify(cacheObject))
+  try {
+    sessionStorage.setItem(key, JSON.stringify({
+      data,
+      timestamp: Date.now()
+    }))
+  } catch {}
 }
 
 // ──────────────────────────────────────

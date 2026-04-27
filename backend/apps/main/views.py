@@ -2,6 +2,7 @@ from django.db import transaction, models
 from django.db.models import Count, ExpressionWrapper, FloatField, F, Q
 from django.db.models.functions import Cast
 from django.shortcuts import get_object_or_404
+from django.core.cache import cache
 
 from rest_framework import viewsets, status
 from rest_framework.decorators import action, api_view, permission_classes
@@ -12,6 +13,7 @@ from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 from rest_framework.pagination import LimitOffsetPagination
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
+
 
 from .models import Category, Post, PostImages, PostVideo
 from .serializers import (
@@ -280,6 +282,19 @@ class PostVideosViewSet(BasePostMediaViewSet):
 @permission_classes([AllowAny])
 def popular_posts(request):
     sort = request.query_params.get('sort', 'hot')
+    search = request.query_params.get('search', '')
+    cat = request.query_params.get('category__slug', '')
+    limit = request.query_params.get('limit', '')
+    offset = request.query_params.get('offset', '0')
+
+    # Не кешуємо якщо є пошук
+    use_cache = not search
+    cache_key = f"popular:{sort}:{cat}:{limit}:{offset}"
+
+    if use_cache:
+        cached = cache.get(cache_key)
+        if cached:
+            return Response(cached)
 
     queryset = Post.objects.filter(status='published') \
         .select_related('author', 'category') \
@@ -307,24 +322,15 @@ def popular_posts(request):
     else:
         queryset = queryset.order_by('-views_count')
 
-    if 'search' in request.query_params:
-        search = request.query_params['search']
+    if search:
         queryset = queryset.filter(
             Q(title__icontains=search) |
             Q(content__icontains=search) |
             Q(tags__name__icontains=search)
         ).distinct()
 
-    if 'category__slug' in request.query_params:
-        queryset = queryset.filter(
-            category__slug=request.query_params['category__slug'])
-
-    # if 'limit' in request.query_params:
-    #     limit = min(int(request.query_params['limit']), 20)
-    #     posts = queryset[:limit]
-    #     serializer = PostListSerializer(
-    #         posts, many=True, context={'request': request})
-    #     return Response(serializer.data)
+    if cat:
+        queryset = queryset.filter(category__slug=cat)
 
     paginator = LimitOffsetPagination()
     paginator.default_limit = 20
@@ -333,7 +339,12 @@ def popular_posts(request):
     page = paginator.paginate_queryset(queryset, request)
     serializer = PostListSerializer(
         page, many=True, context={'request': request})
-    return paginator.get_paginated_response(serializer.data)
+    response_data = paginator.get_paginated_response(serializer.data).data
+
+    if use_cache:
+        cache.set(cache_key, response_data, timeout=300)  # 5 хвилин
+
+    return Response(response_data)
 
 
 @api_view(['GET'])
@@ -344,6 +355,13 @@ def trending_posts(request):
 
     days = int(request.query_params.get('days', 180))
     limit = int(request.query_params.get('limit', 30))
+    cat = request.query_params.get('category__slug', '')
+
+    cache_key = f"trending:{days}:{limit}:{cat}"
+    cached = cache.get(cache_key)
+    if cached:
+        return Response(cached)
+
     date_from = timezone.now() - timedelta(days=days)
 
     posts = Post.objects.filter(
@@ -360,8 +378,14 @@ def trending_posts(request):
              + Cast(F('comments_count_ann'), FloatField()) * 4.2,
              output_field=FloatField()
          )
-    ).order_by('-hot_score')[:limit]
+    ).order_by('-hot_score')
+
+    if cat:
+        posts = posts.filter(category__slug=cat)
+
+    posts = posts[:limit]
 
     serializer = PostListSerializer(
         posts, many=True, context={'request': request})
+    cache.set(cache_key, serializer.data, timeout=600)  # 10 хвилин
     return Response(serializer.data)

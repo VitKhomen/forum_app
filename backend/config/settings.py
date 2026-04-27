@@ -302,9 +302,20 @@ EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
 # апі для фільмів
 TMDB_API_KEY = config('TMDB_API_KEY', default='')
 # Кеш — Redis
-# CACHES = {
-#     "default": {
-#         "BACKEND": "django.core.cache.backends.redis.RedisCache",
-#         "LOCATION": config("REDIS_URL", default="redis://localhost:6379/1"),
-#     }
-# }
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": config("REDIS_URL", default="redis://localhost:6379/0"),
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "SOCKET_CONNECT_TIMEOUT": 5,
+            "SOCKET_TIMEOUT": 5,
+            "IGNORE_EXCEPTIONS": True,
+            "CONNECTION_POOL_KWARGS": {
+                "ssl_cert_reqs": None  # потрібно для Upstash TLS
+            }
+        },
+        "KEY_PREFIX": "justforum",
+        "TIMEOUT": 3600,
+    }
+}
