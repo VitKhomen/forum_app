@@ -39,6 +39,35 @@ class CategoryViewSet(viewsets.ModelViewSet):
     search_fields = ['name', 'description']
     ordering_fields = ['name', 'created_at']
 
+    # Кешування списку
+    def list(self, request, *args, **kwargs):
+        cache_key = "categories:list"
+        cached_data = cache.get(cache_key)
+
+        if cached_data is not None:
+            return Response(cached_data)
+
+        # Якщо в кеші немає — виконуємо звичайний запит
+        response = super().list(request, *args, **kwargs)
+
+        # Зберігаємо в кеш на 1 годину
+        cache.set(cache_key, response.data, timeout=3600)
+
+        return response
+
+    # Очищення кешу при змінах
+    def perform_create(self, serializer):
+        serializer.save()
+        cache.delete("categories:list")
+
+    def perform_update(self, serializer):
+        serializer.save()
+        cache.delete("categories:list")
+
+    def perform_destroy(self, instance):
+        instance.delete()
+        cache.delete("categories:list")
+
 
 class PopularPagination(LimitOffsetPagination):
     default_limit = 20
@@ -92,16 +121,65 @@ class PostViewSet(viewsets.ModelViewSet):
             return PostDetailSerializer
         return PostCreateUpdateSerializer
 
-    def perform_create(self, serializer):
-        serializer.save(author=self.request.user)
+    def list(self, request, *args, **kwargs):
+        # Не кешуємо для авторизованих користувачів (чернетки) та при пошуку
+        if request.user.is_authenticated or request.query_params.get('search'):
+            return super().list(request, *args, **kwargs)
+
+        cache_key = f"posts:list:{self._get_query_key(request)}"
+
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return Response(cached)
+
+        response = super().list(request, *args, **kwargs)
+        cache.set(cache_key, response.data, timeout=600)   # 10 хвилин
+        return response
 
     def retrieve(self, request, *args, **kwargs):
-        instance = self.get_object()
-        if instance.status == 'published' and instance.author != request.user:
-            Post.objects.filter(pk=instance.pk).update(
-                views_count=F('views_count') + 1)
-            instance.views_count += 1
-        return super().retrieve(request, *args, **kwargs)
+        slug = kwargs['slug']
+        cache_key = f"post:detail:{slug}"
+
+        cached = cache.get(cache_key)
+        if cached is not None:
+            # Оновлюємо лічильник переглядів
+            if cached.get('status') == 'published':
+                Post.objects.filter(slug=slug).update(
+                    views_count=F('views_count') + 1)
+            return Response(cached)
+
+        response = super().retrieve(request, *args, **kwargs)
+        cache.set(cache_key, response.data, timeout=1800)  # 30 хвилин
+        return response
+
+    def _get_query_key(self, request):
+        """Генерує ключ для кешу списку"""
+        params = sorted(
+            (k, v) for k, v in request.query_params.items()
+            if k not in ['page']
+        )
+        return ":".join(f"{k}={v}" for k, v in params) or "all"
+
+    # ==================== ІНВАЛІДАЦІЯ ====================
+    def perform_create(self, serializer):
+        post = serializer.save(author=self.request.user)
+        self._clear_post_cache(post)
+
+    def perform_update(self, serializer):
+        post = serializer.save()
+        self._clear_post_cache(post)
+
+    def perform_destroy(self, instance):
+        self._clear_post_cache(instance)
+        instance.delete()
+
+    def _clear_post_cache(self, post):
+        """Очищення всіх пов'язаних кешів"""
+        cache.delete(f"post:detail:{post.slug}")
+        cache.delete_pattern("posts:list:*")        # Redis дозволяє це
+        cache.delete_pattern("popular:*")
+        cache.delete_pattern("trending:*")
+        cache.delete_pattern("posts:by_tag:*")
 
     def get_serializer_context(self):
         context = super().get_serializer_context()
@@ -134,20 +212,36 @@ class PostViewSet(viewsets.ModelViewSet):
         if not tag_name:
             raise ValidationError({'tag': "Параметр tag обов'язковий"})
 
+        # Нормалізуємо тег (на всяк випадок)
+        tag_name = tag_name.strip().lower()
+
+        cache_key = f"posts:by_tag:{tag_name}"
+
+        # Кешуємо тільки для публічних запитів
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return Response(cached)
+
         posts = self.get_queryset().filter(
             tags__name__iexact=tag_name,
             status='published'
         ).distinct()
 
         page = self.paginate_queryset(posts)
+
         if page is not None:
             serializer = PostListSerializer(
                 page, many=True, context={'request': request})
-            return self.get_paginated_response(serializer.data)
+            response_data = self.get_paginated_response(serializer.data).data
+        else:
+            serializer = PostListSerializer(
+                posts, many=True, context={'request': request})
+            response_data = serializer.data
 
-        serializer = PostListSerializer(
-            posts, many=True, context={'request': request})
-        return Response(serializer.data)
+        # Зберігаємо в кеш на 15 хвилин
+        cache.set(cache_key, response_data, timeout=900)
+
+        return Response(response_data)
 
 
 # ========================

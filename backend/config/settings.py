@@ -83,7 +83,7 @@ DATABASES = {
             "DATABASE_URL",
             default='sqlite:///db.sqlite3'
         ),
-        conn_max_age=600,
+        conn_max_age=300,
         ssl_require=False
     )
 }

@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from django.core.cache import cache
 
 
 class User(AbstractUser):
@@ -43,6 +44,11 @@ class User(AbstractUser):
             self.karma_points = 0
             self.karma_level = 1
         self.save(update_fields=['karma_points', 'karma_level'])
+
+        # Скидаємо кеш лідерборду і цього юзера
+        cache.delete(f"karma:user:{self.username}")
+        for limit in [10, 20, 50]:
+            cache.delete(f"karma:leaderboard:{limit}")
 
         # Зберігаємо в історію
         from apps.karma.models import KarmaHistory
