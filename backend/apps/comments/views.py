@@ -5,6 +5,7 @@ from rest_framework.pagination import LimitOffsetPagination
 from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
 from django.db.models import Prefetch
+from django.core.cache import cache
 
 from .models import Comment
 from .serializers import CommentSerializer, CommentDetailSerializer, \
@@ -50,6 +51,9 @@ class CommentListCreateView(generics.ListCreateAPIView):
         serializer.is_valid(raise_exception=True)
         comment = serializer.save()
 
+        # Скидаємо кеш коментарів цього поста
+        _invalidate_comments_cache(comment.post_id)
+
         full_serializer = CommentSerializer(
             comment, context={'request': request})
         return Response(full_serializer.data, status=201)
@@ -75,24 +79,28 @@ class CommentDetailView(generics.RetrieveUpdateDestroyAPIView):
 
         # Використовуємо CommentUpdateSerializer для валідації та збереження
         serializer = CommentUpdateSerializer(
-            instance,
-            data=request.data,
-            partial=partial,
-            context={'request': request}
-        )
+            instance, data=request.data, partial=partial, context={'request': request})
         serializer.is_valid(raise_exception=True)
         comment = serializer.save()
 
+        # Скидаємо кеш
+        _invalidate_comments_cache(comment.post_id)
+
         # Повертаємо повний об'єкт через CommentDetailSerializer
         full_serializer = CommentDetailSerializer(
-            comment,
-            context={'request': request}
-        )
+            comment, context={'request': request})
         return Response(full_serializer.data)
 
     def perform_destroy(self, instance):
+        post_id = instance.post_id
         instance.is_active = False
         instance.save()
+        _invalidate_comments_cache(post_id)
+
+
+def _invalidate_comments_cache(post_id):
+    """очищення кешу коментарів поста"""
+    cache.delete_pattern(f"comments:post:{post_id}:*")
 
 
 class MyCommentsView(generics.ListAPIView):
@@ -123,6 +131,19 @@ class MyCommentsView(generics.ListAPIView):
 def post_comments(request, post_id):
     post = get_object_or_404(Post, id=post_id, status='published')
 
+    limit = int(request.query_params.get('limit', 20))
+    offset = int(request.query_params.get('offset', 0))
+
+    # Кешуємо тільки першу сторінку анонімних запитів
+    # Авторизовані — не кешуємо бо є is_liked який відрізняється
+    use_cache = not request.user.is_authenticated
+    cache_key = f"comments:post:{post_id}:limit:{limit}:offset:{offset}"
+
+    if use_cache:
+        cached = cache.get(cache_key)
+        if cached:
+            return Response(cached)
+
     comments = Comment.objects.filter(
         post=post,
         is_active=True
@@ -131,8 +152,6 @@ def post_comments(request, post_id):
     # Пагінація
     paginator = LimitOffsetPagination()
     paginator.default_limit = 20
-    paginator.limit_query_param = 'limit'
-    paginator.offset_query_param = 'offset'
     paginator.max_limit = 100
 
     page = paginator.paginate_queryset(comments, request)
@@ -140,12 +159,15 @@ def post_comments(request, post_id):
         page, many=True, context={'request': request})
 
     response = paginator.get_paginated_response(serializer.data)
-    # Додаємо мета-інфо про пост
     response.data['post'] = {
-        'id': post.id,
+        'id':    post.id,
         'title': post.title,
-        'slug': post.slug
+        'slug':  post.slug,
     }
+
+    if use_cache:
+        cache.set(cache_key, response.data, timeout=120)
+
     return response
 
 
