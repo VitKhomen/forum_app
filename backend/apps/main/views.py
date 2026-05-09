@@ -25,6 +25,7 @@ from .serializers import (
     PostVideoSerializer,
 )
 from .permissions import IsAuthorOrReadOnly
+from apps.core.throttling import PostCreateMinuteThrottle, PostCreateDayThrottle
 
 
 # ========================
@@ -242,6 +243,11 @@ class PostViewSet(viewsets.ModelViewSet):
         cache.set(cache_key, response_data, timeout=900)
 
         return Response(response_data)
+
+    def get_throttles(self):
+        if self.action == 'create':
+            return [PostCreateMinuteThrottle(), PostCreateDayThrottle()]
+        return super().get_throttles()
 
 
 # ========================

@@ -9,6 +9,7 @@ from .models import User
 from .serializers import (UserRegistrationSerializer, UserLoginSerializer,
                           UserProfileSerializer, UserUpdateSerializer,
                           ChangePasswordSerializer, PublicUserSerializer)
+from apps.core.throttling import LoginRateThrottle, RegisterRateThrottle
 
 
 class RegistrationView(generics.CreateAPIView):
@@ -16,6 +17,7 @@ class RegistrationView(generics.CreateAPIView):
     serializer_class = UserRegistrationSerializer
     permission_classes = [permissions.AllowAny]
     parser_classes = [MultiPartParser, FormParser, JSONParser]
+    throttle_classes = [RegisterRateThrottle]
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -35,6 +37,7 @@ class RegistrationView(generics.CreateAPIView):
 class LoginView(generics.GenericAPIView):
     serializer_class = UserLoginSerializer
     permission_classes = [permissions.AllowAny]
+    throttle_classes = [LoginRateThrottle]
 
     def post(self, request, * args, **kwargs):
         serializer = self.get_serializer(data=request.data)

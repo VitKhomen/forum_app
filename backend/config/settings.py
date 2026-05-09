@@ -175,6 +175,35 @@ REST_FRAMEWORK = {
         'rest_framework.parsers.MultiPartParser',
         'rest_framework.parsers.FormParser',
     ],
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        # Глобальні
+        'anon': '200/day',
+        'user': '1000/day',
+
+        # Коментарі
+        'comment_create_minute': '5/min',
+        'comment_create_hour':   '30/hour',
+
+        # Лайки
+        'like_toggle_minute': '20/min',
+        'like_toggle_day':    '200/day',
+
+        # Пости
+        'post_create_minute': '3/min',
+        'post_create_day':    '20/day',
+
+        # Авторизація
+        'login':    '5/min',
+        'register': '3/hour',
+
+        # Закладки
+        'bookmark': '30/min',
+    },
+    'EXCEPTION_HANDLER': 'apps.core.exceptions.custom_exception_handler',
 }
 
 

@@ -7,6 +7,7 @@ from django.shortcuts import get_object_or_404
 from .models import Bookmark
 from .serializers import BookmarkSerializer
 from apps.main.models import Post
+from apps.core.throttling import BookmarkThrottle
 
 
 class BookmarkPagination(PageNumberPagination):
@@ -34,6 +35,13 @@ def toggle_bookmark(request, post_id):
     POST /api/v1/bookmarks/<post_id>/toggle/
     Додає або видаляє закладку
     """
+
+    throttles = [BookmarkThrottle()]
+    for throttle in throttles:
+        if not throttle.allow_request(request, None):
+            from rest_framework.exceptions import Throttled
+            raise Throttled(detail='Забагато запитів до закладок.')
+
     post = get_object_or_404(Post, id=post_id, status='published')
 
     bookmark, created = Bookmark.objects.get_or_create(

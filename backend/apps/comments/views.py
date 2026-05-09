@@ -12,6 +12,7 @@ from .serializers import CommentSerializer, CommentDetailSerializer, \
     CommentCreateSerializer, CommentUpdateSerializer
 from .permissions import IsAuthorOrReadOnly
 from apps.main.models import Post
+from apps.core.throttling import CommentCreateMinuteThrottle, CommentCreateHourThrottle
 
 
 class CommentPagination(LimitOffsetPagination):
@@ -57,6 +58,12 @@ class CommentListCreateView(generics.ListCreateAPIView):
         full_serializer = CommentSerializer(
             comment, context={'request': request})
         return Response(full_serializer.data, status=201)
+
+    def get_throttles(self):
+        """Throttling тільки для POST (create)"""
+        if self.request.method == 'POST':
+            return [CommentCreateMinuteThrottle(), CommentCreateHourThrottle()]
+        return super().get_throttles()
 
 
 class CommentDetailView(generics.RetrieveUpdateDestroyAPIView):

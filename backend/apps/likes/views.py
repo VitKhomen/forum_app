@@ -8,6 +8,7 @@ from django.shortcuts import get_object_or_404
 from .models import Like
 from apps.main.models import Post
 from apps.comments.models import Comment
+from apps.core.throttling import LikeToggleMinuteThrottle, LikeToggleDayThrottle
 
 
 @api_view(['POST'])
@@ -21,6 +22,15 @@ def toggle_like(request):
         "object_id": 123
     }
     """
+
+    throttles = [LikeToggleMinuteThrottle(), LikeToggleDayThrottle()]
+    for throttle in throttles:
+        if not throttle.allow_request(request, None):
+            from rest_framework.exceptions import Throttled
+            wait = throttle.wait()
+            raise Throttled(
+                detail=f'Забагато лайків. Спробуйте через {int(wait)} сек.')
+
     content_type_name = request.data.get('content_type')
     object_id = request.data.get('object_id')
 
