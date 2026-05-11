@@ -198,7 +198,7 @@ REST_FRAMEWORK = {
 
         # Авторизація
         'login':    '5/min',
-        'register': '3/hour',
+        'register': '300/hour',
 
         # Закладки
         'bookmark': '30/min',

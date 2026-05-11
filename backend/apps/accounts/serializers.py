@@ -1,7 +1,9 @@
 from rest_framework import serializers
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
+
 from .models import User
+from .utils import make_avatar_file
 
 
 class UserRegistrationSerializer(serializers.ModelSerializer):
@@ -32,10 +34,14 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         avatar = validated_data.pop('avatar', None)
 
         user = User.objects.create_user(**validated_data)
+
         if avatar:
             user.avatar = avatar
-            user.save()
+        else:
+            display = user.get_full_name() or user.username
+            user.avatar = make_avatar_file(display)
 
+        user.save()
         return user
 
 
@@ -160,18 +166,45 @@ class PublicUserSerializer(serializers.ModelSerializer):
 
 
 class UserUpdateSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = User
         fields = ('first_name', 'last_name', 'avatar', 'bio')
+        extra_kwargs = {
+            'avatar': {'required': False, 'allow_null': True},
+        }
 
     def update(self, instance, validated_data):
-        # Обробка avatar: якщо передано None або порожньо — можна видалити файл
-        avatar = validated_data.get('avatar', instance.avatar)
-        if avatar is None and instance.avatar:
-            instance.avatar.delete(save=False)  # видаляємо старий файл
+        old_full_name = instance.get_full_name() or instance.username
+        new_first_name = validated_data.get('first_name', instance.first_name)
+        new_last_name = validated_data.get('last_name', instance.last_name)
+        new_full_name = f"{new_first_name} {new_last_name}".strip(
+        ) or instance.username
 
-        return super().update(instance, validated_data)
+        avatar = validated_data.get('avatar', None)
+
+        # === ЛОГІКА РЕГЕНЕРАЦІЇ АВАТАРКИ ===
+        name_changed = (new_full_name != old_full_name)
+
+        if name_changed and avatar is None:
+            # Користувач змінив ім'я, але не завантажив нову аватарку → генеруємо нову
+            new_avatar = make_avatar_file(new_full_name)
+            validated_data['avatar'] = new_avatar
+
+            # Видаляємо старий файл, щоб не захаращувати сховище
+            if instance.avatar:
+                instance.avatar.delete(save=False)
+
+        elif avatar is None:
+            # Якщо аватарку не передають взагалі — не чіпаємо її
+            validated_data.pop('avatar', None)
+
+        # Обробка випадку, коли користувач хоче видалити аватарку (передає null)
+        if avatar is None and 'avatar' in validated_data and instance.avatar:
+            instance.avatar.delete(save=False)
+
+        # Виконуємо оновлення
+        instance = super().update(instance, validated_data)
+        return instance
 
 
 class ChangePasswordSerializer(serializers.Serializer):
