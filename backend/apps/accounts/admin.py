@@ -66,3 +66,8 @@ class UserAdmin(BaseUserAdmin):
         return obj.full_name
     full_name_display.short_description = "Повне ім'я"
     full_name_display.admin_order_field = 'first_name'  # для сортування
+
+    def delete_queryset(self, request, queryset):
+        """Видаляємо по одному щоб спрацювали сигнали і видались файли з R2"""
+        for user in queryset:
+            user.delete()

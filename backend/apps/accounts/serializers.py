@@ -174,37 +174,23 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         }
 
     def update(self, instance, validated_data):
+        # Якщо аватар не передають взагалі — не чіпаємо його
+        if 'avatar' not in validated_data:
+            pass
+
+        # Якщо змінилось ім'я і не завантажили нову аватарку — регенеруємо
+        new_first = validated_data.get('first_name', instance.first_name)
+        new_last = validated_data.get('last_name', instance.last_name)
+        new_full_name = f"{new_first} {new_last}".strip() or instance.username
         old_full_name = instance.get_full_name() or instance.username
-        new_first_name = validated_data.get('first_name', instance.first_name)
-        new_last_name = validated_data.get('last_name', instance.last_name)
-        new_full_name = f"{new_first_name} {new_last_name}".strip(
-        ) or instance.username
 
-        avatar = validated_data.get('avatar', None)
+        name_changed = new_full_name != old_full_name
+        avatar_provided = 'avatar' in validated_data
 
-        # === ЛОГІКА РЕГЕНЕРАЦІЇ АВАТАРКИ ===
-        name_changed = (new_full_name != old_full_name)
+        if name_changed and not avatar_provided:
+            validated_data['avatar'] = make_avatar_file(new_full_name)
 
-        if name_changed and avatar is None:
-            # Користувач змінив ім'я, але не завантажив нову аватарку → генеруємо нову
-            new_avatar = make_avatar_file(new_full_name)
-            validated_data['avatar'] = new_avatar
-
-            # Видаляємо старий файл, щоб не захаращувати сховище
-            if instance.avatar:
-                instance.avatar.delete(save=False)
-
-        elif avatar is None:
-            # Якщо аватарку не передають взагалі — не чіпаємо її
-            validated_data.pop('avatar', None)
-
-        # Обробка випадку, коли користувач хоче видалити аватарку (передає null)
-        if avatar is None and 'avatar' in validated_data and instance.avatar:
-            instance.avatar.delete(save=False)
-
-        # Виконуємо оновлення
-        instance = super().update(instance, validated_data)
-        return instance
+        return super().update(instance, validated_data)
 
 
 class ChangePasswordSerializer(serializers.Serializer):

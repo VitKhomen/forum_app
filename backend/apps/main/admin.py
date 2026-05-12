@@ -277,6 +277,10 @@ class PostAdmin(admin.ModelAdmin):
         return qs.select_related('author', 'category') \
                  .prefetch_related('tags', 'images', 'videos')
 
+    def delete_queryset(self, request, queryset):
+        for post in queryset:
+            post.delete()
+
 
 # ============================================
 # POST IMAGES ADMIN (окремо)
@@ -308,6 +312,10 @@ class PostImagesAdmin(admin.ModelAdmin):
         return "Немає зображення"
     image_preview.short_description = "Прев'ю"
 
+    def delete_queryset(self, request, queryset):
+        for item in queryset:
+            item.delete()
+
 
 # ============================================
 # POST VIDEO ADMIN (окремо)
@@ -335,3 +343,7 @@ class PostVideoAdmin(admin.ModelAdmin):
             return obj.video.name.split('/')[-1]
         return "Немає відео"
     video_name.short_description = "Файл"
+
+    def delete_queryset(self, request, queryset):
+        for item in queryset:
+            item.delete()

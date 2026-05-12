@@ -354,10 +354,12 @@ class BasePostMediaViewSet(viewsets.ModelViewSet):
             raise ValidationError({'ids': 'Не вказано ID для видалення'})
 
         with transaction.atomic():
-            deleted_count, _ = self.queryset.filter(
-                id__in=ids, post=post).delete()
+            items = self.queryset.filter(id__in=ids, post=post)
+            count = items.count()
+            for item in items:
+                item.delete()
 
-        return Response({'message': f'Видалено {deleted_count} елементів'})
+        return Response({'message': f'Видалено {count} елементів'})
 
 
 class PostImagesViewSet(BasePostMediaViewSet):
