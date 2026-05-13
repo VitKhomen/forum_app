@@ -1,29 +1,32 @@
-from django.db.models.signals import pre_save, post_delete
+from django.db.models.signals import pre_delete, pre_save
 from django.dispatch import receiver
+
 from .models import User
 
 
-def _delete_file(field):
-    if field and field.name:
-        try:
-            field.storage.delete(field.name)
-        except Exception:
-            pass
-
-
 @receiver(pre_save, sender=User)
-def user_avatar_on_update(sender, instance, **kwargs):
-    """Видаляє старий аватар якщо юзер завантажив новий"""
+def delete_old_avatar_on_update(sender, instance, **kwargs):
+    """Видаляємо старий аватар при заміні на новий"""
     if not instance.pk:
-        return
+        return  # новий користувач — нічого не робимо
+
     try:
-        old = User.objects.get(pk=instance.pk)
+        old_instance = User.objects.get(pk=instance.pk)
+        old_avatar = old_instance.avatar
     except User.DoesNotExist:
         return
-    if old.avatar and old.avatar != instance.avatar:
-        _delete_file(old.avatar)
+
+    new_avatar = instance.avatar
+
+    # Якщо аватар змінився і старий існує — видаляємо старий файл
+    if old_avatar and old_avatar != new_avatar:
+        if old_avatar.storage.exists(old_avatar.name):
+            old_avatar.storage.delete(old_avatar.name)
 
 
-@receiver(post_delete, sender=User)
-def user_avatar_on_delete(sender, instance, **kwargs):
-    _delete_file(instance.avatar)
+@receiver(pre_delete, sender=User)
+def delete_avatar_on_user_delete(sender, instance, **kwargs):
+    """Видаляємо аватар при видаленні користувача"""
+    if instance.avatar:
+        if instance.avatar.storage.exists(instance.avatar.name):
+            instance.avatar.storage.delete(instance.avatar.name)

@@ -190,6 +190,12 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         if name_changed and not avatar_provided:
             validated_data['avatar'] = make_avatar_file(new_full_name)
 
+        # Якщо користувач передає нову аватарку — старий видалиться через сигнал
+        if 'avatar' in validated_data and validated_data['avatar'] is None:
+            # Хоче повністю видалити аватарку
+            if instance.avatar:
+                instance.avatar.delete(save=False)
+
         return super().update(instance, validated_data)
 
 
