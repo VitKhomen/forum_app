@@ -5,6 +5,7 @@ from django.utils.text import Truncator
 import bleach
 
 from .models import Category, Post, PostImages, PostVideo
+from apps.polls.serializers import PollSerializer
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -100,6 +101,7 @@ class PostDetailSerializer(serializers.ModelSerializer):
         source='author.karma_points', read_only=True)
     author_karma_level = serializers.IntegerField(
         source='author.karma_level', read_only=True)
+    poll = PollSerializer(read_only=True)
 
     class Meta:
         model = Post
@@ -112,6 +114,7 @@ class PostDetailSerializer(serializers.ModelSerializer):
             'views_count', 'comments_count',
             'images', 'videos', 'likes_count', 'is_liked',
             'author_karma_points', 'author_karma_level',
+            'poll',
         ]
         read_only_fields = ['slug', 'author', 'views_count', 'published_at']
 
