@@ -19,7 +19,6 @@ class PollCreateView(generics.CreateAPIView):
         if post_id:
             post = get_object_or_404(
                 Post, id=post_id, author=self.request.user)
-            # Видаляємо старе опитування якщо є
             Poll.objects.filter(post=post).delete()
 
         poll = serializer.save(post=post)
@@ -31,7 +30,8 @@ class PollCreateView(generics.CreateAPIView):
         poll = self.perform_create(serializer)
         return Response(
             PollSerializer(poll, context={'request': request}).data,
-            status=201)
+            status=201
+        )
 
 
 class PollVoteView(APIView):
@@ -39,9 +39,6 @@ class PollVoteView(APIView):
 
     def post(self, request, poll_id):
         poll = get_object_or_404(Poll, id=poll_id)
-
-        if not poll.is_active:
-            return Response({'error': 'Опитування завершено'}, status=400)
 
         option_ids = request.data.get('option_ids', [])
         if not option_ids:
@@ -54,7 +51,6 @@ class PollVoteView(APIView):
         if options.count() != len(option_ids):
             return Response({'error': 'Невірний варіант'}, status=400)
 
-        # Видаляємо старі голоси і додаємо нові
         PollVote.objects.filter(option__poll=poll, user=request.user).delete()
         PollVote.objects.bulk_create([
             PollVote(option=option, user=request.user)
@@ -64,7 +60,6 @@ class PollVoteView(APIView):
         return Response(PollSerializer(poll, context={'request': request}).data)
 
     def delete(self, request, poll_id):
-        """Скасувати свій голос"""
         poll = get_object_or_404(Poll, id=poll_id)
         PollVote.objects.filter(option__poll=poll, user=request.user).delete()
         return Response(PollSerializer(poll, context={'request': request}).data)

@@ -5,7 +5,7 @@ from .models import Poll, PollOption, PollVote
 
 class PollOptionSerializer(serializers.ModelSerializer):
     votes_count = serializers.ReadOnlyField()
-    votes_percent = serializers.SerializerMethodField()
+    vote_percent = serializers.SerializerMethodField()
     has_voted = serializers.SerializerMethodField()
 
     class Meta:
@@ -13,9 +13,8 @@ class PollOptionSerializer(serializers.ModelSerializer):
         fields = ['id', 'text', 'order',
                   'votes_count', 'vote_percent', 'has_voted']
 
-    def get_votes_percent(self, obj):
+    def get_vote_percent(self, obj):
         total = obj.poll.total_votes
-
         if not total:
             return 0
         return round(obj.votes_count / total * 100, 1)
@@ -30,12 +29,13 @@ class PollOptionSerializer(serializers.ModelSerializer):
 class PollSerializer(serializers.ModelSerializer):
     options = PollOptionSerializer(many=True, read_only=True)
     total_votes = serializers.ReadOnlyField()
-    get_user_voted = serializers.SerializerMethodField()
+    user_voted = serializers.SerializerMethodField()
 
-    class meta:
+    class Meta:
         model = Poll
         fields = [
-            'id', 'question', 'is_multiple', 'total_votes', 'options', 'user_voted'
+            'id', 'question', 'is_multiple',
+            'total_votes', 'options', 'user_voted'
         ]
 
     def get_user_voted(self, obj):

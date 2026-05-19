@@ -24,14 +24,14 @@ class CategorySerializer(serializers.ModelSerializer):
 class PostImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = PostImages
-        fields = ['id', 'image', 'order']  # image буде URL після серіалізації
+        fields = ['id', 'image', 'order']
         read_only_fields = ['id']
 
 
 class PostVideoSerializer(serializers.ModelSerializer):
     class Meta:
         model = PostVideo
-        fields = ['id', 'video', 'order']  # video буде URL
+        fields = ['id', 'video', 'order']
         read_only_fields = ['id']
 
 
@@ -173,14 +173,16 @@ class PostCreateUpdateSerializer(TaggitSerializer, serializers.ModelSerializer):
     class Meta:
         model = Post
         fields = [
+            'id',
             'title',
             'slug',
             'content',
-            'image',      # основне зображення поста
+            'image',
             'category',
             'status',
             'tags',
         ]
+        read_only_fields = ['id', 'slug']
 
     def validate_title(self, value):
         if len(value) < 4:

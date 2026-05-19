@@ -237,4 +237,10 @@ export const bookmarksAPI = {
   check: (postId) => api.get(`/bookmarks/${postId}/check/`),
 }
 
+export const pollsAPI = {
+  create: (data) => api.post('/polls/', data),
+  vote:   (pollId, optionIds) => api.post(`/polls/${pollId}/vote/`, { option_ids: optionIds }),
+  unvote: (pollId) => api.delete(`/polls/${pollId}/vote/`),
+}
+
 export default api

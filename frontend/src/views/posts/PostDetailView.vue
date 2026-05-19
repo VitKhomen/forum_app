@@ -75,6 +75,15 @@
             </div>
           </template>
           
+          <!-- Poll -->
+          <template v-if="post.poll">
+            <div class="border-b border-gray-200 dark:border-gray-700 my-8"></div>
+            <PollWidget
+              :poll="post.poll"
+              :is-authenticated="!!authStore.user"
+              @update="(updatedPoll) => post.poll = updatedPoll"
+            />
+          </template>
           
           <!-- Additional Images (clickable gallery) -->
           <template v-if="post.images && post.images.length">
@@ -332,6 +341,7 @@ import AuthorWithKarma from '@/components/ui/KarmaBadge.vue'
 import BookmarkButton from '@/components/ui/BookmarkButton.vue'
 import { sanitize } from '@/utils/sanitize'
 import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
+import PollWidget from '@/components/posts/PollWidget.vue'
 
 const route = useRoute()
 const router = useRouter()

@@ -22,7 +22,6 @@ export function useInfiniteScroll(fetchFn) {
 
       items.value.push(...newItems)
 
-      // Зберігаємо загальну кількість з першої сторінки
       if (offset.value === 0) {
         totalCount.value = data.count || 0
       }
@@ -31,6 +30,7 @@ export function useInfiniteScroll(fetchFn) {
       if (hasMore.value) offset.value += (data.results?.length || 0)
     } catch (e) {
       error.value = e
+      hasMore.value = false  // ← зупиняємо нескінченні запити при будь-якій помилці
       console.error('useInfiniteScroll error:', e)
     } finally {
       loading.value = false

@@ -217,6 +217,25 @@
         </select>
       </div>
 
+      <!-- Кнопка додати опитування -->
+      <div v-if="!showPoll">
+        <button
+          type="button"
+          @click="addPoll"
+          class="flex items-center gap-2 px-4 py-2 border-2 border-dashed border-gray-300
+                dark:border-gray-600 rounded-lg text-gray-500 hover:border-blue-500
+                hover:text-blue-600 transition w-full justify-center"
+        >
+          📊 Додати опитування
+        </button>
+      </div>
+
+      <PollForm
+        v-else
+        v-model="pollData"
+        @remove="removePoll"
+      />
+
       <!-- Submit -->
       <div class="flex gap-4">
         <button
@@ -246,6 +265,8 @@ import { XMarkIcon } from '@heroicons/vue/24/outline'
 import api from '@/services/api'
 import RichTextEditor from '@/components/ui/RichTextEditor.vue'
 import { useDraftAutosave } from '@/composables/useDraftAutosave'
+import PollForm from '@/components/posts/PollForm.vue'
+import { pollsAPI } from '@/services/api'
 
 const router = useRouter()
 const toast  = useToast()
@@ -270,6 +291,18 @@ const categories              = ref([])
 const loading                 = ref(false)
 const mainImagePreview        = ref(null)
 const additionalImagesPreviews = ref([])
+
+const pollData = ref(null)
+const showPoll = ref(false)
+
+const addPoll = () => {
+  showPoll.value = true
+  pollData.value = { question: '', options: ['', ''], is_multiple: false }
+}
+const removePoll = () => {
+  showPoll.value = false
+  pollData.value = null
+}
 
 // ── Автосейв ──────────────────────────────────────────────────
 
@@ -423,7 +456,24 @@ const handleSubmit = async () => {
     form.value.tags.forEach(tag => formData.append('tags', tag))
 
     const { data } = await postsAPI.create(formData)
-    const postSlug  = data.slug
+
+    const postId   = data.id
+    const postSlug = data.slug
+
+    // Опитування
+    if (pollData.value && pollData.value.question && pollData.value.options.filter(Boolean).length >= 2) {
+      try {
+        await pollsAPI.create({
+          post_id:     postId,    
+          question:    pollData.value.question,
+          options:     pollData.value.options.filter(Boolean),
+          is_multiple: pollData.value.is_multiple,
+        })
+      } catch (e) {
+        console.error('Poll помилка:', e.response?.data)
+        toast.warning('Пост створено, але помилка при додаванні опитування')
+      }
+    }
 
     // Додаткові зображення
     if (form.value.additional_images.length) {
@@ -447,7 +497,6 @@ const handleSubmit = async () => {
       }
     }
 
-    // Після успішного збереження — чистимо чернетку
     clearDraft()
     clearTimeout(saveTimer)
 
