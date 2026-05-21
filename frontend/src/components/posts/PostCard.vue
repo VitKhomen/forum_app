@@ -148,9 +148,15 @@ const formatDate = (dateString) => {
   }
 }
 
+const stripHtml = (html) => {
+  if (!html) return ''
+  return html.replace(/<[^>]*>/g, '')
+}
+
 const truncateText = (text, length) => {
   if (!text) return ''
-  return text.length > length ? text.substring(0, length) + '...' : text
+  const clean = stripHtml(text)
+  return clean.length > length ? clean.substring(0, length) + '...' : clean
 }
 </script>
 

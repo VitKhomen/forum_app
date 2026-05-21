@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from taggit.serializers import TagListSerializerField, TaggitSerializer
 from django.utils.text import Truncator
+from django.utils.html import strip_tags
 
 import bleach
 
@@ -69,7 +70,10 @@ class PostListSerializer(serializers.ModelSerializer):
 
     def get_excerpt(self, obj):
         """Скорочений текст для списку"""
-        return Truncator(obj.content).chars(200, truncate='...')
+        if not obj.content:
+            return ''
+        clean = strip_tags(obj.content)
+        return Truncator(clean).chars(200, truncate='...')
 
     def get_images_count(self, obj):
         return obj.images.count()
