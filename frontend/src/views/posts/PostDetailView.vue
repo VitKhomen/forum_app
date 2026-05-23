@@ -78,7 +78,9 @@
           <!-- Poll -->
           <template v-if="post.poll">
             <div class="border-b border-gray-200 dark:border-gray-700 my-8"></div>
+            <!-- Чекаємо поки authStore ініціалізується -->
             <PollWidget
+              v-if="authStore.initialized"
               :poll="post.poll"
               :is-authenticated="!!authStore.user"
               @update="(updatedPoll) => post.poll = updatedPoll"
@@ -325,7 +327,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { postsAPI } from '@/services/api'
 import { UserCircleIcon, EyeIcon, ChatBubbleLeftIcon, XMarkIcon } from '@heroicons/vue/24/outline'
@@ -545,7 +547,24 @@ const fetchPopularTags = async () => {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
+  // Чекаємо поки authStore ініціалізується
+  // щоб запит до поста пішов вже з токеном авторизації
+  if (!authStore.initialized) {
+    await new Promise(resolve => {
+      const unwatch = watch(
+        () => authStore.initialized,
+        (val) => {
+          if (val) {
+            unwatch()
+            resolve()
+          }
+        }
+      )
+    })
+  }
+
+  // Тільки після цього завантажуємо пост — він вже буде з правильним user_voted
   fetchPost()
   fetchPopular()
   fetchPopularTags()

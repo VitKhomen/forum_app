@@ -14,9 +14,8 @@ class Poll(models.Model):
     class Meta:
         db_table = 'polls'
 
-    @property
     def total_votes(self):
-        return PollVote.objects.filter(option__poll=self).count()
+        return self.options.aggregate(total=models.Count('votes'))['total'] or 0
 
 
 class PollOption(models.Model):
@@ -28,10 +27,6 @@ class PollOption(models.Model):
     class Meta:
         db_table = 'poll_options'
         ordering = ['order']
-
-    @property
-    def votes_count(self):
-        return self.votes.count()
 
 
 class PollVote(models.Model):

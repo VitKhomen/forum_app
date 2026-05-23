@@ -141,16 +141,20 @@ class PostViewSet(viewsets.ModelViewSet):
         slug = kwargs['slug']
         cache_key = f"post:detail:{slug}"
 
-        cached = cache.get(cache_key)
-        if cached is not None:
-            # Оновлюємо лічильник переглядів
-            if cached.get('status') == 'published':
-                Post.objects.filter(slug=slug).update(
-                    views_count=F('views_count') + 1)
-            return Response(cached)
+        # Якщо користувач НЕ авторизований — можна віддавати кеш
+        if not request.user.is_authenticated:
+            cached = cache.get(cache_key)
+            if cached is not None:
+                return Response(cached)
 
+        # Для авторизованих користувачів — завжди беремо свіжі дані
+        # (бо user_voted залежить від конкретного користувача)
         response = super().retrieve(request, *args, **kwargs)
-        cache.set(cache_key, response.data, timeout=1800)  # 30 хвилин
+
+        # Кешуємо тільки для НЕавторизованих користувачів
+        if not request.user.is_authenticated:
+            cache.set(cache_key, response.data, timeout=1800)  # 30 хвилин
+
         return response
 
     def _get_query_key(self, request):
