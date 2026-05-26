@@ -273,6 +273,25 @@
           </select>
         </div>
 
+        <!-- Poll -->
+        <div v-if="!showPoll">
+          <button
+            type="button"
+            @click="addPoll"
+            class="flex items-center gap-2 px-4 py-2 border-2 border-dashed border-gray-300
+                  dark:border-gray-600 rounded-lg text-gray-500 hover:border-blue-500
+                  hover:text-blue-600 transition w-full justify-center"
+          >
+            📊 {{ existingPollId ? 'Опитування видалено — додати нове' : 'Додати опитування' }}
+          </button>
+        </div>
+
+        <PollForm
+          v-else
+          v-model="pollData"
+          @remove="removePoll"
+        />
+
         <!-- Submit -->
         <div class="flex gap-4">
           <button
@@ -303,6 +322,9 @@ import { useToast } from 'vue-toastification'
 import { XMarkIcon } from '@heroicons/vue/24/outline'
 import RichTextEditor from '@/components/ui/RichTextEditor.vue'
 import { useDraftAutosave } from '@/composables/useDraftAutosave'
+import PollForm from '@/components/posts/PollForm.vue'
+import { pollsAPI } from '@/services/api'
+
 
 const router = useRouter()
 const route  = useRoute()
@@ -395,6 +417,21 @@ const formatDraftDate = (iso) => {
 }
 
 onUnmounted(() => clearTimeout(saveTimer))
+
+// ── Poll ──────────────────────────────────────────────────────
+const pollData    = ref(null)
+const showPoll    = ref(false)
+const existingPollId = ref(null)  // id існуючого полла щоб не дублювати
+
+const addPoll = () => {
+  showPoll.value = true
+  pollData.value = { question: '', options: ['', ''], is_multiple: false }
+}
+
+const removePoll = () => {
+  showPoll.value = false
+  pollData.value = null
+}
 
 // ── Computed ──────────────────────────────────────────────────
 
@@ -507,6 +544,28 @@ const handleSubmit = async () => {
 
     await postsAPI.update(route.params.slug, formData)
 
+    // ── Poll ──────────────────────────────────────────────────────
+    if (pollData.value && pollData.value.question && pollData.value.options.filter(Boolean).length >= 2) {
+      try {
+        // pollsAPI.create видаляє старий і створює новий (бо в view є Poll.objects.filter(post=post).delete())
+        const { data: updatedPost } = await postsAPI.getBySlug(route.params.slug)
+        await pollsAPI.create({
+          post_id:     updatedPost.id,
+          question:    pollData.value.question,
+          options:     pollData.value.options.filter(Boolean),
+          is_multiple: pollData.value.is_multiple,
+        })
+      } catch (e) {
+        console.error('Poll помилка:', e.response?.data)
+        toast.warning('Пост оновлено, але помилка при збереженні опитування')
+      }
+    } else if (!showPoll.value && existingPollId.value) {
+      // Юзер видалив полл — треба видалити його з бекенду
+      try {
+        await pollsAPI.delete(existingPollId.value)
+      } catch {}
+    }
+
     if (imagesToDelete.value.length) {
       try {
         await postsAPI.bulkDeleteImages(route.params.slug, imagesToDelete.value)
@@ -579,6 +638,17 @@ const fetchPost = async () => {
     currentMainImage.value = data.image    || null
     existingImages.value   = data.images   || []
     existingVideos.value   = data.videos   || []
+
+    // Якщо пост вже має полл — заповнюємо форму
+    if (data.poll) {
+      existingPollId.value = data.poll.id
+      showPoll.value       = true
+      pollData.value       = {
+        question:    data.poll.question,
+        options:     data.poll.options.map(o => o.text),
+        is_multiple: data.poll.is_multiple,
+      }
+    }
 
     // Перевіряємо чернетку після завантаження поста
     const draft = loadDraft()

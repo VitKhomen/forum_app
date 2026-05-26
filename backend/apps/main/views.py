@@ -181,7 +181,7 @@ class PostViewSet(viewsets.ModelViewSet):
     def _clear_post_cache(self, post):
         """Очищення всіх пов'язаних кешів"""
         cache.delete(f"post:detail:{post.slug}")
-        cache.delete_pattern("posts:list:*")        # Redis дозволяє це
+        cache.delete_pattern("posts:list:*")
         cache.delete_pattern("popular:*")
         cache.delete_pattern("trending:*")
         cache.delete_pattern("posts:by_tag:*")

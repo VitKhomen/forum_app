@@ -67,3 +67,12 @@ class PollVoteView(APIView):
         poll = get_object_or_404(Poll, id=poll_id)
         PollVote.objects.filter(option__poll=poll, user=request.user).delete()
         return Response(PollSerializer(poll, context={'request': request}).data)
+
+
+class PollDeleteView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def delete(self, request, poll_id):
+        poll = get_object_or_404(Poll, id=poll_id, post__author=request.user)
+        poll.delete()
+        return Response(status=204)

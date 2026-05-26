@@ -241,6 +241,7 @@ export const pollsAPI = {
   create: (data) => api.post('/polls/', data),
   vote:   (pollId, optionIds) => api.post(`/polls/${pollId}/vote/`, { option_ids: optionIds }),
   unvote: (pollId) => api.delete(`/polls/${pollId}/vote/`),
+  delete: (pollId) => api.delete(`/polls/${pollId}/`),
 }
 
 export default api
