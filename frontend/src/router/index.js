@@ -58,7 +58,7 @@ const router = createRouter({
       component: () => import('@/views/auth/LoginView.vue'),
       meta: { 
         title: 'Вхід',
-        guest: true 
+        guestOnly: true 
       }
     },
     {
@@ -67,7 +67,7 @@ const router = createRouter({
       component: () => import('@/views/auth/RegisterView.vue'),
       meta: { 
         title: 'Реєстрація',
-        guest: true 
+        guestOnly: true 
       }
     },
     {
@@ -178,7 +178,7 @@ router.beforeEach(async (to, from, next) => {
 
   if (requiresAuth && !authStore.isAuthenticated) {
     // Не авторизований — на логін
-    return next('/login')
+    return next({ path: '/login', query: { redirect: to.fullPath } })
   }
 
   if (guestOnly && authStore.isAuthenticated) {

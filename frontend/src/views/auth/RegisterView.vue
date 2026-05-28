@@ -149,11 +149,12 @@
 
 <script setup>
 import { ref } from 'vue'
-import { useRouter, RouterLink } from 'vue-router'
+import { useRouter, RouterLink, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { UserCircleIcon } from '@heroicons/vue/24/outline'
 import { useToast } from 'vue-toastification'
 
+const route  = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 const toast = useToast()
@@ -232,7 +233,12 @@ const handleRegister = async () => {
   
   const result = await authStore.register(formData)
   if (result.success) {
-    router.push('/')
+    const redirect = route.query.redirect
+    if (redirect && typeof redirect === 'string') {
+      router.push(redirect)
+    } else {
+      router.push('/')
+    }
   }
 }
 </script>

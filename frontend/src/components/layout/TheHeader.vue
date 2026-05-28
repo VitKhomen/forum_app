@@ -47,13 +47,13 @@
           </template>
           <template v-else>
             <RouterLink
-              to="/login"
+              :to="{ path: '/login', query: { redirect: route.fullPath } }"
               class="hidden md:block text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 px-3 py-2 text-sm font-medium transition"
             >
               Вхід
             </RouterLink>
             <RouterLink
-              to="/register"
+              :to="{ path: '/register', query: { redirect: route.fullPath } }"
               class="hidden md:block bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition"
             >
               Реєстрація
@@ -230,16 +230,16 @@
 
             <template v-else>
               <RouterLink
-                to="/login"
+                :to="{ path: '/login', query: { redirect: route.fullPath } }"
                 @click="sidebarOpen = false"
-                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                class="flex items-center gap-3 px-3 py-2.5 ..."
               >
                 <ArrowLeftOnRectangleIcon class="w-5 h-5" /> Вхід
               </RouterLink>
               <RouterLink
-                to="/register"
+                :to="{ path: '/register', query: { redirect: route.fullPath } }"
                 @click="sidebarOpen = false"
-                class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-blue-50 dark:hover:bg-gray-800 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                class="flex items-center gap-3 px-3 py-2.5 ..."
               >
                 <UserPlusIcon class="w-5 h-5" /> Реєстрація
               </RouterLink>

@@ -57,9 +57,10 @@
 
 <script setup>
 import { ref } from 'vue'
-import { useRouter, RouterLink } from 'vue-router'
+import { useRouter, RouterLink, useRoute } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
+const route  = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 
@@ -71,7 +72,12 @@ const form = ref({
 const handleLogin = async () => {
   const result = await authStore.login(form.value)
   if (result.success) {
-    router.push('/')
+    const redirect = route.query.redirect
+    if (redirect && typeof redirect === 'string') {
+      router.push(redirect)
+    } else {
+      router.push('/')
+    }
   }
 }
 </script>
