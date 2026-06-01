@@ -351,7 +351,13 @@ watch(() => route.path, () => {
 const handleLogout = async () => {
   sidebarOpen.value = false
   await authStore.logout()
-  router.push('/')
+
+  if (route.meta.requiresAuth) {
+    router.push('/')
+  } else {
+    // Замінюємо поточний роут на себе — Vue перемонтує компонент
+    router.replace({ path: route.path, query: route.query })
+  }
 }
 
 const fetchCategories = async () => {
