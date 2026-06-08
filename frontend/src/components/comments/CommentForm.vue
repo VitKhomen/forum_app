@@ -50,7 +50,10 @@
 
       <div class="flex items-center justify-between">
         <span v-if="!isAuthenticated" class="text-sm text-gray-600 dark:text-gray-400">
-          <RouterLink to="/login" class="text-blue-600 hover:underline">Увійдіть</RouterLink>
+          <RouterLink 
+            :to="{ path: '/login', query: { redirect: route.fullPath } }"
+            class="text-blue-600 hover:underline"
+          >Увійдіть</RouterLink>
           , щоб залишити коментар
         </span>
 
@@ -84,7 +87,7 @@
 
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRoute  } from 'vue-router'
 import EmojiPicker from '@/components/comments/EmojiPicker.vue'
 
 const props = defineProps({
@@ -103,6 +106,7 @@ const activeQuote     = ref('')   // локальна копія (можна п�
 const textareaRef     = ref(null)
 const emojiTriggerRef = ref(null)
 const pickerOpen      = ref(false)
+const route = useRoute()
 
 const isEditing = computed(() => !!props.editComment)
 

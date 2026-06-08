@@ -131,7 +131,7 @@
         <!-- Additional Images -->
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Додаткові зображення (макс 10)
+            Додаткові зображення (макс 20)
           </label>
 
           <!-- Існуючі -->
