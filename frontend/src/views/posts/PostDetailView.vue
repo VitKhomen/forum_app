@@ -166,20 +166,27 @@
               <span>{{ commentsCount }}</span>
             </div>
 
-            <div @click.stop>
+            <!-- Дії під постом (likes / bookmark / share) -->
+            <div class="flex items-center gap-3 flex-wrap">
               <LikeButton
                 content-type="post"
-                size="md"
                 :object-id="post.id"
                 :initial-likes-count="post.likes_count || 0"
                 :initial-is-liked="post.is_liked || false"
+                size="md"
+              />
+            
+              <BookmarkButton
+                :post-id="post.id"
+                :initial-bookmarked="post.is_bookmarked || false"
+              />
+            
+              <!-- НОВА КНОПКА -->
+              <ShareButton
+                :title="post.title"
+                :text="post.excerpt || ''"
               />
             </div>
-            <BookmarkButton
-              :post-id="post.id"
-              :initial-bookmarked="post.is_bookmarked || false"
-              size="md"
-            />
           </div>
         </div>
       </div>
@@ -344,11 +351,14 @@ import BookmarkButton from '@/components/ui/BookmarkButton.vue'
 import { sanitize } from '@/utils/sanitize'
 import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
 import PollWidget from '@/components/posts/PollWidget.vue'
+import ShareButton    from '@/components/ui/ShareButton.vue'
+import { useOgMeta } from '@/composables/useOgMeta'
 
 const route = useRoute()
 const router = useRouter()
 const post = ref(null)
 const toast = useToast()
+const { setPostMeta } = useOgMeta()
 const popularPosts = ref([])
 const popularTags = ref([])
 
@@ -452,6 +462,7 @@ const fetchPost = async () => {
     loadingPost.value = true
     const { data } = await postsAPI.getBySlug(route.params.slug)
     post.value = data
+    setPostMeta(data)
     commentsCount.value = data.comments_count || 0
   } catch (error) {
     console.error('Error fetching post:', error)
