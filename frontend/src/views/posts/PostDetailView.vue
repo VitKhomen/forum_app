@@ -181,7 +181,6 @@
                 :initial-bookmarked="post.is_bookmarked || false"
               />
             
-              <!-- НОВА КНОПКА -->
               <ShareButton
                 :title="post.title"
                 :text="post.excerpt || ''"

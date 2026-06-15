@@ -4,6 +4,26 @@
       Коментарі ({{ totalCount }})
     </h2>
 
+    <!-- Цитата поста — показується коли юзер натиснув "Процитувати пост" -->
+    <Transition name="quote-slide">
+      <div
+        v-if="postQuote"
+        class="flex items-start gap-2 px-4 py-3 rounded-xl
+               bg-amber-50 dark:bg-amber-900/20
+               border border-amber-200 dark:border-amber-700"
+      >
+        <span class="text-amber-500 text-xl leading-none mt-0.5 flex-shrink-0">❝</span>
+        <p class="text-sm text-gray-600 dark:text-gray-400 italic flex-1 line-clamp-3">
+          {{ postQuote }}
+        </p>
+        <button
+          @click="clearPostQuote"
+          class="text-gray-400 hover:text-red-500 transition text-xs flex-shrink-0 mt-0.5"
+          title="Прибрати цитату"
+        >✕</button>
+      </div>
+    </Transition>
+
     <!-- Головна форма -->
     <CommentForm
       :key="`main-${formKey}`"
@@ -11,17 +31,14 @@
       :is-authenticated="isAuthenticated"
       :loading="submitting"
       :edit-comment="editingComment"
+      :quote="postQuote"
       @submit="handleSubmit"
       @cancel="editingComment = null"
     />
 
-    <!-- Скелетон коментарів при початковому завантаженні -->
+    <!-- Скелетон -->
     <div v-if="loading && !items.length" class="space-y-4">
-      <SkeletonLoader 
-        v-for="i in 5" 
-        :key="`comment-skeleton-${i}`" 
-        type="comment" 
-      />
+      <SkeletonLoader v-for="i in 5" :key="`comment-skeleton-${i}`" type="comment" />
     </div>
 
     <!-- Порожній стан -->
@@ -76,9 +93,12 @@ import CommentForm from './CommentForm.vue'
 import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
 
 const props = defineProps({
-  postId:   { type: Number, required: true },
-  postSlug: { type: String, required: true },
+  postId:    { type: Number, required: true },
+  postSlug:  { type: String, required: true },
+  // Текст для цитування поста (передається з PostDetailView)
+  postQuoteText: { type: String, default: '' },
 })
+
 const emit = defineEmits(['update-comments-count'])
 
 const authStore = useAuthStore()
@@ -87,6 +107,23 @@ const toast     = useToast()
 const submitting     = ref(false)
 const editingComment = ref(null)
 const formKey        = ref(0)
+
+// Цитата поста — заповнюється коли батько передає postQuoteText
+const postQuote = ref('')
+
+// Слідкуємо за зовнішнім пропом: якщо PostDetailView викликав "Процитувати пост"
+watch(() => props.postQuoteText, (val) => {
+  if (val) {
+    postQuote.value = val
+    // Скролимо до форми коментарів
+    setTimeout(() => {
+      const el = document.querySelector('#comments-section')
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 50)
+  }
+}, { immediate: true })
+
+const clearPostQuote = () => { postQuote.value = '' }
 
 const isAuthenticated = computed(() => authStore.isAuthenticated)
 const currentUserId   = computed(() => authStore.user?.id)
@@ -109,27 +146,18 @@ const {
   reset,
 } = useInfiniteScroll(fetchPage)
 
-// Повідомляємо батька про зміну кількості
 watch(totalCount, (n) => emit('update-comments-count', n))
 
-// ── Дерево з плоского списку ─────────────────────────────────
+// ── Дерево ────────────────────────────────────────────────────
 
 const tree = computed(() => {
   const map   = {}
   const roots = []
-
+  items.value.forEach((c) => { map[c.id] = { ...c, children: [] } })
   items.value.forEach((c) => {
-    map[c.id] = { ...c, children: [] }
+    if (c.parent && map[c.parent]) map[c.parent].children.push(map[c.id])
+    else roots.push(map[c.id])
   })
-
-  items.value.forEach((c) => {
-    if (c.parent && map[c.parent]) {
-      map[c.parent].children.push(map[c.id])
-    } else {
-      roots.push(map[c.id])
-    }
-  })
-
   return roots
 })
 
@@ -140,14 +168,12 @@ const handleSubmit = async (payload) => {
   submitting.value = true
   try {
     if (payload.id) {
-      // Редагування
       const { data: updated } = await commentsAPI.update(payload.id, payload.data)
       const idx = items.value.findIndex((c) => c.id === payload.id)
       if (idx !== -1) items.value[idx] = { ...items.value[idx], ...updated }
       toast.success('Коментар оновлено')
       editingComment.value = null
     } else {
-      // Новий коментар
       const { data: newComment } = await commentsAPI.create({
         post:    props.postId,
         content: payload.content,
@@ -157,6 +183,8 @@ const handleSubmit = async (payload) => {
       totalCount.value++
       toast.success('Коментар додано')
       formKey.value++
+      // Після успішного сабміту прибираємо цитату поста
+      postQuote.value = ''
     }
   } catch {
     toast.error('Помилка при збереженні')
@@ -180,20 +208,16 @@ const handleDelete = async (commentId) => {
   try {
     await commentsAPI.delete(commentId)
     toast.success('Коментар видалено')
-
-    // Збираємо id коментаря + всіх нащадків
     const toRemove = new Set([commentId])
     let changed = true
     while (changed) {
       changed = false
       items.value.forEach((c) => {
         if (c.parent && toRemove.has(c.parent) && !toRemove.has(c.id)) {
-          toRemove.add(c.id)
-          changed = true
+          toRemove.add(c.id); changed = true
         }
       })
     }
-
     totalCount.value = Math.max(0, totalCount.value - toRemove.size)
     items.value = items.value.filter((c) => !toRemove.has(c.id))
   } catch {
@@ -201,3 +225,10 @@ const handleDelete = async (commentId) => {
   }
 }
 </script>
+
+<style scoped>
+.quote-slide-enter-active { transition: all 0.2s ease; }
+.quote-slide-leave-active { transition: all 0.15s ease; }
+.quote-slide-enter-from,
+.quote-slide-leave-to     { opacity: 0; transform: translateY(-8px); max-height: 0; }
+</style>
