@@ -1,3 +1,4 @@
+from urllib.parse import urlparse, urlunparse, parse_qs, urlencode
 import sys
 from pathlib import Path
 from decouple import config, Csv
@@ -349,3 +350,58 @@ CACHES = {
         "TIMEOUT": 3600,
     }
 }
+
+# ============================================
+# CELERY CONFIGURATION
+# ============================================
+
+REDIS_URL = config('REDIS_URL', default='redis://localhost:6379/0')
+
+
+def get_celery_redis_url(redis_url: str) -> str:
+    """Підготовка URL для Celery (Upstash підтримує тільки db=0)"""
+    parsed = urlparse(redis_url)
+
+    query_params = parse_qs(parsed.query)
+
+    if parsed.scheme == 'rediss':
+        query_params['ssl_cert_reqs'] = ['none']
+
+    new_query = urlencode(query_params, doseq=True)
+
+    # Завжди використовуємо /0 для Upstash
+    new_url = urlunparse((
+        parsed.scheme,
+        parsed.netloc,
+        '/0',
+        parsed.params,
+        new_query,
+        parsed.fragment
+    ))
+    return new_url
+
+
+CELERY_BROKER_URL = config(
+    'CELERY_BROKER_URL',
+    default=get_celery_redis_url(REDIS_URL)
+)
+
+CELERY_RESULT_BACKEND = CELERY_BROKER_URL
+
+# Додаткові параметри для Upstash
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+CELERY_BROKER_CONNECTION_RETRY = True
+CELERY_BROKER_CONNECTION_MAX_RETRIES = 10
+
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = TIME_ZONE
+
+CELERY_RESULT_EXPIRES = 3600
+CELERY_TASK_TIME_LIMIT = 60
+CELERY_TASK_SOFT_TIME_LIMIT = 45
+CELERY_TASK_DEFAULT_RETRY_DELAY = 10
+CELERY_TASK_MAX_RETRIES = 3
+CELERY_WORKER_MAX_TASKS_PER_CHILD = 200
+CELERY_TASK_DEFAULT_QUEUE = 'justforum_default'
