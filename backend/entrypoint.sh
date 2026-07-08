@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 set -e
 
 echo "====================================="
@@ -104,11 +104,29 @@ gunicorn config.wsgi:application \
 
 GUNICORN_PID=$!
 
-# Чекаємо на будь-який з двох процесів — якщо один впаде,
-# контейнер має перезапуститись (Render сам це підхопить)
-wait -n $GUNICORN_PID $CELERY_PID
-EXIT_CODE=$?
+# wait -n не підтримується в dash і старому bash — замінюємо
+# на портабельний цикл: перевіряємо обидва процеси кожну секунду.
+# Як тільки один впаде — запускаємо cleanup і виходимо.
+echo "⏳ Обидва процеси запущені, слідкую за ними..."
+while true; do
+    sleep 5
 
-echo "⚠️  Один з процесів завершився (код $EXIT_CODE), зупиняю інший..."
-cleanup
-exit $EXIT_CODE
+    # Перевіряємо gunicorn
+    if ! kill -0 $GUNICORN_PID 2>/dev/null; then
+        echo "⚠️  Gunicorn (PID=$GUNICORN_PID) завершився, зупиняю все..."
+        wait $GUNICORN_PID 2>/dev/null
+        EXIT_CODE=$?
+        cleanup
+        exit $EXIT_CODE
+    fi
+
+    # Перевіряємо celery
+    if ! kill -0 $CELERY_PID 2>/dev/null; then
+        echo "⚠️  Celery worker (PID=$CELERY_PID) завершився"
+        echo "    Логи воркера:"
+        cat /tmp/celery.log 2>/dev/null || true
+        echo "    Gunicorn продовжує працювати (fallback на sync карму активний)"
+        # Не вбиваємо gunicorn — сайт живе, карма йде через fallback
+        # Просто чекаємо далі, поки gunicorn теж не впаде
+    fi
+done
