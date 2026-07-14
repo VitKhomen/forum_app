@@ -14,6 +14,7 @@ urlpatterns = [
     path('api/v1/movies/', include('apps.movies.urls')),
     path('api/v1/bookmarks/', include('apps.bookmarks.urls')),
     path('api/v1/polls/', include('apps.polls.urls')),
+    path('api/v1/moderation/', include('apps.moderation.urls')),
 ]
 
 if settings.DEBUG:
