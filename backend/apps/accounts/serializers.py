@@ -83,7 +83,8 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'id', 'username', 'email', 'first_name', 'last_name',
             'full_name', 'avatar', 'bio', 'created_at', 'updated_at',
             'posts_count', 'comments_count', 'likes_received_count',
-            'karma_points', 'karma_level'
+            'karma_points', 'karma_level',
+            'is_staff',
         )
         read_only_fields = ('id', 'created_at', 'updated_at',
                             'karma_points', 'karma_level', 'likes_received_count')

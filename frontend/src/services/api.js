@@ -244,4 +244,37 @@ export const pollsAPI = {
   delete: (pollId) => api.delete(`/polls/${pollId}/`),
 }
 
+export const moderationAPI = {
+  // Юзер — подати скаргу
+  report: (contentType, objectId, reason, comment = '') =>
+    api.post('/moderation/report/', {
+      content_type_name: contentType,
+      object_id: objectId,
+      reason,
+      comment,
+    }),
+ 
+  // Юзер — перевірити чи вже репортив
+  checkReported: (contentType, objectId) =>
+    api.get('/moderation/check/', {
+      params: { content_type: contentType, object_id: objectId }
+    }),
+ 
+  // Адмін — черга репортів
+  getQueue: (params) =>
+    api.get('/moderation/admin/queue/', { params }),
+ 
+  // Адмін — статистика (кількість pending)
+  getStats: () =>
+    api.get('/moderation/admin/stats/'),
+ 
+  // Адмін — видалити контент і закрити репорт
+  resolve: (reportId, adminNote = '') =>
+    api.post(`/moderation/admin/${reportId}/resolve/`, { admin_note: adminNote }),
+ 
+  // Адмін — відхилити скаргу, залишити контент
+  reject: (reportId, adminNote = '') =>
+    api.post(`/moderation/admin/${reportId}/reject/`, { admin_note: adminNote }),
+}
+
 export default api

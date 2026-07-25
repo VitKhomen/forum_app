@@ -145,6 +145,16 @@ const router = createRouter({
       }
     },
 
+    {
+      path: '/admin-panel',
+      name: 'admin-panel',
+      component: () => import('@/views/AdminPanelView.vue'),
+      meta: {
+        title: 'Панель модерації',
+        requiresAuth: true,
+      }
+    },
+
     // Публічний профіль будь-якого користувача (той самий компонент!)
     {
       path: '/users/:username',

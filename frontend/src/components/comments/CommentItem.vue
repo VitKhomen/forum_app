@@ -77,6 +77,12 @@
           ❝ Цитувати
         </button>
 
+        <ReportButton
+          content-type="comment"
+          :object-id="comment.id"
+          :icon-only="true"
+        />
+
         <LikeButton
           content-type="comment"
           :object-id="comment.id"
@@ -144,6 +150,7 @@ import AuthorWithKarma from '@/components/ui/KarmaBadge.vue'
 import CommentForm from './CommentForm.vue'
 import { commentsAPI } from '@/services/api'
 import { useToast } from 'vue-toastification'
+import ReportButton from '@/components/ui/ReportButton.vue'
 
 const MAX_VISUAL_DEPTH = 5
 

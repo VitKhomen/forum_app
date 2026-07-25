@@ -185,6 +185,11 @@
                 :title="post.title"
                 :text="post.excerpt || ''"
               />
+
+              <ReportButton
+                content-type="post"
+                :object-id="post.id"
+              />
             </div>
           </div>
         </div>
@@ -352,6 +357,7 @@ import SkeletonLoader from '@/components/ui/SkeletonLoader.vue'
 import PollWidget from '@/components/posts/PollWidget.vue'
 import ShareButton    from '@/components/ui/ShareButton.vue'
 import { useOgMeta } from '@/composables/useOgMeta'
+import ReportButton from '@/components/ui/ReportButton.vue'
 
 const route = useRoute()
 const router = useRouter()

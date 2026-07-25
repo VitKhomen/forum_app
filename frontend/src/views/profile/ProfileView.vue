@@ -90,6 +90,22 @@
             >
               Змінити пароль
             </button>
+            <RouterLink
+              v-if="authStore.user?.is_staff"
+              to="/admin-panel"
+              class="relative px-4 py-2 bg-red-600 text-white rounded-lg
+                    hover:bg-red-700 transition flex items-center gap-2"
+            >
+              🛡️ Модерація
+              <!-- Бейдж з кількістю нових скарг -->
+              <span
+                v-if="pendingReports > 0"
+                class="absolute -top-2 -right-2 w-5 h-5 bg-orange-500 text-white
+                      text-xs rounded-full flex items-center justify-center font-bold"
+              >
+                {{ pendingReports > 9 ? '9+' : pendingReports }}
+              </span>
+            </RouterLink>
           </template>
 
           <!-- Чужий профіль -->
@@ -316,9 +332,34 @@ import AuthorWithKarma from '@/components/ui/KarmaBadge.vue'
 import KarmaHistoryModal from '@/components/ui/KarmaHistoryModal.vue'
 import ProfileMoviesSection from '@/components/movies/ProfileMoviesSection.vue'
 import api from '@/services/api'
+import { moderationAPI } from '@/services/api'
 
 const route = useRoute()
 const authStore = useAuthStore()
+const pendingReports = ref(0)
+
+onMounted(async () => {
+  const authStore = useAuthStore()   // переконайся, що імпорт є
+
+  // Якщо ще не ініціалізовано — чекаємо
+  if (!authStore.initialized.value) {
+    await authStore.init()
+  }
+
+  if (authStore.isStaff.value) {     // використовуй getter
+    try {
+      const { data } = await moderationAPI.getStats()
+      pendingReports.value = data.pending_count
+    } catch (e) {
+      console.error('Не вдалося завантажити статистику модерації', e)
+    }
+  }
+})
+
+watch(() => authStore.user, (user) => {
+  console.log('🔍 authStore.user:', user)
+  console.log('is_staff:', user?.is_staff)
+}, { immediate: true })
 const toast = useToast()
 
 const loading = ref(false)

@@ -7,6 +7,7 @@ import Toast from 'vue-toastification'
 
 import App from './App.vue'
 import router from './router'
+import { useAuthStore } from '@/stores/auth'
 
 const app = createApp(App)
 
@@ -28,5 +29,8 @@ const toastOptions = {
 app.use(createPinia())
 app.use(router)
 app.use(Toast, toastOptions)
+
+const authStore = useAuthStore()
+authStore.init().catch(console.error)
 
 app.mount('#app')
