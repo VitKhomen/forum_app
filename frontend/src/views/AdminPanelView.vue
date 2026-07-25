@@ -327,9 +327,9 @@ const handleReject = async (report) => {
 
 const contentLink = (report) => {
   if (report.content_type_name === 'post') {
-    return `/posts/${report.object_id}`
+    return `/posts/${report.object_slug}`
   }
-  return `/posts/?highlight_comment=${report.object_id}`
+  return `/posts/${report.object_post_slug}`
 }
 
 const formatDate = (str) => {

@@ -1,6 +1,7 @@
+# backend/apps/moderation/serializers.py
+
 from rest_framework import serializers
 from django.contrib.contenttypes.models import ContentType
-
 from .models import Report
 
 
@@ -20,9 +21,7 @@ class ReportCreateSerializer(serializers.ModelSerializer):
         ct_name = attrs.pop('content_type_name')
         object_id = attrs['object_id']
 
-        # Визначаємо модель по рядку
-        model_map = {'post': 'post', 'comment': 'comment'}
-        if ct_name not in model_map:
+        if ct_name not in ('post', 'comment'):
             raise serializers.ValidationError('Невірний тип контенту')
 
         try:
@@ -31,7 +30,6 @@ class ReportCreateSerializer(serializers.ModelSerializer):
         except ContentType.DoesNotExist:
             raise serializers.ValidationError('Тип контенту не знайдено')
 
-        # Перевіряємо що обʼєкт існує
         if not ct.get_object_for_this_type(pk=object_id):
             raise serializers.ValidationError('Обʼєкт не знайдено')
 
@@ -53,13 +51,16 @@ class ReportAdminSerializer(serializers.ModelSerializer):
     content_type_name = serializers.CharField(
         source='content_type.model', read_only=True)
     reason_display = serializers.CharField(
-        source='get_reason_display',  read_only=True)
+        source='get_reason_display', read_only=True)
     status_display = serializers.CharField(
-        source='get_status_display',  read_only=True)
+        source='get_status_display', read_only=True)
 
-    # Базова інфо про обʼєкт скарги — заголовок поста або початок коментаря
     object_preview = serializers.SerializerMethodField()
     object_author = serializers.SerializerMethodField()
+    # НОВЕ: slug для побудови правильного посилання на фронті
+    object_slug = serializers.SerializerMethodField()
+    # НОВЕ: для коментаря — slug поста до якого він належить
+    object_post_slug = serializers.SerializerMethodField()
 
     class Meta:
         model = Report
@@ -68,6 +69,7 @@ class ReportAdminSerializer(serializers.ModelSerializer):
             'comment', 'status', 'status_display',
             'content_type_name', 'object_id',
             'object_preview', 'object_author',
+            'object_slug', 'object_post_slug',
             'reviewed_by_username', 'reviewed_at', 'admin_note',
             'created_at',
         ]
@@ -77,7 +79,6 @@ class ReportAdminSerializer(serializers.ModelSerializer):
             target = obj.content_object
             if target is None:
                 return '(обʼєкт видалено)'
-            # Post має title, Comment має content
             text = getattr(target, 'title', None) or getattr(
                 target, 'content', '')
             return str(text)[:120]
@@ -91,5 +92,26 @@ class ReportAdminSerializer(serializers.ModelSerializer):
                 return None
             author = getattr(target, 'author', None)
             return author.username if author else None
+        except Exception:
+            return None
+
+    def get_object_slug(self, obj):
+        """Для Post — повертає slug. Для Comment — None."""
+        try:
+            if obj.content_type.model == 'post':
+                target = obj.content_object
+                return getattr(target, 'slug', None) if target else None
+            return None
+        except Exception:
+            return None
+
+    def get_object_post_slug(self, obj):
+        """Для Comment — повертає slug поста до якого належить коментар."""
+        try:
+            if obj.content_type.model == 'comment':
+                target = obj.content_object
+                if target and hasattr(target, 'post'):
+                    return getattr(target.post, 'slug', None)
+            return None
         except Exception:
             return None

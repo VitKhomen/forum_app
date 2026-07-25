@@ -196,7 +196,7 @@
       </div>
     
       <!-- Edit/Delete Buttons for Author -->
-      <div v-if="isAuthor" class="flex flex-col sm:flex-row gap-3 pt-6">
+      <div v-if="canManagePost" class="flex flex-col sm:flex-row gap-3 pt-6">
         <RouterLink
           :to="`/profile/edit-post/${post.slug}`"
           class="px-6 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-center font-medium"
@@ -392,6 +392,14 @@ const isAuthor = computed(() => {
   const currentUsername = authStore.user?.username || authStore.currentUsername
   
   return postAuthorId === currentUserId || postAuthorUsername === currentUsername
+})
+
+const isStaff = computed(() => {
+  return !!authStore.user?.is_staff
+})
+
+const canManagePost = computed(() => {
+  return isAuthor.value || isStaff.value
 })
 
 const deletePost = async (slug) => {

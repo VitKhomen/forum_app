@@ -24,7 +24,7 @@ from .serializers import (
     PostImageSerializer,
     PostVideoSerializer,
 )
-from .permissions import IsAuthorOrReadOnly
+from .permissions import IsAuthorOrStaff
 from apps.core.throttling import PostCreateMinuteThrottle, PostCreateDayThrottle
 
 
@@ -82,7 +82,7 @@ class PostViewSet(viewsets.ModelViewSet):
     """ViewSet для постів з повним CRUD функціоналом"""
     queryset = Post.objects.select_related('author', 'category') \
                            .prefetch_related('tags', 'images', 'videos')
-    permission_classes = [IsAuthenticatedOrReadOnly, IsAuthorOrReadOnly]
+    permission_classes = [IsAuthenticatedOrReadOnly, IsAuthorOrStaff]
     pagination_class = PopularPagination
     lookup_field = 'slug'
     filter_backends = [DjangoFilterBackend,
@@ -258,11 +258,15 @@ class PostViewSet(viewsets.ModelViewSet):
 # Base Media ViewSet
 # ========================
 class BasePostMediaViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated, IsAuthorOrReadOnly]
+    permission_classes = [IsAuthenticated, IsAuthorOrStaff]
     parser_classes = [JSONParser, MultiPartParser, FormParser]
     file_field_name = None
     max_items = None
     max_file_size = None
+
+    def _can_manage_post(self, post):
+        user = self.request.user
+        return user.is_authenticated and (user.is_staff or post.author == user)
 
     def get_post(self):
         return get_object_or_404(
@@ -276,7 +280,7 @@ class BasePostMediaViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         post = self.get_post()
-        if post.author != self.request.user:
+        if not self._can_manage_post(post):
             self.permission_denied(self.request)
 
         files = self.request.FILES.getlist(self.file_field_name)
@@ -326,14 +330,14 @@ class BasePostMediaViewSet(viewsets.ModelViewSet):
         )
 
     def perform_destroy(self, instance):
-        if instance.post.author != self.request.user:
+        if not self._can_manage_post(instance.post):
             self.permission_denied(self.request)
         instance.delete()
 
     @action(detail=False, methods=['patch'])
     def reorder(self, request, post_slug):
         post = self.get_post()
-        if post.author != request.user:
+        if not self._can_manage_post(post):
             return Response({'error': 'Недостатньо прав'}, status=status.HTTP_403_FORBIDDEN)
 
         orders = request.data.get('orders', {})
@@ -350,7 +354,7 @@ class BasePostMediaViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['delete'])
     def bulk_delete(self, request, post_slug):
         post = self.get_post()
-        if post.author != request.user:
+        if not self._can_manage_post(post):
             return Response({'error': 'Недостатньо прав'}, status=status.HTTP_403_FORBIDDEN)
 
         ids = request.data.get('ids', [])
