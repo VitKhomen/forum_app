@@ -10,7 +10,7 @@ from django.core.cache import cache
 from .models import Comment
 from .serializers import CommentSerializer, CommentDetailSerializer, \
     CommentCreateSerializer, CommentUpdateSerializer
-from .permissions import IsAuthorOrReadOnly
+from apps.main.permissions import IsAuthorOrStaff
 from apps.main.models import Post
 from apps.core.throttling import CommentCreateMinuteThrottle, CommentCreateHourThrottle
 
@@ -77,7 +77,10 @@ class CommentDetailView(generics.RetrieveUpdateDestroyAPIView):
         )
     )
     serializer_class = CommentDetailSerializer
-    permission_classes = [IsAuthorOrReadOnly]
+    permission_classes = [
+        permissions.IsAuthenticatedOrReadOnly,
+        IsAuthorOrStaff,
+    ]
 
     def update(self, request, *args, **kwargs):
         """Перевизначаємо update щоб повертати повний серіалізований об'єкт"""

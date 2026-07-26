@@ -59,6 +59,7 @@
         :post-id="postId"
         :current-user-id="currentUserId"
         :is-authenticated="isAuthenticated"
+        :is-staff="isStaff" 
         :depth="0"
         @edit="handleEdit"
         @delete="handleDelete"
@@ -127,6 +128,7 @@ const clearPostQuote = () => { postQuote.value = '' }
 
 const isAuthenticated = computed(() => authStore.isAuthenticated)
 const currentUserId   = computed(() => authStore.user?.id)
+const isStaff         = computed(() => authStore.user?.is_staff || false)
 
 // ── Інфініті скролінг ────────────────────────────────────────
 

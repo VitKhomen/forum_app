@@ -5,3 +5,6 @@ class ModerationConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'apps.moderation'
     verbose_name = 'Модерація'
+
+    def ready(self):
+        import apps.moderation.signals

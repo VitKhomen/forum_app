@@ -78,6 +78,7 @@
         </button>
 
         <ReportButton
+          v-if="!isOwner"
           content-type="comment"
           :object-id="comment.id"
           :icon-only="true"
@@ -131,6 +132,7 @@
               :post-id="postId"
               :current-user-id="currentUserId"
               :is-authenticated="isAuthenticated"
+              :is-staff="isStaff"
               :depth="Math.min(depth + 1, MAX_VISUAL_DEPTH)"
               @edit="$emit('edit', $event)"
               @delete="$emit('delete', $event)"
@@ -159,6 +161,7 @@ const props = defineProps({
   postId:          { type: Number,  required: true },
   currentUserId:   { type: Number,  default: null },
   isAuthenticated: { type: Boolean, default: false },
+  isStaff:         { type: Boolean, default: false },
   depth:           { type: Number,  default: 0 },
 })
 
@@ -172,6 +175,7 @@ const collapsed     = ref(false)
 
 const author  = computed(() => props.comment.author_info || {})
 const isOwner = computed(() => {
+  if (props.isStaff) return true 
   const aid = author.value.id || props.comment.author_id
   return props.currentUserId && aid === props.currentUserId
 })
