@@ -200,9 +200,11 @@ const handleNewReply = ({ reply }) => {
   totalCount.value++
 }
 
+const formRef = ref(null)
+
 const handleEdit = (comment) => {
   editingComment.value = comment
-  window.scrollTo({ top: 0, behavior: 'smooth' })
+  formRef.value?.$el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
 }
 
 const handleDelete = async (commentId) => {

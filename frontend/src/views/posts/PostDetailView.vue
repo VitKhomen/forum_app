@@ -187,6 +187,7 @@
               />
 
               <ReportButton
+                v-if="!isAuthor && !authStore.user?.is_staff"
                 content-type="post"
                 :object-id="post.id"
               />
